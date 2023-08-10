@@ -1,27 +1,28 @@
-host: "192.52.42.37"
+#host: "192.52.42.37"
+host: "0.0.0.0"
 port: "80"
 endpoints:
-  - root:
-      path: "/"
-      methods: ["GET"]
-      description: "Root endpoint"
+  root:
+    path: "/"
+    methods: ["GET"]
+    description: "Root endpoint"
 
-  - login:
-      path: "/auth/login/"
-      methods: ["POST"]
-      description: "Login endpoint"
+  login:
+    path: "/auth/login/"
+    methods: ["POST"]
+    description: "Login endpoint"
 
-  - protected_root:
-      path: "/protected/"
-      methods: ["GET"]
-      description: "Protected root endpoint"
+  protected_root:
+    path: "/protected/"
+    methods: ["GET"]
+    description: "Protected root endpoint"
 
-  - upload_train_set:
-      path: "/upload/train_set/"
-      methods: ["POST"]
-      description: "Upload train set endpoint"
+  upload_train_set:
+    path: "/upload/train_set/"
+    methods: ["POST"]
+    description: "Upload train set endpoint"
 
-  - predict:
-      path: "/predict/"
-      methods: ["POST"]
-      description: "Predict endpoint"
+  predict:
+    path: "/predict/"
+    methods: ["POST"]
+    description: "Predict endpoint"

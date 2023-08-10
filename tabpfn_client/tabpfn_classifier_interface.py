@@ -1,18 +1,14 @@
 from abc import ABC, abstractmethod
 
 
-class TabPFNClassifierInterface(ABC):
+class AbstractTabPFNClassifier(ABC):
 
     @abstractmethod
     def remove_models_from_memory(self):
         pass
 
     @abstractmethod
-    def load_result_minimal(self, path, i, e):
-        pass
-
-    @abstractmethod
-    def fit(self, X, y):
+    def fit(self, X, y, overwrite_warning=False):
         pass
 
     @abstractmethod

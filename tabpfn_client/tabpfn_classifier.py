@@ -3,7 +3,7 @@ import pathlib
 from omegaconf import OmegaConf
 
 from tabpfn import TabPFNClassifier as TabPFNClassifierLocal
-from tabpfn_client.tabpfn_classifier_interface import TabPFNClassifierInterface
+from tabpfn_client.tabpfn_classifier_interface import AbstractTabPFNClassifier
 from tabpfn_client.tabpfn_service_client import TabPFNServiceClient
 
 SERVER_SPEC_FILE = pathlib.Path(__file__).parent.resolve() / "server_spec.yaml"
@@ -46,9 +46,7 @@ def remove_saved_access_token():
     pass
 
 
-class TabPFNClassifier(TabPFNClassifierInterface):
-    # TODO: ask Sam/Noah if we could create an interface of TabPFNClassifier instead
-
+class TabPFNClassifier(AbstractTabPFNClassifier):
     def __init__(self, device='cpu', base_path=pathlib.Path(__file__).parent.parent.resolve(), model_string='',
                  N_ensemble_configurations=3, no_preprocess_mode=False, multiclass_decoder='permutation',
                  feature_shift_decoder=True, only_inference=True, seed=0, no_grad=True, batch_size_inference=32):
