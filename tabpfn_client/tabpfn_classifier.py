@@ -3,6 +3,7 @@ from pathlib import Path
 import textwrap
 
 from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.utils.validation import check_is_fitted
 
 from tabpfn import TabPFNClassifier as TabPFNClassifierLocal
 from tabpfn_client import tabpfn_service_client
@@ -85,12 +86,8 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
             transformer_predict_kwargs_init=None,
             multiclass_decoder="permutation",
     ):
-        # assert init() is called
-        if not g_tabpfn_config.is_initialized:
-            raise RuntimeError("TabPFNClassifier.init() must be called before using TabPFNClassifier")
-
         # config for tabpfn
-        # self.model = model
+        self.model = model
         self.device = device
         self.base_path = base_path
         self.model_string = model_string
@@ -109,10 +106,13 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
         self.transformer_predict_kwargs_init = transformer_predict_kwargs_init
         self.multiclass_decoder = multiclass_decoder
 
-        self.classifier = None
-
     def fit(self, X, y):
-        if self.classifier is None:
+        # assert init() is called
+        if not g_tabpfn_config.is_initialized:
+            raise RuntimeError("TabPFNClassifier.init() must be called before using TabPFNClassifier")
+
+        # create classifier if not created yet
+        if not hasattr(self, "classifier"):
             # arguments that are commented out are not used at the moment
             # (not supported until new TabPFN interface is released)
             classifier_cfg = {
@@ -137,17 +137,19 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
             }
 
             if g_tabpfn_config.use_server:
-                self.classifier = TabPFNServiceClient(**classifier_cfg)
+                self.classifier_ = TabPFNServiceClient(**classifier_cfg)
             else:
-                self.classifier = TabPFNClassifierLocal(**classifier_cfg)
+                self.classifier_ = TabPFNClassifierLocal(**classifier_cfg)
 
-        return self.classifier.fit(X, y)
+        return self.classifier_.fit(X, y)
 
     def predict(self, X):
-        return self.classifier.predict(X)
+        check_is_fitted(self)
+        return self.classifier_.predict(X)
 
-    def predict_proba(self, X):
-        return self.classifier.predict_proba(X)
+    # def predict_proba(self, X):
+    #     # check_is_fitted(self)
+    #     return self.classifier.predict_proba(X)
 
 
 REGISTER_LINK = "http://0.0.0.0/docs#/default/register_auth_register__post"     # TODO: add link

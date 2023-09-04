@@ -3,6 +3,9 @@ import logging
 from pathlib import Path
 from omegaconf import OmegaConf
 
+from sklearn.utils.validation import check_is_fitted
+from sklearn.base import BaseEstimator, ClassifierMixin
+
 from tabpfn_client.tabpfn_common_utils import utils as common_utils
 
 g_access_token = None
@@ -17,7 +20,7 @@ def init(access_token: str):
     TabPFNServiceClient.access_token = access_token
 
 
-class TabPFNServiceClient:
+class TabPFNServiceClient(BaseEstimator, ClassifierMixin):
 
     SERVER_ENDPOINTS = SERVER_SPEC["endpoints"]
 
@@ -48,12 +51,6 @@ class TabPFNServiceClient:
         if self.access_token is None or self.access_token == "":
             raise RuntimeError("tabpfn_service_client.init() must be called before instantiating TabPFNServiceClient")
 
-        self.last_per_user_train_set_id = None
-
-        # TODO: (in the coming version)
-        #  will be used as the reference to the per-client TabPFN on the server
-        self.tabpfn_id = None
-
         # TODO:
         #  These configs are ignored at the moment -> all clients share the same (default) on-server TabPFNClassifier.
         #  In the future version, these configs will be used to create per-user TabPFNClassifier,
@@ -79,8 +76,11 @@ class TabPFNServiceClient:
         self.multiclass_decoder = multiclass_decoder
 
     def fit(self, X, y):
+        self.last_per_user_train_set_id_ = None
+
         # TODO: (in the coming version)
         #  create a per-client TabPFN on the server (referred by self.tabpfn_id) if it doesn't exist yet
+        self.tabpfn_id_ = None
 
         X = common_utils.serialize_to_csv_formatted_bytes(X)
         y = common_utils.serialize_to_csv_formatted_bytes(y)
@@ -100,21 +100,19 @@ class TabPFNServiceClient:
             logging.error(f"Fail to call fit(), server response: {response.json()}")
             raise RuntimeError(f"Fail to call fit(), server response: {response.json()}")
 
-        self.last_per_user_train_set_id = response.json()["per_user_train_set_id"]
+        self.last_per_user_train_set_id_ = response.json()["per_user_train_set_id"]
 
         return self
 
     def predict(self, X):
-        # check if user has already called fit() before
-        if self.last_per_user_train_set_id is None:
-            raise RuntimeError("You must call fit() before calling predict()")
+        check_is_fitted(self)
 
         X = common_utils.serialize_to_csv_formatted_bytes(X)
 
         response = self.httpx_client.post(
             url=self.SERVER_ENDPOINTS["predict"]["path"],
             headers={"Authorization": f"Bearer {self.access_token}"},
-            params={"per_user_train_set_id": self.last_per_user_train_set_id},
+            params={"per_user_train_set_id": self.last_per_user_train_set_id_},
             files=common_utils.to_httpx_post_file_format([
                 ("x_file", X)
             ])
@@ -124,7 +122,7 @@ class TabPFNServiceClient:
             logging.error(f"Fail to call predict(), response status: {response.status_code}")
             raise RuntimeError(f"Fail to call predict(), server response: {response.json()}")
 
-        return response.json()
+        return response.json()["y_pred"]
 
     def predict_proba(self, X):
         raise NotImplementedError
