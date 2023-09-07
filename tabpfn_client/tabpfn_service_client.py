@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 from omegaconf import OmegaConf
 
+import numpy as np
 from sklearn.utils.validation import check_is_fitted
 from sklearn.base import BaseEstimator, ClassifierMixin
 
@@ -10,8 +11,8 @@ from tabpfn_client.tabpfn_common_utils import utils as common_utils
 
 g_access_token = None
 
-SERVER_SPEC_FILE = Path(__file__).parent.resolve() / "server_spec.yaml"
-SERVER_SPEC = OmegaConf.load(SERVER_SPEC_FILE)
+SERVER_CONFIG_FILE = Path(__file__).parent.resolve() / "server_config.yaml"
+SERVER_CONFIG = OmegaConf.load(SERVER_CONFIG_FILE)
 
 
 def init(access_token: str):
@@ -22,9 +23,11 @@ def init(access_token: str):
 
 class TabPFNServiceClient(BaseEstimator, ClassifierMixin):
 
-    SERVER_ENDPOINTS = SERVER_SPEC["endpoints"]
+    server_config = SERVER_CONFIG
+    server_endpoints = SERVER_CONFIG["endpoints"]
 
-    httpx_client = httpx.Client(base_url=f"http://{SERVER_SPEC['host']}:{SERVER_SPEC['port']}")     # TODO: use https
+    httpx_client = httpx.Client(base_url=f"http://{server_config.host}:{server_config.port}")     # TODO:
+    # use https
     access_token = None
 
     def __init__(
@@ -86,7 +89,7 @@ class TabPFNServiceClient(BaseEstimator, ClassifierMixin):
         y = common_utils.serialize_to_csv_formatted_bytes(y)
 
         response = self.httpx_client.post(
-            url=self.SERVER_ENDPOINTS["upload_train_set"]["path"],
+            url=self.server_endpoints.upload_train_set.path,
             headers={"Authorization": f"Bearer {self.access_token}"},
             files=common_utils.to_httpx_post_file_format([
                 ("x_file", X),
@@ -110,7 +113,7 @@ class TabPFNServiceClient(BaseEstimator, ClassifierMixin):
         X = common_utils.serialize_to_csv_formatted_bytes(X)
 
         response = self.httpx_client.post(
-            url=self.SERVER_ENDPOINTS["predict"]["path"],
+            url=self.server_endpoints.predict.path,
             headers={"Authorization": f"Bearer {self.access_token}"},
             params={"per_user_train_set_id": self.last_per_user_train_set_id_},
             files=common_utils.to_httpx_post_file_format([
@@ -122,7 +125,7 @@ class TabPFNServiceClient(BaseEstimator, ClassifierMixin):
             logging.error(f"Fail to call predict(), response status: {response.status_code}")
             raise RuntimeError(f"Fail to call predict(), server response: {response.json()}")
 
-        return response.json()["y_pred"]
+        return np.array(response.json()["y_pred"])
 
     def predict_proba(self, X):
         raise NotImplementedError
@@ -131,7 +134,7 @@ class TabPFNServiceClient(BaseEstimator, ClassifierMixin):
     def try_connection(cls) -> bool:
         found_valid_connection = False
         try:
-            response = cls.httpx_client.get(cls.SERVER_ENDPOINTS["root"]["path"])
+            response = cls.httpx_client.get(cls.server_endpoints.root.path)
             if response.status_code == 200:
                 found_valid_connection = True
 
@@ -145,7 +148,7 @@ class TabPFNServiceClient(BaseEstimator, ClassifierMixin):
         is_authenticated = False
         try:
             response = cls.httpx_client.get(
-                cls.SERVER_ENDPOINTS["protected_root"]["path"],
+                cls.server_endpoints.protected_root.path,
                 headers={"Authorization": f"Bearer {access_token}"},
             )
             if response.status_code == 200:

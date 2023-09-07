@@ -1,4 +1,5 @@
 import logging
+from typing import Union
 from pathlib import Path
 import textwrap
 
@@ -24,7 +25,7 @@ g_tabpfn_config = TabPFNConfig()
 
 def init(
         use_server=True,
-        cache_dir: Path = Path.cwd()
+        cache_dir: Union[Path, str] = Path.cwd(),
 ):
     global g_tabpfn_config
 
@@ -33,7 +34,7 @@ def init(
         if not TabPFNServiceClient.try_connection():
             raise RuntimeError("TabPFN is unaccessible at the moment, please try again later.")
 
-        token_file = cache_dir / ACCESS_TOKEN_FILENAME
+        token_file = Path(cache_dir) / ACCESS_TOKEN_FILENAME
         token = None
 
         # check previously saved token file (if exists)
@@ -69,7 +70,7 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
             self,
             model=None,
             device="cpu",
-            base_path=".",
+            base_path=Path(__file__).parent.parent.resolve(),
             model_string="",
             batch_size_inference=4,
             fp16_inference=False,
@@ -86,6 +87,7 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
             transformer_predict_kwargs_init=None,
             multiclass_decoder="permutation",
     ):
+        print("base_path", base_path)
         # config for tabpfn
         self.model = model
         self.device = device
@@ -141,7 +143,8 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
             else:
                 self.classifier_ = TabPFNClassifierLocal(**classifier_cfg)
 
-        return self.classifier_.fit(X, y)
+        self.classifier_.fit(X, y)
+        return self
 
     def predict(self, X):
         check_is_fitted(self)
