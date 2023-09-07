@@ -128,7 +128,24 @@ class TabPFNServiceClient(BaseEstimator, ClassifierMixin):
         return np.array(response.json()["y_pred"])
 
     def predict_proba(self, X):
-        raise NotImplementedError
+        check_is_fitted(self)
+
+        X = common_utils.serialize_to_csv_formatted_bytes(X)
+
+        response = self.httpx_client.post(
+            url=self.server_endpoints.predict_proba.path,
+            headers={"Authorization": f"Bearer {self.access_token}"},
+            params={"per_user_train_set_id": self.last_per_user_train_set_id_},
+            files=common_utils.to_httpx_post_file_format([
+                ("x_file", X)
+            ])
+        )
+
+        if response.status_code != 200:
+            logging.error(f"Fail to call predict_proba(), response status: {response.status_code}")
+            raise RuntimeError(f"Fail to call predict_proba(), server response: {response.json()}")
+
+        return np.array(response.json()["y_pred_proba"])
 
     @classmethod
     def try_connection(cls) -> bool:

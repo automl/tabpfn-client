@@ -150,9 +150,9 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
         check_is_fitted(self)
         return self.classifier_.predict(X)
 
-    # def predict_proba(self, X):
-    #     # check_is_fitted(self)
-    #     return self.classifier.predict_proba(X)
+    def predict_proba(self, X):
+        check_is_fitted(self)
+        return self.classifier_.predict_proba(X)
 
 
 REGISTER_LINK = "http://0.0.0.0/docs#/default/register_auth_register__post"     # TODO: add link

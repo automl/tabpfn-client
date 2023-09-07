@@ -53,16 +53,11 @@ class TestTabPFNServiceClient(unittest.TestCase):
         self.assertTrue(np.array_equal(pred, dummy_result["y_pred"]))
 
     def test_predict_with_conflicting_test_set(self):
+        # TODO: implement this
         pass
 
     def test_call_predict_without_calling_fit_before(self):
         self.assertRaises(NotFittedError, self.client.predict, self.X_test)
 
     def test_call_predict_proba_without_calling_fit_before(self):
-        pass
-
-    def test_call_predict_after_calling_fit_twice(self):
-        pass
-
-    def test_call_predict_proba_after_calling_fit_twice(self):
-        pass
+        self.assertRaises(NotFittedError, self.client.predict_proba, self.X_test)

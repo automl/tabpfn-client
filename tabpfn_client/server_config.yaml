@@ -7,22 +7,32 @@ endpoints:
     methods: ["GET"]
     description: "Root endpoint"
 
+  register:
+    path: "/auth/register/"
+    methods: ["POST"]
+    description: "User registration"
+
   login:
     path: "/auth/login/"
     methods: ["POST"]
-    description: "Login endpoint"
+    description: "User login"
 
   protected_root:
     path: "/protected/"
     methods: ["GET"]
-    description: "Protected root endpoint"
+    description: "Protected root"
 
   upload_train_set:
     path: "/upload/train_set/"
     methods: ["POST"]
-    description: "Upload train set endpoint"
+    description: "Upload train set"
 
   predict:
     path: "/predict/"
     methods: ["POST"]
-    description: "Predict endpoint"
+    description: "Predict"
+
+  predict_proba:
+    path: "/predict_proba/"
+    methods: ["POST"]
+    description: "Predict probability"
