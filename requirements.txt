@@ -1,7 +1,7 @@
 httpx
 omegaconf
 pandas
-tabpfn
+git+https://github.com/automl/TabPFN.git@main#egg=tabpfn
 
 # for testing
 respx
