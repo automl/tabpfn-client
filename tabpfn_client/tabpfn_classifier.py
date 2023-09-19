@@ -186,14 +186,28 @@ def prompt_for_token():
     choice = ask_input_with_indent("Please enter your choice: ")
 
     if choice == "1":
-        print_with_indent(f"\nYou could create an account at {REGISTER_LINK}")
-        token = ask_input_with_indent("After you are done, paste your API key here and hit enter: ")
+        # create account
+        email = ask_input_with_indent("Please enter your email: ")
+        password = ask_input_with_indent("Please enter your password: ")
+        password_confirm = ask_input_with_indent("Please confirm your password: ")
+
+        if password != password_confirm:
+            raise RuntimeError("Fail to register account, mismatched password")
+
+        success, message = TabPFNServiceClient.register(email, password)
+        if not success:
+            raise RuntimeError(f"Fail to register account, {message}")
 
     elif choice == "2":
-        print_with_indent(f"Retrieve your API key here: {LOGIN_LINK}")
-        token = ask_input_with_indent("Please enter your API key and hit enter: ")
+        # login to account
+        email = ask_input_with_indent("Please enter your email: ")
+        password = ask_input_with_indent("Please enter your password: ")
 
     else:
         raise RuntimeError("Invalid choice")
+
+    token = TabPFNServiceClient.login(email, password)
+    if token is None:
+        raise RuntimeError(f"Fail to login with the given email and password")
 
     return token

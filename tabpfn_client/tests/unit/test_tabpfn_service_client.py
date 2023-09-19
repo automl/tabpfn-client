@@ -28,6 +28,16 @@ class TestTabPFNServiceClient(unittest.TestCase):
         self.assertFalse(self.client.try_connection())
 
     @with_mock_server()
+    def test_register_user(self, mock_server):
+        mock_server.router.post(mock_server.endpoints.register.path).respond(200, json={"message": "dummy_message"})
+        self.assertTrue(self.client.register("dummy_email", "dummy_password")[0])
+
+    @with_mock_server()
+    def test_register_user_with_invalid_email(self, mock_server):
+        mock_server.router.post(mock_server.endpoints.register.path).respond(401, json={"detail": "dummy_message"})
+        self.assertFalse(self.client.register("dummy_email", "dummy_password")[0])
+
+    @with_mock_server()
     def test_invalid_auth_token(self, mock_server):
         mock_server.router.get(mock_server.endpoints.protected_root.path).respond(401)
         self.assertFalse(self.client.try_authenticate("fake_token"))
