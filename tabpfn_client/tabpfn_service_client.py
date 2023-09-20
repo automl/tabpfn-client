@@ -174,11 +174,11 @@ class TabPFNServiceClient(BaseEstimator, ClassifierMixin):
         return is_authenticated
 
     @classmethod
-    def register(cls, email, password) -> (bool, str):
+    def register(cls, email, password, password_confirm) -> (bool, str):
         is_created = False
         response = cls.httpx_client.post(
             cls.server_endpoints.register.path,
-            params={"email": email, "password": password}
+            params={"email": email, "password": password, "password_confirm": password_confirm}
         )
         if response.status_code == 200:
             is_created = True

@@ -1,6 +1,7 @@
 import logging
 from typing import Union
 from pathlib import Path
+import getpass
 import textwrap
 
 from sklearn.base import BaseEstimator, ClassifierMixin
@@ -188,13 +189,13 @@ def prompt_for_token():
     if choice == "1":
         # create account
         email = ask_input_with_indent("Please enter your email: ")
-        password = ask_input_with_indent("Please enter your password: ")
-        password_confirm = ask_input_with_indent("Please confirm your password: ")
+        password = getpass.getpass("\tPlease enter your password: ")
+        password_confirm = getpass.getpass("\tPlease confirm your password: ")
 
         if password != password_confirm:
             raise RuntimeError("Fail to register account, mismatched password")
 
-        success, message = TabPFNServiceClient.register(email, password)
+        success, message = TabPFNServiceClient.register(email, password, password_confirm)
         if not success:
             raise RuntimeError(f"Fail to register account, {message}")
 
