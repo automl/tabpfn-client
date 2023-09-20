@@ -156,21 +156,12 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
         return self.classifier_.predict_proba(X)
 
 
-REGISTER_LINK = "http://0.0.0.0/docs#/default/register_auth_register__post"     # TODO: add link
-LOGIN_LINK = "http://0.0.0.0/docs#/default/login_auth_login__post"              # TODO: add link
-
-
 def prompt_for_token():
 
-    indent = 2
-
-    def ask_input_with_indent(prompt: str) -> str:
-        indent_str = " " * indent
-        return input(textwrap.indent(prompt, indent_str))
-
-    def print_with_indent(text: str):
-        indent_str = " " * indent
-        print(textwrap.indent(text, indent_str))
+    def indent(text: str) -> str:
+        indent_factor = 2
+        indent_str = " " * indent_factor
+        return textwrap.indent(text, indent_str)
 
     prompt = "\n".join([
         "",
@@ -183,14 +174,25 @@ def prompt_for_token():
         ""
     ])
 
-    print_with_indent(prompt)
-    choice = ask_input_with_indent("Please enter your choice: ")
+    print(indent(prompt))
+    choice = input(indent("Please enter your choice: "))
 
     if choice == "1":
         # create account
-        email = ask_input_with_indent("Please enter your email: ")
-        password = getpass.getpass("\tPlease enter your password: ")
-        password_confirm = getpass.getpass("\tPlease confirm your password: ")
+        email = input(indent("Please enter your email: "))
+
+        password_req = TabPFNServiceClient.get_password_policy()["requirements"]
+        password_req_prompt = "\n".join([
+            "",
+            "Password requirements (minimum):",
+            "\n".join([f". {req}" for req in password_req]),
+            ""
+        ])
+
+        print(indent(password_req_prompt))
+
+        password = getpass.getpass(indent(f"Please enter your password: "))
+        password_confirm = getpass.getpass(indent("Please confirm your password: "))
 
         if password != password_confirm:
             raise RuntimeError("Fail to register account, mismatched password")
@@ -201,8 +203,8 @@ def prompt_for_token():
 
     elif choice == "2":
         # login to account
-        email = ask_input_with_indent("Please enter your email: ")
-        password = ask_input_with_indent("Please enter your password: ")
+        email = input(indent("Please enter your email: "))
+        password = input(indent("Please enter your password: "))
 
     else:
         raise RuntimeError("Invalid choice")

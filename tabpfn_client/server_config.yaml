@@ -7,6 +7,11 @@ endpoints:
     methods: ["GET"]
     description: "Root endpoint"
 
+  password_policy:
+    path: "/auth/password_policy/"
+    methods: [ "GET" ]
+    description: "Password policy"
+
   register:
     path: "/auth/register/"
     methods: ["POST"]

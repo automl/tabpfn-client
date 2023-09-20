@@ -200,3 +200,13 @@ class TabPFNServiceClient(BaseEstimator, ClassifierMixin):
             access_token = response.json()["access_token"]
 
         return access_token
+
+    @classmethod
+    def get_password_policy(cls) -> {}:
+        response = cls.httpx_client.get(
+            cls.server_endpoints.password_policy.path,
+        )
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise RuntimeError(f"Fail to call get_password_policy(), server response: {response.json()}")
