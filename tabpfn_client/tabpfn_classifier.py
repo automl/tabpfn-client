@@ -88,7 +88,6 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
             transformer_predict_kwargs_init=None,
             multiclass_decoder="permutation",
     ):
-        print("base_path", base_path)
         # config for tabpfn
         self.model = model
         self.device = device
@@ -168,14 +167,15 @@ def prompt_for_token():
         "Welcome to TabPFN!",
         "",
         "Sadly you are not logged in yet.",
+        "",
         "Please choose one of the following options:",
         "(1) Create a TabPFN account",
         "(2) Login to your TabPFN account",
-        ""
+        "",
+        "Please enter your choice: ",
     ])
 
-    print(indent(prompt))
-    choice = input(indent("Please enter your choice: "))
+    choice = input(indent(prompt))
 
     if choice == "1":
         # create account
@@ -186,12 +186,11 @@ def prompt_for_token():
             "",
             "Password requirements (minimum):",
             "\n".join([f". {req}" for req in password_req]),
-            ""
+            "",
+            "Please enter your password: ",
         ])
 
-        print(indent(password_req_prompt))
-
-        password = getpass.getpass(indent(f"Please enter your password: "))
+        password = getpass.getpass(indent(password_req_prompt))
         password_confirm = getpass.getpass(indent("Please confirm your password: "))
 
         if password != password_confirm:
