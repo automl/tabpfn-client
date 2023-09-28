@@ -10,8 +10,5 @@ dependencies = [
     "httpx>=0.24.1",
     "pandas>=1.3.0",
     "omegaconf>=2.3.0",
-    "tabpfn @ git+https://github.com/automl/TabPFN.git@main#egg=tabpfn",
+    "tabpfn>=0.1.9",
 ]
-
-[tool.hatch.metadata]
-allow-direct-references = true
