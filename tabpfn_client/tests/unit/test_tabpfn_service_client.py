@@ -24,7 +24,9 @@ class TestTabPFNServiceClient(unittest.TestCase):
         mock_server.router.get(mock_server.endpoints.root.path).respond(200)
         self.assertTrue(self.client.try_connection())
 
-    def test_try_connection_with_invalid_server(self):
+    @with_mock_server()
+    def test_try_connection_with_invalid_server(self, mock_server):
+        mock_server.router.get(mock_server.endpoints.root.path).respond(404)
         self.assertFalse(self.client.try_connection())
 
     @with_mock_server()
