@@ -203,7 +203,7 @@ def prompt_for_token():
     elif choice == "2":
         # login to account
         email = input(indent("Please enter your email: "))
-        password = input(indent("Please enter your password: "))
+        password = getpass.getpass(indent("Please enter your password: "))
 
     else:
         raise RuntimeError("Invalid choice")
