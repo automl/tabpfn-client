@@ -1,0 +1,32 @@
+name: In pull request
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Run unit and integration tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10"]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: x64
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Initialize submodules
+        run: git submodule update --init --recursive
+
+      - name: Run Test
+        run: |
+          python -m unittest discover -s tests -t tests
