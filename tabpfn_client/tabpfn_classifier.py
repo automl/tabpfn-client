@@ -11,7 +11,8 @@ from tabpfn import TabPFNClassifier as TabPFNClassifierLocal
 from tabpfn_client import tabpfn_service_client
 from tabpfn_client.tabpfn_service_client import TabPFNServiceClient
 
-ACCESS_TOKEN_FILENAME = "access_token.txt"
+ACCESS_TOKEN_FILENAME = "config"
+DEFAULT_CACHE_FOLDER = ".tabpfn"
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ g_tabpfn_config = TabPFNConfig()
 
 def init(
         use_server=True,
-        cache_dir: Union[Path, str] = Path.cwd(),
+        cache_dir: Union[Path, str] = Path.cwd() / DEFAULT_CACHE_FOLDER,
 ):
     global g_tabpfn_config
 
@@ -40,6 +41,7 @@ def init(
 
         # check previously saved token file (if exists)
         if Path.exists(token_file):
+            print(f"Using previously saved access token from {str(token_file)}")
             token = Path(token_file).read_text()
             if not TabPFNServiceClient.try_authenticate(token):
                 # invalidate token and delete token file
@@ -57,7 +59,8 @@ def init(
             if not TabPFNServiceClient.try_authenticate(token):
                 raise RuntimeError("Invalid access token")
             print(f"API key is saved to {str(token_file)} for future use.")
-            Path(token_file).write_text(token)
+            token_file.parent.mkdir(parents=True, exist_ok=True)
+            token_file.write_text(token)
 
         assert token is not None
 
