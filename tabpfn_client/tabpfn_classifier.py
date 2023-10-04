@@ -48,6 +48,10 @@ def init(
                 Path.unlink(token_file, missing_ok=True)
 
         if token is None:
+            # prompt for terms and conditions
+            if not prompt_for_terms_and_cond():
+                raise RuntimeError("You must agree to the terms and conditions to use TabPFN")
+
             # prompt for token
             token = prompt_for_token()
             if not TabPFNServiceClient.try_authenticate(token):
@@ -155,18 +159,18 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
         return self.classifier_.predict_proba(X)
 
 
+def indent(text: str) -> str:
+    indent_factor = 2
+    indent_str = " " * indent_factor
+    return textwrap.indent(text, indent_str)
+
+
 def prompt_for_token():
-
-    def indent(text: str) -> str:
-        indent_factor = 2
-        indent_str = " " * indent_factor
-        return textwrap.indent(text, indent_str)
-
     prompt = "\n".join([
         "",
         "Welcome to TabPFN!",
         "",
-        "Sadly you are not logged in yet.",
+        "You are not logged in yet.",
         "",
         "Please choose one of the following options:",
         "(1) Create a TabPFN account",
@@ -213,3 +217,32 @@ def prompt_for_token():
         raise RuntimeError(f"Fail to login with the given email and password")
 
     return token
+
+
+def prompt_for_terms_and_cond():
+    t_and_c = "\n".join([
+        "",
+        "By using TabPFN, you agree to the following terms and conditions:",
+        "",
+        "...",
+        "",
+        "Do you agree to the above terms and conditions? (y/n): ",
+    ])
+
+    choice = input(indent(t_and_c))
+
+    # retry for 3 attempts until valid choice is made
+    is_valid_choice = False
+    for _ in range(3):
+        if choice.lower() not in ["y", "n"]:
+            choice = input(indent("Invalid choice, please enter 'y' or 'n': "))
+        else:
+            is_valid_choice = True
+            break
+
+    if not is_valid_choice:
+        raise RuntimeError("Invalid choice")
+
+    return choice.lower() == "y"
+
+
