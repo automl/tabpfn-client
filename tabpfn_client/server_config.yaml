@@ -1,11 +1,16 @@
-#host: "192.52.42.37"
-host: "0.0.0.0"
+host: "192.52.42.37"
+#host: "0.0.0.0"
 port: "80"
 endpoints:
   root:
     path: "/"
     methods: ["GET"]
     description: "Root endpoint"
+
+  password_policy:
+    path: "/auth/password_policy/"
+    methods: [ "GET" ]
+    description: "Password policy"
 
   register:
     path: "/auth/register/"

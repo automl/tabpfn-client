@@ -163,15 +163,50 @@ class TabPFNServiceClient(BaseEstimator, ClassifierMixin):
     @classmethod
     def try_authenticate(cls, access_token) -> bool:
         is_authenticated = False
-        try:
-            response = cls.httpx_client.get(
-                cls.server_endpoints.protected_root.path,
-                headers={"Authorization": f"Bearer {access_token}"},
-            )
-            if response.status_code == 200:
-                is_authenticated = True
+        response = cls.httpx_client.get(
+            cls.server_endpoints.protected_root.path,
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
 
-        except httpx.ConnectError:
-            is_authenticated = False
+        if response.status_code == 200:
+            is_authenticated = True
 
         return is_authenticated
+
+    @classmethod
+    def register(cls, email, password, password_confirm) -> (bool, str):
+        is_created = False
+        response = cls.httpx_client.post(
+            cls.server_endpoints.register.path,
+            params={"email": email, "password": password, "password_confirm": password_confirm}
+        )
+        if response.status_code == 200:
+            is_created = True
+            message = response.json()["message"]
+
+        else:
+            message = response.json()["detail"]
+
+        return is_created, message
+
+    @classmethod
+    def login(cls, email, password) -> str:
+        access_token = None
+        response = cls.httpx_client.post(
+            cls.server_endpoints.login.path,
+            data=common_utils.to_oauth_request_form(email, password)
+        )
+        if response.status_code == 200:
+            access_token = response.json()["access_token"]
+
+        return access_token
+
+    @classmethod
+    def get_password_policy(cls) -> {}:
+        response = cls.httpx_client.get(
+            cls.server_endpoints.password_policy.path,
+        )
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise RuntimeError(f"Fail to call get_password_policy(), server response: {response.json()}")

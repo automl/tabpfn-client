@@ -1,6 +1,7 @@
 import logging
 from typing import Union
 from pathlib import Path
+import getpass
 import textwrap
 
 from sklearn.base import BaseEstimator, ClassifierMixin
@@ -10,7 +11,8 @@ from tabpfn import TabPFNClassifier as TabPFNClassifierLocal
 from tabpfn_client import tabpfn_service_client
 from tabpfn_client.tabpfn_service_client import TabPFNServiceClient
 
-ACCESS_TOKEN_FILENAME = "access_token.txt"
+CACHE_DIR = Path(__file__).parent.resolve() / ".tabpfn"
+TOKEN_FILE = CACHE_DIR / "config"
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +27,6 @@ g_tabpfn_config = TabPFNConfig()
 
 def init(
         use_server=True,
-        cache_dir: Union[Path, str] = Path.cwd(),
 ):
     global g_tabpfn_config
 
@@ -34,25 +35,30 @@ def init(
         if not TabPFNServiceClient.try_connection():
             raise RuntimeError("TabPFN is unaccessible at the moment, please try again later.")
 
-        token_file = Path(cache_dir) / ACCESS_TOKEN_FILENAME
         token = None
 
         # check previously saved token file (if exists)
-        if Path.exists(token_file):
-            token = Path(token_file).read_text()
+        if Path.exists(TOKEN_FILE):
+            print(f"Using previously saved access token from {str(TOKEN_FILE)}")
+            token = Path(TOKEN_FILE).read_text()
             if not TabPFNServiceClient.try_authenticate(token):
                 # invalidate token and delete token file
                 logger.debug("Previously saved access token is invalid, deleting token file")
                 token = None
-                Path.unlink(token_file, missing_ok=True)
+                Path.unlink(TOKEN_FILE, missing_ok=True)
 
         if token is None:
+            # prompt for terms and conditions
+            if not prompt_for_terms_and_cond():
+                raise RuntimeError("You must agree to the terms and conditions to use TabPFN")
+
             # prompt for token
             token = prompt_for_token()
             if not TabPFNServiceClient.try_authenticate(token):
                 raise RuntimeError("Invalid access token")
-            print(f"API key is saved to {str(token_file)} for future use.")
-            Path(token_file).write_text(token)
+            print(f"API key is saved to {str(TOKEN_FILE)} for future use.")
+            TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
+            TOKEN_FILE.write_text(token)
 
         assert token is not None
 
@@ -63,6 +69,15 @@ def init(
         g_tabpfn_config.use_server = False
 
     g_tabpfn_config.is_initialized = True
+
+
+def reset():
+    # reset config
+    global g_tabpfn_config
+    g_tabpfn_config = TabPFNConfig()
+
+    # remove token file if exists
+    Path.unlink(TOKEN_FILE, missing_ok=True)
 
 
 class TabPFNClassifier(BaseEstimator, ClassifierMixin):
@@ -87,7 +102,6 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
             transformer_predict_kwargs_init=None,
             multiclass_decoder="permutation",
     ):
-        print("base_path", base_path)
         # config for tabpfn
         self.model = model
         self.device = device
@@ -155,45 +169,90 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
         return self.classifier_.predict_proba(X)
 
 
-REGISTER_LINK = "http://0.0.0.0/docs#/default/register_auth_register__post"     # TODO: add link
-LOGIN_LINK = "http://0.0.0.0/docs#/default/login_auth_login__post"              # TODO: add link
+def indent(text: str) -> str:
+    indent_factor = 2
+    indent_str = " " * indent_factor
+    return textwrap.indent(text, indent_str)
 
 
 def prompt_for_token():
-
-    indent = 2
-
-    def ask_input_with_indent(prompt: str) -> str:
-        indent_str = " " * indent
-        return input(textwrap.indent(prompt, indent_str))
-
-    def print_with_indent(text: str):
-        indent_str = " " * indent
-        print(textwrap.indent(text, indent_str))
-
     prompt = "\n".join([
         "",
         "Welcome to TabPFN!",
         "",
-        "Sadly you are not logged in yet.",
+        "You are not logged in yet.",
+        "",
         "Please choose one of the following options:",
         "(1) Create a TabPFN account",
         "(2) Login to your TabPFN account",
-        ""
+        "",
+        "Please enter your choice: ",
     ])
 
-    print_with_indent(prompt)
-    choice = ask_input_with_indent("Please enter your choice: ")
+    choice = input(indent(prompt))
 
     if choice == "1":
-        print_with_indent(f"\nYou could create an account at {REGISTER_LINK}")
-        token = ask_input_with_indent("After you are done, paste your API key here and hit enter: ")
+        # create account
+        email = input(indent("Please enter your email: "))
+
+        password_req = TabPFNServiceClient.get_password_policy()["requirements"]
+        password_req_prompt = "\n".join([
+            "",
+            "Password requirements (minimum):",
+            "\n".join([f". {req}" for req in password_req]),
+            "",
+            "Please enter your password: ",
+        ])
+
+        password = getpass.getpass(indent(password_req_prompt))
+        password_confirm = getpass.getpass(indent("Please confirm your password: "))
+
+        if password != password_confirm:
+            raise RuntimeError("Fail to register account, mismatched password")
+
+        success, message = TabPFNServiceClient.register(email, password, password_confirm)
+        if not success:
+            raise RuntimeError(f"Fail to register account, {message}")
 
     elif choice == "2":
-        print_with_indent(f"Retrieve your API key here: {LOGIN_LINK}")
-        token = ask_input_with_indent("Please enter your API key and hit enter: ")
+        # login to account
+        email = input(indent("Please enter your email: "))
+        password = getpass.getpass(indent("Please enter your password: "))
 
     else:
         raise RuntimeError("Invalid choice")
 
+    token = TabPFNServiceClient.login(email, password)
+    if token is None:
+        raise RuntimeError(f"Fail to login with the given email and password")
+
     return token
+
+
+def prompt_for_terms_and_cond():
+    t_and_c = "\n".join([
+        "",
+        "By using TabPFN, you agree to the following terms and conditions:",
+        "",
+        "...",
+        "",
+        "Do you agree to the above terms and conditions? (y/n): ",
+    ])
+
+    choice = input(indent(t_and_c))
+
+    # retry for 3 attempts until valid choice is made
+    is_valid_choice = False
+    for _ in range(3):
+        if choice.lower() not in ["y", "n"]:
+            choice = input(indent("Invalid choice, please enter 'y' or 'n': "))
+        else:
+            is_valid_choice = True
+            break
+
+    if not is_valid_choice:
+        raise RuntimeError("Invalid choice")
+
+    return choice.lower() == "y"
+
+

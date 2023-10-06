@@ -1,0 +1,2 @@
+from tabpfn_client import tabpfn_classifier
+from tabpfn_client.tabpfn_classifier import TabPFNClassifier

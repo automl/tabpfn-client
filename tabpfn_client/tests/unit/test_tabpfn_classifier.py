@@ -1,6 +1,5 @@
 import unittest
 from unittest.mock import patch
-import tempfile
 from pathlib import Path
 
 from sklearn.datasets import load_breast_cancer
@@ -22,6 +21,10 @@ class TestTabPFNClassifierInit(unittest.TestCase):
         X, y = load_breast_cancer(return_X_y=True)
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y, test_size=0.33)
 
+    def tearDown(self):
+        # remove token file if exists
+        Path.unlink(tabpfn_classifier.TOKEN_FILE, missing_ok=True)
+
     def test_init_local_classifier(self):
         tabpfn_classifier.init(use_server=False)
         tabpfn = TabPFNClassifier().fit(self.X_train, self.y_train)
@@ -29,7 +32,8 @@ class TestTabPFNClassifierInit(unittest.TestCase):
 
     @with_mock_server()
     @patch("tabpfn_client.tabpfn_classifier.prompt_for_token", side_effect=[dummy_token])
-    def test_init_remote_classifier(self, mock_server, mock_prompt_for_token):
+    @patch("tabpfn_client.tabpfn_classifier.prompt_for_terms_and_cond", side_effect=[True])
+    def test_init_remote_classifier(self, mock_server, mock_prompt_for_token, mock_prompt_for_terms_and_cond):
         # mock connection, authentication, and fitting
         mock_server.router.get(mock_server.endpoints.root.path).respond(200)
         mock_server.router.get(mock_server.endpoints.protected_root.path).respond(200)
@@ -37,29 +41,30 @@ class TestTabPFNClassifierInit(unittest.TestCase):
             200, json={"per_user_train_set_id": 5}
         )
 
-        with tempfile.TemporaryDirectory() as temp_cache_dir:
-            tabpfn_classifier.init(use_server=True, cache_dir=temp_cache_dir)
-            tabpfn = TabPFNClassifier().fit(self.X_train, self.y_train)
-            self.assertTrue(isinstance(tabpfn.classifier_, TabPFNServiceClient))
+        tabpfn_classifier.init(use_server=True)
+        tabpfn = TabPFNClassifier().fit(self.X_train, self.y_train)
+        self.assertTrue(isinstance(tabpfn.classifier_, TabPFNServiceClient))
 
-            # check if access token is saved
-            token_file = Path(temp_cache_dir) / tabpfn_classifier.ACCESS_TOKEN_FILENAME
-            self.assertTrue(token_file.exists())
-            self.assertEqual(token_file.read_text(), self.dummy_token)
+        # check if access token is saved
+        token_file = tabpfn_classifier.TOKEN_FILE
+        self.assertTrue(token_file.exists())
+        self.assertEqual(token_file.read_text(), self.dummy_token)
 
     @with_mock_server()
     @patch("tabpfn_client.tabpfn_classifier.prompt_for_token", side_effect=[dummy_token])
-    def test_init_remote_classifier_with_invalid_token(self, mock_server, mock_prompt_for_token):
+    @patch("tabpfn_client.tabpfn_classifier.prompt_for_terms_and_cond", side_effect=[True])
+    def test_init_remote_classifier_with_invalid_token(
+            self, mock_server, mock_prompt_for_token, mock_prompt_for_terms_and_cond
+    ):
         # mock connection and invalid authentication
         mock_server.router.get(mock_server.endpoints.root.path).respond(200)
         mock_server.router.get(mock_server.endpoints.protected_root.path).respond(401)
 
-        with tempfile.TemporaryDirectory() as temp_cache_dir:
-            self.assertRaises(RuntimeError, tabpfn_classifier.init, use_server=True, cache_dir=temp_cache_dir)
+        self.assertRaises(RuntimeError, tabpfn_classifier.init, use_server=True)
 
-            # check if access token is not saved
-            token_file = Path(temp_cache_dir) / tabpfn_classifier.ACCESS_TOKEN_FILENAME
-            self.assertFalse(token_file.exists())
+        # check if access token is not saved
+        token_file = tabpfn_classifier.TOKEN_FILE
+        self.assertFalse(token_file.exists())
 
     @with_mock_server()
     def test_reuse_saved_access_token(self, mock_server):
@@ -67,24 +72,60 @@ class TestTabPFNClassifierInit(unittest.TestCase):
         mock_server.router.get(mock_server.endpoints.root.path).respond(200)
         mock_server.router.get(mock_server.endpoints.protected_root.path).respond(200)
 
-        with tempfile.TemporaryDirectory() as temp_cache_dir:
-            # create dummy token file
-            token_file = Path(temp_cache_dir) / tabpfn_classifier.ACCESS_TOKEN_FILENAME
-            token_file.write_text(self.dummy_token)
+        # create dummy token file
+        token_file = tabpfn_classifier.TOKEN_FILE
+        token_file.write_text(self.dummy_token)
 
-            tabpfn_classifier.init(use_server=True, cache_dir=temp_cache_dir)
+        # init is called without error
+        tabpfn_classifier.init(use_server=True)
 
     @with_mock_server()
     @patch("tabpfn_client.tabpfn_classifier.prompt_for_token", side_effect=[RuntimeError("Invalid token")])
-    def test_invalid_saved_access_token(self, mock_server, mock_prompt_for_token):
+    @patch("tabpfn_client.tabpfn_classifier.prompt_for_terms_and_cond", side_effect=[True])
+    def test_invalid_saved_access_token(self, mock_server, mock_prompt_for_token, mock_prompt_for_terms_and_cond):
         # mock connection and invalid authentication
         mock_server.router.get(mock_server.endpoints.root.path).respond(200)
         mock_server.router.get(mock_server.endpoints.protected_root.path).respond(401)
 
-        with tempfile.TemporaryDirectory() as temp_cache_dir:
-            # create dummy token file
-            token_file = Path(temp_cache_dir) / tabpfn_classifier.ACCESS_TOKEN_FILENAME
-            token_file.write_text("invalid_token")
+        # create dummy token file
+        token_file = tabpfn_classifier.TOKEN_FILE
+        token_file.write_text("invalid_token")
 
-            self.assertRaises(RuntimeError, tabpfn_classifier.init, use_server=True, cache_dir=temp_cache_dir)
-            self.assertTrue(mock_prompt_for_token.called)
+        self.assertRaises(RuntimeError, tabpfn_classifier.init, use_server=True)
+        self.assertTrue(mock_prompt_for_token.called)
+
+    def test_reset_on_local_classifier(self):
+        tabpfn_classifier.init(use_server=False)
+        tabpfn_classifier.reset()
+        self.assertFalse(tabpfn_classifier.g_tabpfn_config.is_initialized)
+
+    @with_mock_server()
+    @patch("tabpfn_client.tabpfn_classifier.prompt_for_token", side_effect=[dummy_token])
+    @patch("tabpfn_client.tabpfn_classifier.prompt_for_terms_and_cond", side_effect=[True])
+    def test_reset_on_remote_classifier(self, mock_server, mock_prompt_for_token, mock_prompt_for_terms_and_cond):
+        # init classifier as usual
+        mock_server.router.get(mock_server.endpoints.root.path).respond(200)
+        mock_server.router.get(mock_server.endpoints.protected_root.path).respond(200)
+        tabpfn_classifier.init(use_server=True)
+
+        # check if access token is saved
+        token_file = tabpfn_classifier.TOKEN_FILE
+        self.assertTrue(token_file.exists())
+
+        # reset
+        tabpfn_classifier.reset()
+
+        # check if access token is deleted
+        self.assertFalse(token_file.exists())
+
+        # check if config is reset
+        self.assertFalse(tabpfn_classifier.g_tabpfn_config.is_initialized)
+
+    @with_mock_server()
+    @patch("tabpfn_client.tabpfn_classifier.prompt_for_terms_and_cond", side_effect=[False])
+    def test_decline_terms_and_cond(self, mock_server, mock_prompt_for_terms_and_cond):
+        # mock connection
+        mock_server.router.get(mock_server.endpoints.root.path).respond(200)
+
+        self.assertRaises(RuntimeError, tabpfn_classifier.init, use_server=True)
+        self.assertTrue(mock_prompt_for_terms_and_cond.called)
