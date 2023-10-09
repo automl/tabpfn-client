@@ -16,7 +16,7 @@ class MockTabPFNServer(AbstractContextManager):
     def __init__(self):
         self.server_config = SERVER_CONFIG
         self.endpoints = self.server_config.endpoints
-        self.base_url = f"http://{self.server_config.host}:{self.server_config.port}"
+        self.base_url = f"https://{self.server_config.host}:{self.server_config.port}"
         self.router = None
 
     def __enter__(self):
