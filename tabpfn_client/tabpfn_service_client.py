@@ -25,9 +25,12 @@ class TabPFNServiceClient(BaseEstimator, ClassifierMixin):
 
     server_config = SERVER_CONFIG
     server_endpoints = SERVER_CONFIG["endpoints"]
+    HTTPX_TIMEOUT_S = 15    # temporary workaround for slow computation on server side
 
-    httpx_client = httpx.Client(base_url=f"http://{server_config.host}:{server_config.port}")     # TODO:
-    # use https
+    httpx_client = httpx.Client(
+        base_url=f"https://{server_config.host}:{server_config.port}",
+        timeout=HTTPX_TIMEOUT_S,
+    )
     access_token = None
 
     def __init__(

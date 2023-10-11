@@ -1,6 +1,6 @@
-host: "192.52.42.37"
+host: "tabpfn.priorlabs.ai"
 #host: "0.0.0.0"
-port: "80"
+port: "443"
 endpoints:
   root:
     path: "/"
