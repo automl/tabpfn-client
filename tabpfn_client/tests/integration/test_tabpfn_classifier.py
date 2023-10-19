@@ -1,13 +1,13 @@
 import unittest
-from unittest.mock import patch
 
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
-from tabpfn import TabPFNClassifier as TabPFNClassifierLocal
+from tabpfn import TabPFNClassifier as LocalTabPFNClassifier
 
-from tabpfn_client.tabpfn_classifier import TabPFNClassifier
-from tabpfn_client import tabpfn_classifier
+from tabpfn_client import tabpfn_classifier, TabPFNClassifier
 from tabpfn_client.tests.mock_tabpfn_server import with_mock_server
+from tabpfn_client.service_wrapper import UserAuthenticationClient
+from tabpfn_client.client import ServiceClient
 
 
 class TestTabPFNClassifier(unittest.TestCase):
@@ -17,20 +17,24 @@ class TestTabPFNClassifier(unittest.TestCase):
 
     def tearDown(self):
         tabpfn_classifier.reset()
+        ServiceClient().delete_instance()
 
     def test_use_local_tabpfn_classifier(self):
         tabpfn_classifier.init(use_server=False)
         tabpfn = TabPFNClassifier(device="cpu")
         tabpfn.fit(self.X_train, self.y_train)
 
-        self.assertTrue(isinstance(tabpfn.classifier_, TabPFNClassifierLocal))
+        self.assertTrue(isinstance(tabpfn.classifier_, LocalTabPFNClassifier))
         pred = tabpfn.predict(self.X_test)
         self.assertEqual(pred.shape[0], self.X_test.shape[0])
 
     @with_mock_server()
-    @patch("tabpfn_client.tabpfn_classifier.prompt_for_token", side_effect=["dummy_token"])
-    @patch("tabpfn_client.tabpfn_classifier.prompt_for_terms_and_cond", side_effect=[True])
-    def test_use_remote_tabpfn_classifier(self, mock_server, mock_prompt_for_token, mock_prompt_for_terms_and_cond):
+    def test_use_remote_tabpfn_classifier(self, mock_server):
+        # create dummy token file
+        token_file = UserAuthenticationClient.CACHED_TOKEN_FILE
+        token_file.parent.mkdir(parents=True, exist_ok=True)
+        token_file.write_text("dummy token")
+
         # mock connection and authentication
         mock_server.router.get(mock_server.endpoints.root.path).respond(200)
         mock_server.router.get(mock_server.endpoints.protected_root.path).respond(200)
@@ -40,13 +44,13 @@ class TestTabPFNClassifier(unittest.TestCase):
 
         # mock fitting
         mock_server.router.post(mock_server.endpoints.upload_train_set.path).respond(
-            200, json={"per_user_train_set_id": 5})
+            200, json={"train_set_uid": 5})
         tabpfn.fit(self.X_train, self.y_train)
 
         # mock prediction
         mock_server.router.post(mock_server.endpoints.predict.path).respond(
             200,
-            json={"y_pred": TabPFNClassifierLocal().fit(self.X_train, self.y_train).predict(self.X_test).tolist()}
+            json={"y_pred": LocalTabPFNClassifier().fit(self.X_train, self.y_train).predict(self.X_test).tolist()}
         )
         pred = tabpfn.predict(self.X_test)
         self.assertEqual(pred.shape[0], self.X_test.shape[0])

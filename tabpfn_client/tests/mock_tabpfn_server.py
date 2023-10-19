@@ -1,16 +1,8 @@
 import respx
 from contextlib import AbstractContextManager
 
-from tabpfn_client.tabpfn_service_client import SERVER_CONFIG
+from tabpfn_client.client import SERVER_CONFIG
 
-
-# class MockTabPFNServer(respx.MockRouter):
-#     def __init__(self):
-#         self.server_config = SERVER_CONFIG
-#         self.endpoints = self.server_config.endpoints
-#         self.base_url = f"http://{self.server_config.host}:{self.server_config.port}"
-#
-#         super().__init__(base_url=self.base_url, assert_all_called=True)
 
 class MockTabPFNServer(AbstractContextManager):
     def __init__(self):
@@ -26,6 +18,7 @@ class MockTabPFNServer(AbstractContextManager):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.router.stop()
+
 
 def with_mock_server():
     def decorator(func):

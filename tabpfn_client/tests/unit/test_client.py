@@ -2,22 +2,20 @@ import unittest
 
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
-from sklearn.exceptions import NotFittedError
 import numpy as np
 
-from tabpfn_client import tabpfn_service_client
-from tabpfn_client.tabpfn_service_client import TabPFNServiceClient
+from tabpfn_client.client import ServiceClient
 from tabpfn_client.tests.mock_tabpfn_server import with_mock_server
 
 
-class TestTabPFNServiceClient(unittest.TestCase):
+class TestServiceClient(unittest.TestCase):
     def setUp(self):
         # setup data
         X, y = load_breast_cancer(return_X_y=True)
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y, test_size=0.33, random_state=42)
+        self.X_train, self.X_test, self.y_train, self.y_test = \
+            train_test_split(X, y, test_size=0.33, random_state=42)
 
-        tabpfn_service_client.init("dummy_token")
-        self.client = TabPFNServiceClient()
+        self.client = ServiceClient()
 
     @with_mock_server()
     def test_try_connection(self, mock_server):
@@ -51,25 +49,18 @@ class TestTabPFNServiceClient(unittest.TestCase):
 
     @with_mock_server()
     def test_predict_with_valid_train_set_and_test_set(self, mock_server):
-        dummy_json = {"per_user_train_set_id": 5}
+        dummy_json = {"train_set_uid": 5}
         mock_server.router.post(mock_server.endpoints.upload_train_set.path).respond(
             200, json=dummy_json)
 
-        self.client.fit(self.X_train, self.y_train)
+        self.client.upload_train_set(self.X_train, self.y_train)
 
         dummy_result = {"y_pred": [1, 2, 3]}
         mock_server.router.post(mock_server.endpoints.predict.path).respond(
             200, json=dummy_result)
 
-        pred = self.client.predict(self.X_test)
+        pred = self.client.predict(
+            train_set_uid=dummy_json["train_set_uid"],
+            x_test=self.X_test
+        )
         self.assertTrue(np.array_equal(pred, dummy_result["y_pred"]))
-
-    def test_predict_with_conflicting_test_set(self):
-        # TODO: implement this
-        pass
-
-    def test_call_predict_without_calling_fit_before(self):
-        self.assertRaises(NotFittedError, self.client.predict, self.X_test)
-
-    def test_call_predict_proba_without_calling_fit_before(self):
-        self.assertRaises(NotFittedError, self.client.predict_proba, self.X_test)
