@@ -1,2 +1,3 @@
 from tabpfn_client import tabpfn_classifier
 from tabpfn_client.tabpfn_classifier import TabPFNClassifier
+from tabpfn_client.service_wrapper import UserDataClient
