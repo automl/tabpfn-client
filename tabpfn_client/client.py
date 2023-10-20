@@ -1,6 +1,7 @@
 from pathlib import Path
 import httpx
 import logging
+import copy
 
 import numpy as np
 from omegaconf import OmegaConf
@@ -24,9 +25,10 @@ class ServiceClient:
     def __init__(self):
         self.server_config = SERVER_CONFIG
         self.server_endpoints = SERVER_CONFIG["endpoints"]
+        self.base_url = f"{self.server_config.protocol}://{self.server_config.host}:{self.server_config.port}"
         self.httpx_timeout_s = 30   # temporary workaround for slow computation on server side
         self.httpx_client = httpx.Client(
-            base_url=f"https://{self.server_config.host}:{self.server_config.port}",
+            base_url=self.base_url,
             timeout=self.httpx_timeout_s
         )
 
@@ -36,11 +38,15 @@ class ServiceClient:
     def access_token(self):
         return self._access_token
 
-    def set_access_token(self, access_token: str):
+    def authorize(self, access_token: str):
         self._access_token = access_token
+        self.httpx_client.headers.update(
+            {"Authorization": f"Bearer {self.access_token}"}
+        )
 
-    def reset_access_token(self):
+    def reset_authorization(self):
         self._access_token = None
+        self.httpx_client.headers.pop("Authorization", None)
 
     @property
     def is_initialized(self):
@@ -69,7 +75,6 @@ class ServiceClient:
 
         response = self.httpx_client.post(
             url=self.server_endpoints.upload_train_set.path,
-            headers={"Authorization": f"Bearer {self.access_token}"},
             files=common_utils.to_httpx_post_file_format([
                 ("x_file", "x_train_filename", X),
                 ("y_file", "y_train_filename", y)
@@ -104,7 +109,6 @@ class ServiceClient:
 
         response = self.httpx_client.post(
             url=self.server_endpoints.predict.path,
-            headers={"Authorization": f"Bearer {self.access_token}"},
             params={"train_set_uid": train_set_uid},
             files=common_utils.to_httpx_post_file_format([
                 ("x_file", "x_test_filename", x_test)
@@ -136,7 +140,6 @@ class ServiceClient:
 
         response = self.httpx_client.post(
             url=self.server_endpoints.predict_proba.path,
-            headers={"Authorization": f"Bearer {self.access_token}"},
             params={"train_set_uid": train_set_uid},
             files=common_utils.to_httpx_post_file_format([
                 ("x_file", "x_test_filename", x_test)
@@ -260,3 +263,104 @@ class ServiceClient:
             raise RuntimeError(f"Fail to call get_password_policy(), server response: {response.json()}")
 
         return response.json()["requirements"]
+
+    def get_data_summary(self) -> {}:
+        """
+        Get the data summary of the user from the server.
+
+        Returns
+        -------
+        data_summary : {}
+            The data summary returned from the server.
+        """
+        response = self.httpx_client.get(
+            self.server_endpoints.get_data_summary.path,
+        )
+        if response.status_code != 200:
+            logger.error(f"Fail to call get_data_summary(), response status: {response.status_code}")
+            raise RuntimeError(f"Fail to call get_data_summary(), server response: {response.json()}")
+
+        return response.json()
+
+    def download_all_data(self, save_dir: Path) -> Path | None:
+        """
+        Download all data uploaded by the user from the server.
+
+        Returns
+        -------
+        save_path : Path | None
+            The path to the downloaded file. Return None if download fails.
+
+        """
+
+        save_path = None
+
+        full_url = self.base_url + self.server_endpoints.download_all_data.path
+        with httpx.stream("GET", full_url, headers={"Authorization": f"Bearer {self.access_token}"}) as response:
+            if response.status_code != 200:
+                logger.error(f"Fail to call download_all_data(), response status: {response.status_code}")
+                raise RuntimeError(f"Fail to call download_all_data(), server response: {response.json()}")
+
+            filename = response.headers["Content-Disposition"].split("filename=")[1]
+            save_path = Path(save_dir) / filename
+            with open(save_path, "wb") as f:
+                for data in response.iter_bytes():
+                    f.write(data)
+
+        return save_path
+
+    def delete_dataset(self, dataset_uid: str) -> [str]:
+        """
+        Delete the dataset with the provided UID from the server.
+        Note that deleting a train set with lead to deleting all associated test sets.
+
+        Parameters
+        ----------
+        dataset_uid : str
+            The UID of the dataset to be deleted.
+
+        Returns
+        -------
+        deleted_dataset_uids : [str]
+            The list of deleted dataset UIDs.
+
+        """
+        response = self.httpx_client.delete(
+            self.server_endpoints.delete_dataset.path,
+            params={"dataset_uid": dataset_uid}
+        )
+
+        if response.status_code != 200:
+            logger.error(f"Fail to call delete_dataset(), response status: {response.status_code}")
+            raise RuntimeError(f"Fail to call delete_dataset(), server response: {response.json()}")
+
+        return response.json()["deleted_dataset_uids"]
+
+    def delete_all_datasets(self) -> [str]:
+        """
+        Delete all datasets uploaded by the user from the server.
+
+        Returns
+        -------
+        deleted_dataset_uids : [str]
+            The list of deleted dataset UIDs.
+        """
+        response = self.httpx_client.delete(
+            self.server_endpoints.delete_all_datasets.path,
+        )
+
+        if response.status_code != 200:
+            logger.error(f"Fail to call delete_all_datasets(), response status: {response.status_code}")
+            raise RuntimeError(f"Fail to call delete_all_datasets(), server response: {response.json()}")
+
+        return response.json()["deleted_dataset_uids"]
+
+    def delete_user_account(self, confirm_pass: str) -> None:
+        response = self.httpx_client.delete(
+            self.server_endpoints.delete_user_account.path,
+            params={"confirm_password": confirm_pass}
+        )
+
+        if response.status_code != 200:
+            logger.error(f"Fail to call delete_user_account(), response status: {response.status_code}")
+            raise RuntimeError(f"Fail to call delete_user_account(), server response: {response.json()}")

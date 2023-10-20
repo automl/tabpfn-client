@@ -24,7 +24,7 @@ class UserAuthenticationClient(ServiceClientWrapper):
         return self.service_client.try_connection()
 
     def set_token(self, access_token: str):
-        self.service_client.set_access_token(access_token)
+        self.service_client.authorize(access_token)
         self.CACHED_TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
         self.CACHED_TOKEN_FILE.write_text(access_token)
 
@@ -79,7 +79,7 @@ class UserAuthenticationClient(ServiceClientWrapper):
         self._reset_token()
 
     def _reset_token(self):
-        self.service_client.reset_access_token()
+        self.service_client.reset_authorization()
         self.CACHED_TOKEN_FILE.unlink()
 
 
@@ -89,7 +89,20 @@ class UserDataClient(ServiceClientWrapper):
     - query, or delete user account data
     - query, download, or delete uploaded data
     """
-    pass
+    def get_data_summary(self):
+        pass
+
+    def download_all_data(self):
+        pass
+
+    def delete_all_dataset(self):
+        pass
+
+    def delete_dataset(self):
+        pass
+
+    def delete_user_account(self):
+        pass
 
 
 class InferenceClient(ServiceClientWrapper):

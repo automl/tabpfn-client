@@ -45,8 +45,6 @@ def init(use_server=True):
         if is_valid_token_set:
             prompt_agent.prompt_reusing_existing_token()
         else:
-            prompt_agent.prompt_welcome()
-
             if not prompt_agent.prompt_terms_and_cond():
                 raise RuntimeError("You must agree to the terms and conditions to use TabPFN")
 

@@ -1,10 +1,16 @@
-host: "tabpfn.priorlabs.ai"
+## testing
+#protocol: "http"
 #host: "0.0.0.0"
+#port: "8000"
+
+# production
+protocol: "https"
+host: "tabpfn.priorlabs.ai"
 port: "443"
 endpoints:
   root:
     path: "/"
-    methods: ["GET"]
+    methods: [ "GET" ]
     description: "Root endpoint"
 
   password_policy:
@@ -14,30 +20,61 @@ endpoints:
 
   register:
     path: "/auth/register/"
-    methods: ["POST"]
+    methods: [ "POST" ]
     description: "User registration"
 
   login:
     path: "/auth/login/"
-    methods: ["POST"]
+    methods: [ "POST" ]
     description: "User login"
 
   protected_root:
     path: "/protected/"
-    methods: ["GET"]
+    methods: [ "GET" ]
     description: "Protected root"
+
+  upload_test_set:
+    path: "/upload/test_set/"
+    methods: [ "POST" ]
+    description: "Upload test set (for testing purpose)"
 
   upload_train_set:
     path: "/upload/train_set/"
-    methods: ["POST"]
+    methods: [ "POST" ]
     description: "Upload train set"
 
   predict:
     path: "/predict/"
-    methods: ["POST"]
+    methods: [ "POST" ]
     description: "Predict"
 
   predict_proba:
     path: "/predict_proba/"
-    methods: ["POST"]
+    methods: [ "POST" ]
     description: "Predict probability"
+
+  get_data_summary:
+    path: "/get_data_summary/"
+    methods: [ "GET" ]
+    description: "Get a summary of all uploaded data"
+
+  download_all_data:
+    path: "/download_all_data/"
+    methods: [ "GET" ]
+    description: "Download all uploaded data"
+
+  delete_dataset:
+    path: "/delete_dataset/"
+    methods: [ "DELETE" ]
+    description: "Delete dataset (can be train set or test set)"
+
+  delete_all_datasets:
+    path: "/delete_all_datasets/"
+    methods: [ "DELETE" ]
+    description: "Delete all datasets (both train set and test set)"
+
+  delete_user_account:
+    path: "/delete_user_account/"
+    methods: [ "DELETE" ]
+    description: "Delete user account"
+
