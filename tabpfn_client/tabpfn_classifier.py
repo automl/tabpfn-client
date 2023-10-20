@@ -28,10 +28,9 @@ g_tabpfn_config = TabPFNConfig()
 
 def init(use_server=True):
     global g_tabpfn_config
-    prompt_agent = PromptAgent()
 
     if use_server:
-        prompt_agent.prompt_welcome()
+        PromptAgent.prompt_welcome()
 
         service_client = ServiceClient()
         user_auth_handler = UserAuthenticationClient(service_client)
@@ -43,13 +42,13 @@ def init(use_server=True):
         is_valid_token_set = user_auth_handler.try_reuse_existing_token()
 
         if is_valid_token_set:
-            prompt_agent.prompt_reusing_existing_token()
+            PromptAgent.prompt_reusing_existing_token()
         else:
-            if not prompt_agent.prompt_terms_and_cond():
+            if not PromptAgent.prompt_terms_and_cond():
                 raise RuntimeError("You must agree to the terms and conditions to use TabPFN")
 
             # prompt for login / register
-            prompt_agent.prompt_and_set_token(user_auth_handler)
+            PromptAgent.prompt_and_set_token(user_auth_handler)
 
         g_tabpfn_config.use_server = True
         g_tabpfn_config.user_auth_handler = user_auth_handler

@@ -1,7 +1,9 @@
 import logging
+from pathlib import Path
 
 from tabpfn_client.client import ServiceClient
 from tabpfn_client.constants import CACHE_DIR
+from tabpfn_client.prompt_agent import PromptAgent
 
 logger = logging.getLogger(__name__)
 
@@ -89,20 +91,62 @@ class UserDataClient(ServiceClientWrapper):
     - query, or delete user account data
     - query, download, or delete uploaded data
     """
-    def get_data_summary(self):
-        pass
+    def __init__(self, service_client = ServiceClient()):
+        super().__init__(service_client)
 
-    def download_all_data(self):
-        pass
+    def get_data_summary(self) -> {}:
+        try:
+            summary = self.service_client.get_data_summary()
+        except RuntimeError as e:
+            logging.error(f"Failed to get data summary: {e}")
+            raise e
 
-    def delete_all_dataset(self):
-        pass
+        return summary
 
-    def delete_dataset(self):
-        pass
+    def download_all_data(self, save_dir: Path = Path(".")) -> Path:
+        try:
+            saved_path = self.service_client.download_all_data(save_dir)
+        except RuntimeError as e:
+            logging.error(f"Failed to download data: {e}")
+            raise e
+
+        if saved_path is None:
+            raise RuntimeError("Failed to download data.")
+
+        logging.info(f"Data saved to {saved_path}")
+        return saved_path
+
+    def delete_dataset(self, dataset_uid: str) -> [str]:
+        try:
+            deleted_datasets = self.service_client.delete_dataset(dataset_uid)
+        except RuntimeError as e:
+            logging.error(f"Failed to delete dataset: {e}")
+            raise e
+
+        logging.info(f"Deleted datasets: {deleted_datasets}")
+
+        return deleted_datasets
+
+    def delete_all_dataset(self) -> [str]:
+        try:
+            deleted_datasets = self.service_client.delete_all_datasets()
+        except RuntimeError as e:
+            logging.error(f"Failed to delete all datasets: {e}")
+            raise e
+
+        logging.info(f"Deleted datasets: {deleted_datasets}")
+
+        return deleted_datasets
 
     def delete_user_account(self):
-        pass
+        confirm_pass = PromptAgent.prompt_confirm_password_for_user_account_deletion()
+        try:
+            self.service_client.delete_user_account(confirm_pass)
+        except RuntimeError as e:
+            logging.error(f"Failed to delete user account: {e}")
+            raise e
+
+        PromptAgent.prompt_account_deleted()
 
 
 class InferenceClient(ServiceClientWrapper):
