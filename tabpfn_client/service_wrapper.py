@@ -15,7 +15,7 @@ class ServiceClientWrapper:
 
 class UserAuthenticationClient(ServiceClientWrapper):
     """
-    Singleton class for handling user authentication, including:
+    Wrapper of ServiceClient to handle user authentication, including:
     - user registration and login
     - access token caching
 
@@ -82,12 +82,12 @@ class UserAuthenticationClient(ServiceClientWrapper):
 
     def _reset_token(self):
         self.service_client.reset_authorization()
-        self.CACHED_TOKEN_FILE.unlink()
+        self.CACHED_TOKEN_FILE.unlink(missing_ok=True)
 
 
 class UserDataClient(ServiceClientWrapper):
     """
-    Singleton class for handling user data, including:
+    Wrapper of ServiceClient to handle user data, including:
     - query, or delete user account data
     - query, download, or delete uploaded data
     """
@@ -127,7 +127,7 @@ class UserDataClient(ServiceClientWrapper):
 
         return deleted_datasets
 
-    def delete_all_dataset(self) -> [str]:
+    def delete_all_datasets(self) -> [str]:
         try:
             deleted_datasets = self.service_client.delete_all_datasets()
         except RuntimeError as e:
@@ -151,7 +151,7 @@ class UserDataClient(ServiceClientWrapper):
 
 class InferenceClient(ServiceClientWrapper):
     """
-    Singleton class for handling inference, including:
+    Wrapper of ServiceClient to handle inference, including:
     - fitting
     - prediction
     """

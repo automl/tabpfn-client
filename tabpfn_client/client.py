@@ -83,7 +83,7 @@ class ServiceClient:
 
         if response.status_code != 200:
             logger.error(f"Fail to call upload_train_set(), response status: {response.status_code}")
-            raise RuntimeError(f"Fail to call upload_train_set(), server response: {response.json()}")
+            raise RuntimeError(f"Fail to call upload_train_set()")
 
         train_set_uid = response.json()["train_set_uid"]
         return train_set_uid
@@ -117,7 +117,7 @@ class ServiceClient:
 
         if response.status_code != 200:
             logger.error(f"Fail to call predict(), response status: {response.status_code}")
-            raise RuntimeError(f"Fail to call predict(), server response: {response.json()}")
+            raise RuntimeError(f"Fail to call predict()")
 
         return np.array(response.json()["y_pred"])
 
@@ -148,7 +148,7 @@ class ServiceClient:
 
         if response.status_code != 200:
             logger.error(f"Fail to call predict_proba(), response status: {response.status_code}")
-            raise RuntimeError(f"Fail to call predict_proba(), server response: {response.json()}")
+            raise RuntimeError(f"Fail to call predict_proba()")
 
         return np.array(response.json()["y_pred_proba"])
 
@@ -260,7 +260,7 @@ class ServiceClient:
         )
         if response.status_code != 200:
             logger.error(f"Fail to call get_password_policy(), response status: {response.status_code}")
-            raise RuntimeError(f"Fail to call get_password_policy(), server response: {response.json()}")
+            raise RuntimeError(f"Fail to call get_password_policy()")
 
         return response.json()["requirements"]
 
@@ -278,7 +278,7 @@ class ServiceClient:
         )
         if response.status_code != 200:
             logger.error(f"Fail to call get_data_summary(), response status: {response.status_code}")
-            raise RuntimeError(f"Fail to call get_data_summary(), server response: {response.json()}")
+            raise RuntimeError(f"Fail to call get_data_summary()")
 
         return response.json()
 
@@ -299,7 +299,7 @@ class ServiceClient:
         with httpx.stream("GET", full_url, headers={"Authorization": f"Bearer {self.access_token}"}) as response:
             if response.status_code != 200:
                 logger.error(f"Fail to call download_all_data(), response status: {response.status_code}")
-                raise RuntimeError(f"Fail to call download_all_data(), server response: {response.json()}")
+                raise RuntimeError(f"Fail to call download_all_data()")
 
             filename = response.headers["Content-Disposition"].split("filename=")[1]
             save_path = Path(save_dir) / filename
@@ -332,7 +332,7 @@ class ServiceClient:
 
         if response.status_code != 200:
             logger.error(f"Fail to call delete_dataset(), response status: {response.status_code}")
-            raise RuntimeError(f"Fail to call delete_dataset(), server response: {response.json()}")
+            raise RuntimeError(f"Fail to call delete_dataset()")
 
         return response.json()["deleted_dataset_uids"]
 
@@ -351,7 +351,7 @@ class ServiceClient:
 
         if response.status_code != 200:
             logger.error(f"Fail to call delete_all_datasets(), response status: {response.status_code}")
-            raise RuntimeError(f"Fail to call delete_all_datasets(), server response: {response.json()}")
+            raise RuntimeError(f"Fail to call delete_all_datasets()")
 
         return response.json()["deleted_dataset_uids"]
 
@@ -363,4 +363,4 @@ class ServiceClient:
 
         if response.status_code != 200:
             logger.error(f"Fail to call delete_user_account(), response status: {response.status_code}")
-            raise RuntimeError(f"Fail to call delete_user_account(), server response: {response.json()}")
+            raise RuntimeError(f"Fail to call delete_user_account()")
