@@ -76,5 +76,5 @@ endpoints:
   delete_user_account:
     path: "/delete_user_account/"
     methods: [ "DELETE" ]
-    description: "Delete user account"
+    description: "Delete user account, alongside all associated data"
 
