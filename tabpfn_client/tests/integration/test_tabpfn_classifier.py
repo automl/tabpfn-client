@@ -54,3 +54,32 @@ class TestTabPFNClassifier(unittest.TestCase):
         )
         pred = tabpfn.predict(self.X_test)
         self.assertEqual(pred.shape[0], self.X_test.shape[0])
+
+    @with_mock_server()
+    def test_use_remote_tabpfn_classifier_with_explicit_tabpfn_config(self, mock_server):
+        # create dummy token file
+        token_file = UserAuthenticationClient.CACHED_TOKEN_FILE
+        token_file.parent.mkdir(parents=True, exist_ok=True)
+        token_file.write_text("dummy token")
+
+        # mock connection and authentication
+        mock_server.router.get(mock_server.endpoints.root.path).respond(200)
+        mock_server.router.get(mock_server.endpoints.protected_root.path).respond(200)
+        tabpfn_classifier.init(use_server=True)
+
+        tabpfn = TabPFNClassifier(device="cpu", N_ensemble_configurations=5)
+
+        # mock fitting
+        mock_server.router.post(mock_server.endpoints.upload_train_set.path).respond(
+            200, json={"train_set_uid": 5})
+        tabpfn.fit(self.X_train, self.y_train)
+
+        # mock prediction
+        dummy_pred = "content doesn't matter"
+        mock_server.router.post(mock_server.endpoints.predict.path).respond(
+            200,
+            json={"y_pred": dummy_pred}
+        )
+        pred = tabpfn.predict(self.X_test)
+
+        self.assertEqual(dummy_pred, pred)

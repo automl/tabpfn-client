@@ -25,7 +25,17 @@ class TestRemoteTabPFNClassifier(unittest.TestCase):
         self.mock_client.is_initialized.return_value = True
         inference_handler = InferenceClient(service_client=self.mock_client)
 
-        self.remote_tabpfn = RemoteTabPFNClassifier(inference_handler=inference_handler)
+        self.remote_tabpfn = RemoteTabPFNClassifier(
+            device="cpu",
+            base_path=".",
+            model_string="",
+            batch_size_inference=4,
+            N_ensemble_configurations=4,
+            feature_shift_decoder=False,
+            seed=None,
+            multiclass_decoder="permutation",
+            inference_handler=inference_handler
+        )
 
     def tearDown(self):
         patch.stopall()
