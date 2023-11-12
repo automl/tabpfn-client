@@ -7,6 +7,7 @@ import numpy as np
 from omegaconf import OmegaConf
 
 from tabpfn_client.tabpfn_common_utils import utils as common_utils
+from tabpfn_client.tabpfn_common_utils.error_relay import ErrorRelay
 
 logger = logging.getLogger(__name__)
 
@@ -116,9 +117,13 @@ class ServiceClient:
             files=common_utils.to_httpx_post_file_format([("x_file", "x_test_filename", x_test)])
         )
 
-        if response.status_code != 200:
-            logger.error(f"Fail to call predict(), response status: {response.status_code}, response: {response}")
-            raise RuntimeError(f"Fail to call predict()")
+        if response.is_error:
+            error = ErrorRelay.try_decode_error_from_http_response(response)
+            if error is not None:
+                raise error
+            else:
+                logger.error(f"Fail to call predict(), response status: {response.status_code}, response: {response}")
+                raise RuntimeError(f"Fail to call predict()")
 
         return np.array(response.json()["y_pred"])
 
@@ -149,9 +154,13 @@ class ServiceClient:
             files=common_utils.to_httpx_post_file_format([("x_file", "x_test_filename", x_test)])
         )
 
-        if response.status_code != 200:
-            logger.error(f"Fail to call predict_proba(), response status: {response.status_code}")
-            raise RuntimeError(f"Fail to call predict_proba()")
+        if response.is_error:
+            error = ErrorRelay.try_decode_error_from_http_response(response)
+            if error is not None:
+                raise error
+            else:
+                logger.error(f"Fail to call predict_proba(), response status: {response.status_code}, response: {response}")
+                raise RuntimeError(f"Fail to call predict_proba()")
 
         return np.array(response.json()["y_pred_proba"])
 

@@ -8,6 +8,7 @@ from tabpfn_client import tabpfn_classifier, TabPFNClassifier
 from tabpfn_client.tests.mock_tabpfn_server import with_mock_server
 from tabpfn_client.service_wrapper import UserAuthenticationClient
 from tabpfn_client.client import ServiceClient
+from tabpfn_client.tabpfn_common_utils.error_relay import ErrorRelay
 
 
 class TestTabPFNClassifier(unittest.TestCase):
@@ -83,3 +84,52 @@ class TestTabPFNClassifier(unittest.TestCase):
         pred = tabpfn.predict(self.X_test)
 
         self.assertEqual(dummy_pred, pred)
+
+    @with_mock_server()
+    def test_use_remote_tabpfn_classifier_with_conflicting_dataset_raises_value_error_from_server(self, mock_server):
+        # create dummy token file
+        token_file = UserAuthenticationClient.CACHED_TOKEN_FILE
+        token_file.parent.mkdir(parents=True, exist_ok=True)
+        token_file.write_text("dummy token")
+
+        # mock connection and authentication
+        mock_server.router.get(mock_server.endpoints.root.path).respond(200)
+        mock_server.router.get(mock_server.endpoints.protected_root.path).respond(200)
+        tabpfn_classifier.init(use_server=True)
+
+        tabpfn = TabPFNClassifier(device="cpu", N_ensemble_configurations=5)
+
+        # mock fitting
+        mock_server.router.post(mock_server.endpoints.upload_train_set.path).respond(
+            200, json={"train_set_uid": 5})
+        tabpfn.fit(self.X_train, self.y_train)
+
+        # mock prediction and predict_proba response
+        dummy_error_str = "test error"
+        mock_server_http_exception = ErrorRelay.encode_error_in_http_exception(ValueError(dummy_error_str))
+        mock_server.router.post(mock_server.endpoints.predict.path).respond(
+            mock_server_http_exception.status_code,
+            headers=mock_server_http_exception.headers
+        )
+        mock_server.router.post(mock_server.endpoints.predict_proba.path).respond(
+            mock_server_http_exception.status_code,
+            headers=mock_server_http_exception.headers
+        )
+
+        # call prediction
+        with self.assertRaises(ValueError):
+            tabpfn.predict(self.X_test)
+
+        try:
+            tabpfn.predict(self.X_test)
+        except ValueError as e:
+            self.assertEqual(dummy_error_str, str(e))
+
+        # call predict_proba
+        with self.assertRaises(ValueError):
+            tabpfn.predict_proba(self.X_test)
+
+        try:
+            tabpfn.predict_proba(self.X_test)
+        except ValueError as e:
+            self.assertEqual(dummy_error_str, str(e))

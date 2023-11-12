@@ -6,6 +6,7 @@ import numpy as np
 
 from tabpfn_client.client import ServiceClient
 from tabpfn_client.tests.mock_tabpfn_server import with_mock_server
+from tabpfn_client.tabpfn_common_utils.error_relay import ErrorRelay
 
 
 class TestServiceClient(unittest.TestCase):
@@ -49,7 +50,7 @@ class TestServiceClient(unittest.TestCase):
 
     @with_mock_server()
     def test_predict_with_valid_train_set_and_test_set(self, mock_server):
-        dummy_json = {"train_set_uid": 5}
+        dummy_json = {"train_set_uid": "5"}
         mock_server.router.post(mock_server.endpoints.upload_train_set.path).respond(
             200, json=dummy_json)
 
@@ -64,3 +65,37 @@ class TestServiceClient(unittest.TestCase):
             x_test=self.X_test
         )
         self.assertTrue(np.array_equal(pred, dummy_result["y_pred"]))
+
+    @with_mock_server()
+    def test_predict_call_decode_error_from_server(self, mock_server):
+        dummy_error_str = "test error"
+        mock_server_http_exception = ErrorRelay.encode_error_in_http_exception(ValueError(dummy_error_str))
+        mock_server.router.post(mock_server.endpoints.predict.path).respond(
+            mock_server_http_exception.status_code,
+            headers=mock_server_http_exception.headers
+        )
+
+        with self.assertRaises(ValueError):
+            self.client.predict(train_set_uid="5", x_test=self.X_test)
+
+        try:
+            self.client.predict(train_set_uid="5", x_test=self.X_test)
+        except ValueError as e:
+            self.assertEqual(dummy_error_str, str(e))
+
+    @with_mock_server()
+    def test_predict_proba_call_decode_error_from_server(self, mock_server):
+        dummy_error_str = "test error"
+        mock_server_http_exception = ErrorRelay.encode_error_in_http_exception(ValueError(dummy_error_str))
+        mock_server.router.post(mock_server.endpoints.predict_proba.path).respond(
+            mock_server_http_exception.status_code,
+            headers=mock_server_http_exception.headers
+        )
+
+        with self.assertRaises(ValueError):
+            self.client.predict_proba(train_set_uid="5", x_test=self.X_test)
+
+        try:
+            self.client.predict_proba(train_set_uid="5", x_test=self.X_test)
+        except ValueError as e:
+            self.assertEqual(dummy_error_str, str(e))
