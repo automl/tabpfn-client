@@ -1,13 +1,13 @@
 from pathlib import Path
 import httpx
 import logging
-import copy
+import json
 
 import numpy as np
 from omegaconf import OmegaConf
 
 from tabpfn_client.tabpfn_common_utils import utils as common_utils
-
+from tabpfn_client.tabpfn_common_utils.error_relay import ErrorRelay
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ class ServiceClient:
         self.server_config = SERVER_CONFIG
         self.server_endpoints = SERVER_CONFIG["endpoints"]
         self.base_url = f"{self.server_config.protocol}://{self.server_config.host}:{self.server_config.port}"
-        self.httpx_timeout_s = 30   # temporary workaround for slow computation on server side
+        self.httpx_timeout_s = 30  # temporary workaround for slow computation on server side
         self.httpx_client = httpx.Client(
             base_url=self.base_url,
             timeout=self.httpx_timeout_s
@@ -88,7 +88,7 @@ class ServiceClient:
         train_set_uid = response.json()["train_set_uid"]
         return train_set_uid
 
-    def predict(self, train_set_uid: str, x_test):
+    def predict(self, train_set_uid: str, x_test, tabpfn_config: dict = None):
         """
         Predict the class labels for the provided data (test set).
 
@@ -98,6 +98,8 @@ class ServiceClient:
             The unique ID of the train set in the server.
         x_test : array-like of shape (n_samples, n_features)
             The test input.
+        tabpfn_config : dict
+            The configuration of TabPFN model.
 
         Returns
         -------
@@ -107,21 +109,25 @@ class ServiceClient:
 
         x_test = common_utils.serialize_to_csv_formatted_bytes(x_test)
 
+        self.validate_tabpfn_config(tabpfn_config)
+
         response = self.httpx_client.post(
             url=self.server_endpoints.predict.path,
-            params={"train_set_uid": train_set_uid},
-            files=common_utils.to_httpx_post_file_format([
-                ("x_file", "x_test_filename", x_test)
-            ])
+            params={"train_set_uid": train_set_uid, "serialized_tabpfn_config": json.dumps(tabpfn_config)},
+            files=common_utils.to_httpx_post_file_format([("x_file", "x_test_filename", x_test)])
         )
 
-        if response.status_code != 200:
-            logger.error(f"Fail to call predict(), response status: {response.status_code}")
-            raise RuntimeError(f"Fail to call predict()")
+        if response.is_error:
+            error = ErrorRelay.try_decode_error_from_http_response(response)
+            if error is not None:
+                raise error
+            else:
+                logger.error(f"Fail to call predict(), response status: {response.status_code}, response: {response}")
+                raise RuntimeError(f"Fail to call predict()")
 
         return np.array(response.json()["y_pred"])
 
-    def predict_proba(self, train_set_uid: str, x_test):
+    def predict_proba(self, train_set_uid: str, x_test, tabpfn_config: dict = None):
         """
         Predict the class probabilities for the provided data (test set).
 
@@ -131,6 +137,8 @@ class ServiceClient:
             The unique ID of the train set in the server.
         x_test : array-like of shape (n_samples, n_features)
             The test input.
+        tabpfn_config : dict
+            The configuration of TabPFN model.
 
         Returns
         -------
@@ -138,17 +146,21 @@ class ServiceClient:
         """
         x_test = common_utils.serialize_to_csv_formatted_bytes(x_test)
 
+        self.validate_tabpfn_config(tabpfn_config)
+
         response = self.httpx_client.post(
             url=self.server_endpoints.predict_proba.path,
-            params={"train_set_uid": train_set_uid},
-            files=common_utils.to_httpx_post_file_format([
-                ("x_file", "x_test_filename", x_test)
-            ])
+            params={"train_set_uid": train_set_uid, "serialized_tabpfn_config": json.dumps(tabpfn_config)},
+            files=common_utils.to_httpx_post_file_format([("x_file", "x_test_filename", x_test)])
         )
 
-        if response.status_code != 200:
-            logger.error(f"Fail to call predict_proba(), response status: {response.status_code}")
-            raise RuntimeError(f"Fail to call predict_proba()")
+        if response.is_error:
+            error = ErrorRelay.try_decode_error_from_http_response(response)
+            if error is not None:
+                raise error
+            else:
+                logger.error(f"Fail to call predict_proba(), response status: {response.status_code}, response: {response}")
+                raise RuntimeError(f"Fail to call predict_proba()")
 
         return np.array(response.json()["y_pred_proba"])
 
@@ -364,3 +376,8 @@ class ServiceClient:
         if response.status_code != 200:
             logger.error(f"Fail to call delete_user_account(), response status: {response.status_code}")
             raise RuntimeError(f"Fail to call delete_user_account()")
+
+    @staticmethod
+    def validate_tabpfn_config(tabpfn_config: dict | None):
+        if tabpfn_config is not None and not isinstance(tabpfn_config, dict):
+            raise ValueError("Invalid TabPFN config - must be a dict or None")

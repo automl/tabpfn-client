@@ -2,6 +2,7 @@ httpx
 omegaconf
 pandas
 tabpfn
+-r tabpfn_client/tabpfn_common_utils/requirements.txt
 
 # for testing
 respx

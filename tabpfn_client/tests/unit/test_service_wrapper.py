@@ -3,9 +3,10 @@ import zipfile
 from unittest.mock import patch
 from io import BytesIO
 from pathlib import Path
+import numpy as np
 
 from tabpfn_client.tests.mock_tabpfn_server import with_mock_server
-from tabpfn_client.service_wrapper import UserAuthenticationClient, UserDataClient
+from tabpfn_client.service_wrapper import UserAuthenticationClient, UserDataClient, InferenceClient
 from tabpfn_client.client import ServiceClient
 
 
@@ -272,3 +273,62 @@ class TestUserDataClient(unittest.TestCase):
 
         # assert exception is raised
         self.assertRaises(RuntimeError, UserDataClient().delete_user_account)
+
+
+class TestInferenceClient(unittest.TestCase):
+    """
+    These test cases are meant to validate the interface between the client and the server.
+    They do not guarantee if the response from the server is correct.
+    """
+
+    def setUp(self):
+        self.inference_client = InferenceClient()
+        self.dummy_x = np.array([])
+
+    @with_mock_server()
+    def test_predict_with_explicit_tabpfn_config(self, mock_server):
+        # mock predict response
+        mock_server.router.post(mock_server.endpoints.predict.path).respond(
+            200,
+            json={"y_pred": [0]}
+        )
+
+        # assert no exception is raised
+        tabpfn_config = {"dummy_config": "dummy_value"}
+        self.inference_client.config_tabpfn(**tabpfn_config)
+        self.assertEqual([0], self.inference_client.predict(self.dummy_x))
+
+    @with_mock_server()
+    def test_predict_with_default_tabpfn_config(self, mock_server):
+        # mock predict response
+        mock_server.router.post(mock_server.endpoints.predict.path).respond(
+            200,
+            json={"y_pred": [0]}
+        )
+
+        # assert no exception is raised
+        self.assertEqual([0],self.inference_client.predict(self.dummy_x))
+
+    @with_mock_server()
+    def test_predict_proba_with_explicit_tabpfn_config(self, mock_server):
+        # mock predict_proba response
+        mock_server.router.post(mock_server.endpoints.predict_proba.path).respond(
+            200,
+            json={"y_pred_proba": [[0]]}
+        )
+
+        # assert no exception is raised
+        tabpfn_config = {"dummy_config": "dummy_value"}
+        self.inference_client.config_tabpfn(**tabpfn_config)
+        self.assertEqual([[0]], self.inference_client.predict_proba(self.dummy_x))
+
+    @with_mock_server()
+    def test_predict_proba_with_default_tabpfn_config(self, mock_server):
+        # mock predict_proba response
+        mock_server.router.post(mock_server.endpoints.predict_proba.path).respond(
+            200,
+            json={"y_pred_proba": [[0]]}
+        )
+
+        # assert no exception is raised
+        self.assertEqual([[0]], self.inference_client.predict_proba(self.dummy_x))
