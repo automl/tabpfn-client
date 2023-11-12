@@ -1,12 +1,13 @@
-# testing
-protocol: "http"
-host: "0.0.0.0"
-port: "80"
+## testing
+#protocol: "http"
+#host: "0.0.0.0"
+#port: "80"
 
-## production
-#protocol: "https"
-#host: "tabpfn.priorlabs.ai"
-#port: "443"
+# production
+protocol: "https"
+host: "tabpfn.priorlabs.ai"
+port: "443"
+
 endpoints:
   root:
     path: "/"
