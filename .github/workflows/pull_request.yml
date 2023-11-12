@@ -21,11 +21,11 @@ jobs:
           python-version: ${{ matrix.python-version }}
           architecture: x64
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
       - name: Initialize submodules
         run: git submodule update --init --recursive
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
       - name: Run Test
         run: |
