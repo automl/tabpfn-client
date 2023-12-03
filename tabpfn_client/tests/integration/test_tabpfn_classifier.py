@@ -50,7 +50,7 @@ class TestTabPFNClassifier(unittest.TestCase):
         # mock prediction
         mock_server.router.post(mock_server.endpoints.predict.path).respond(
             200,
-            json={"y_pred": LocalTabPFNClassifier().fit(self.X_train, self.y_train).predict(self.X_test).tolist()}
+            json={"res": LocalTabPFNClassifier().fit(self.X_train, self.y_train).predict(self.X_test).tolist()}
         )
         pred = tabpfn.predict(self.X_test)
         self.assertEqual(pred.shape[0], self.X_test.shape[0])
@@ -78,7 +78,7 @@ class TestTabPFNClassifier(unittest.TestCase):
         dummy_pred = "content doesn't matter"
         mock_server.router.post(mock_server.endpoints.predict.path).respond(
             200,
-            json={"y_pred": dummy_pred}
+            json={"res": dummy_pred}
         )
         pred = tabpfn.predict(self.X_test)
 

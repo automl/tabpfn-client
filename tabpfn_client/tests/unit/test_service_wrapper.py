@@ -290,45 +290,45 @@ class TestInferenceClient(unittest.TestCase):
         # mock predict response
         mock_server.router.post(mock_server.endpoints.predict.path).respond(
             200,
-            json={"y_pred": [0]}
+            json={"res": [0]}
         )
 
         # assert no exception is raised
         tabpfn_config = {"dummy_config": "dummy_value"}
-        self.inference_client.config_tabpfn(**tabpfn_config)
-        self.assertEqual([0], self.inference_client.predict(self.dummy_x))
+        self.assertEqual([0], self.inference_client.predict(
+            self.dummy_x, with_proba=False, tabpfn_config=tabpfn_config)
+        )
 
     @with_mock_server()
     def test_predict_with_default_tabpfn_config(self, mock_server):
         # mock predict response
         mock_server.router.post(mock_server.endpoints.predict.path).respond(
             200,
-            json={"y_pred": [0]}
+            json={"res": [0]}
         )
 
         # assert no exception is raised
-        self.assertEqual([0],self.inference_client.predict(self.dummy_x))
+        self.assertEqual([0], self.inference_client.predict(self.dummy_x, with_proba=False))
 
     @with_mock_server()
     def test_predict_proba_with_explicit_tabpfn_config(self, mock_server):
         # mock predict_proba response
-        mock_server.router.post(mock_server.endpoints.predict_proba.path).respond(
+        mock_server.router.post(mock_server.endpoints.predict.path).respond(
             200,
-            json={"y_pred_proba": [[0]]}
+            json={"res": [[0]]}
         )
 
         # assert no exception is raised
         tabpfn_config = {"dummy_config": "dummy_value"}
-        self.inference_client.config_tabpfn(**tabpfn_config)
-        self.assertEqual([[0]], self.inference_client.predict_proba(self.dummy_x))
+        self.assertEqual([[0]], self.inference_client.predict(self.dummy_x, tabpfn_config=tabpfn_config))
 
     @with_mock_server()
     def test_predict_proba_with_default_tabpfn_config(self, mock_server):
         # mock predict_proba response
-        mock_server.router.post(mock_server.endpoints.predict_proba.path).respond(
+        mock_server.router.post(mock_server.endpoints.predict.path).respond(
             200,
-            json={"y_pred_proba": [[0]]}
+            json={"res": [[0]]}
         )
 
         # assert no exception is raised
-        self.assertEqual([[0]], self.inference_client.predict_proba(self.dummy_x))
+        self.assertEqual([[0]], self.inference_client.predict(self.dummy_x))
