@@ -152,11 +152,12 @@ class UserDataClient(ServiceClientWrapper):
 class InferenceClient(ServiceClientWrapper):
     """
     Wrapper of ServiceClient to handle inference, including:
+    - TabPFN model configuration
     - fitting
     - prediction
     """
 
-    def __init__(self, service_client = ServiceClient()):
+    def __init__(self, service_client=ServiceClient()):
         super().__init__(service_client)
         self.last_train_set_uid = None
 
@@ -166,16 +167,10 @@ class InferenceClient(ServiceClientWrapper):
 
         self.last_train_set_uid = self.service_client.upload_train_set(X, y)
 
-    def predict(self, X):
+    def predict(self, X, with_proba: bool = True, tabpfn_config: dict = None):
         return self.service_client.predict(
             train_set_uid=self.last_train_set_uid,
-            x_test=X
+            x_test=X,
+            with_proba=with_proba,
+            tabpfn_config=tabpfn_config,
         )
-
-    def predict_proba(self, X):
-        return self.service_client.predict_proba(
-            train_set_uid=self.last_train_set_uid,
-            x_test=X
-        )
-
-

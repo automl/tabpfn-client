@@ -1,7 +1,7 @@
 ## testing
 #protocol: "http"
 #host: "0.0.0.0"
-#port: "8000"
+#port: "80"
 
 # production
 protocol: "https"
@@ -47,11 +47,6 @@ endpoints:
     path: "/predict/"
     methods: [ "POST" ]
     description: "Predict"
-
-  predict_proba:
-    path: "/predict_proba/"
-    methods: [ "POST" ]
-    description: "Predict probability"
 
   get_data_summary:
     path: "/get_data_summary/"
