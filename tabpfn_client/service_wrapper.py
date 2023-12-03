@@ -160,17 +160,6 @@ class InferenceClient(ServiceClientWrapper):
     def __init__(self, service_client=ServiceClient()):
         super().__init__(service_client)
         self.last_train_set_uid = None
-        self.tabpfn_config = {}
-
-    def config_tabpfn(self, **kwargs):
-        """
-        Configure TabPFN model.
-
-        If no kwargs is provided, the default config will be used.
-        note: this doesn't check if the keyword nor the value is valid
-        """
-
-        self.tabpfn_config = dict(kwargs)
 
     def fit(self, X, y) -> None:
         if not self.service_client.is_initialized:
@@ -178,18 +167,10 @@ class InferenceClient(ServiceClientWrapper):
 
         self.last_train_set_uid = self.service_client.upload_train_set(X, y)
 
-    def predict(self, X):
+    def predict(self, X, with_proba: bool = True, tabpfn_config: dict = None):
         return self.service_client.predict(
-            tabpfn_config=self.tabpfn_config,
             train_set_uid=self.last_train_set_uid,
             x_test=X,
+            with_proba=with_proba,
+            tabpfn_config=tabpfn_config,
         )
-
-    def predict_proba(self, X):
-        return self.service_client.predict_proba(
-            tabpfn_config=self.tabpfn_config,
-            train_set_uid=self.last_train_set_uid,
-            x_test=X,
-        )
-
-

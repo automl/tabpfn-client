@@ -48,11 +48,6 @@ endpoints:
     methods: [ "POST" ]
     description: "Predict"
 
-  predict_proba:
-    path: "/predict_proba/"
-    methods: [ "POST" ]
-    description: "Predict probability"
-
   get_data_summary:
     path: "/get_data_summary/"
     methods: [ "GET" ]

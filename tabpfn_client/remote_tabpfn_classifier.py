@@ -55,26 +55,6 @@ class RemoteTabPFNClassifier(BaseEstimator, ClassifierMixin):
         self.multiclass_decoder = multiclass_decoder
 
         self.inference_handler = inference_handler
-        self.inference_handler.config_tabpfn(
-            # model=self.model,
-            device=self.device,
-            base_path=str(self.base_path),
-            model_string=self.model_string,
-            batch_size_inference=self.batch_size_inference,
-            # fp16_inference=self.fp16_inference,
-            # inference_mode=self.inference_mode,
-            # c=self.c,
-            N_ensemble_configurations=self.N_ensemble_configurations,
-            # preprocess_transforms=self.preprocess_transforms,
-            feature_shift_decoder=self.feature_shift_decoder,
-            # normalize_with_test=self.normalize_with_test,
-            # average_logits=self.average_logits,
-            # categorical_features=self.categorical_features,
-            # optimize_metric=self.optimize_metric,
-            seed=self.seed,
-            # transformer_predict_kwargs_init=self.transformer_predict_kwargs_init,
-            multiclass_decoder=self.multiclass_decoder,
-        )
 
     def fit(self, X, y):
         self.inference_handler.fit(X, y)
@@ -83,8 +63,31 @@ class RemoteTabPFNClassifier(BaseEstimator, ClassifierMixin):
 
     def predict(self, X):
         check_is_fitted(self)
-        return self.inference_handler.predict(X)
+        return self.inference_handler.predict(X, with_proba=False, tabpfn_config=self.config)
 
     def predict_proba(self, X):
         check_is_fitted(self)
-        return self.inference_handler.predict_proba(X)
+        return self.inference_handler.predict(X, with_proba=True, tabpfn_config=self.config)
+
+    @property
+    def config(self) -> dict:
+        return {
+            # "model": self.model,
+            "device": self.device,
+            "base_path": str(self.base_path),
+            "model_string": self.model_string,
+            "batch_size_inference": self.batch_size_inference,
+            # "fp16_inference": self.fp16_inference,
+            # "inference_mode": self.inference_mode,
+            # "c": self.c,
+            "N_ensemble_configurations": self.N_ensemble_configurations,
+            # "preprocess_transforms": self.preprocess_transforms,
+            "feature_shift_decoder": self.feature_shift_decoder,
+            # "normalize_with_test": self.normalize_with_test,
+            # "average_logits": self.average_logits,
+            # "categorical_features": self.categorical_features,
+            # "optimize_metric": self.optimize_metric,
+            "seed": self.seed,
+            # "transformer_predict_kwargs_init": self.transformer_predict_kwargs_init,
+            "multiclass_decoder": self.multiclass_decoder,
+        }

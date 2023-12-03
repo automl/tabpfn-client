@@ -87,9 +87,9 @@ class ServiceClient:
         train_set_uid = response.json()["train_set_uid"]
         return train_set_uid
 
-    def predict(self, train_set_uid: str, x_test, tabpfn_config: dict = None):
+    def predict(self, train_set_uid: str, x_test, with_proba: bool = True, tabpfn_config: dict = None):
         """
-        Predict the class labels for the provided data (test set).
+        Predict the class labels (and the class proba.) for the provided data (i.e. test set).
 
         Parameters
         ----------
@@ -97,6 +97,8 @@ class ServiceClient:
             The unique ID of the train set in the server.
         x_test : array-like of shape (n_samples, n_features)
             The test input.
+        with_proba : bool
+            Whether to return the class probabilities.
         tabpfn_config : dict
             The configuration of TabPFN model.
 
@@ -112,7 +114,11 @@ class ServiceClient:
 
         response = self.httpx_client.post(
             url=self.server_endpoints.predict.path,
-            params={"train_set_uid": train_set_uid, "serialized_tabpfn_config": json.dumps(tabpfn_config)},
+            params={
+                "train_set_uid": train_set_uid,
+                "with_proba": with_proba,
+                "serialized_tabpfn_config": json.dumps(tabpfn_config),
+            },
             files=common_utils.to_httpx_post_file_format([("x_file", "x_test_filename", x_test)])
         )
 
@@ -120,40 +126,7 @@ class ServiceClient:
             logger.error(f"Fail to call predict(), response status: {response.status_code}, response: {response}")
             raise RuntimeError(f"Fail to call predict()")
 
-        return np.array(response.json()["y_pred"])
-
-    def predict_proba(self, train_set_uid: str, x_test, tabpfn_config: dict = None):
-        """
-        Predict the class probabilities for the provided data (test set).
-
-        Parameters
-        ----------
-        train_set_uid : str
-            The unique ID of the train set in the server.
-        x_test : array-like of shape (n_samples, n_features)
-            The test input.
-        tabpfn_config : dict
-            The configuration of TabPFN model.
-
-        Returns
-        -------
-
-        """
-        x_test = common_utils.serialize_to_csv_formatted_bytes(x_test)
-
-        self.validate_tabpfn_config(tabpfn_config)
-
-        response = self.httpx_client.post(
-            url=self.server_endpoints.predict_proba.path,
-            params={"train_set_uid": train_set_uid, "serialized_tabpfn_config": json.dumps(tabpfn_config)},
-            files=common_utils.to_httpx_post_file_format([("x_file", "x_test_filename", x_test)])
-        )
-
-        if response.status_code != 200:
-            logger.error(f"Fail to call predict_proba(), response status: {response.status_code}")
-            raise RuntimeError(f"Fail to call predict_proba()")
-
-        return np.array(response.json()["y_pred_proba"])
+        return np.array(response.json()["res"])
 
     def try_connection(self) -> bool:
         """
