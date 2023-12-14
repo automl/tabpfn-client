@@ -14,6 +14,9 @@ class PromptAgent:
         prompt = "\n".join([
             "Welcome to TabPFN!",
             "",
+            "TabPFN is still under active development, and we are working hard to make it better.",
+            "Please bear with us if you encounter any issues.",
+            ""
         ])
 
         print(cls.indent(prompt))
@@ -66,9 +69,8 @@ class PromptAgent:
     def prompt_terms_and_cond(cls) -> bool:
         t_and_c = "\n".join([
             "",
+            "Please refer to our terms and conditions at: https://www.priorlabs.ai/terms-eu-en"
             "By using TabPFN, you agree to the following terms and conditions:",
-            "",
-            "...",
             "",
             "Do you agree to the above terms and conditions? (y/n): ",
         ])
