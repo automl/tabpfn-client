@@ -26,7 +26,9 @@ class TabPFNConfig:
 g_tabpfn_config = TabPFNConfig()
 
 
-def init(use_server=True):
+# def init(use_server=True):
+def init():
+    use_server = True
     global g_tabpfn_config
 
     if use_server:
