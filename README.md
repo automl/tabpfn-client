@@ -9,10 +9,8 @@ PLEASE DO NOT SHARE THIS REPOSITORY at this point outside of the NeurIPS Tabular
 
 ### What model is behind the API?
 
-It is a new TabPFN which we allow to handle up to 10K instances with up to 500 features.
-This TabPFN is not ensembled, we will put out improved and ensembled models soon.
-
-**For now, this version is the light version to save compute on our side, not the TabPFN (Fast) or TabPFN (Best-Q) which we presented at the Neurips Workshop. We will change this once we see our server is working stably.**
+**For now, this version is the light version to save compute on our side, not the TabPFN (Fast) or TabPFN (Best-Q) which we presented at the Neurips Workshop. We will change this once we see our server is working stably. It is a new TabPFN which we allow to handle up to 10K instances with up to 500 features.
+This TabPFN is not ensembled, we will put out improved and ensembled models soon.**
 
 **We release this to get feedback, if you encounter bugs or curiosities please create an issue or email me (samuelgabrielmuller (at) gmail com).**
 
