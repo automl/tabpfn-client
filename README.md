@@ -1,9 +1,9 @@
-# A client to a free API of an updated TabPFN
+# Free client to use an updated TabPFN
 
 This is an alpha family and friends service, so please do not expect this to never be down or run into errors.
 We did test it though and can say that it seems to work fine in the settings that we tried.
 
-**If you encounter bugs or curiosities please create an issue.**
+**We release this to get feedback, if you encounter bugs or curiosities please create an issue or email me (samuelgabrielmuller (at) gmail com).**
 
 
 # How to
