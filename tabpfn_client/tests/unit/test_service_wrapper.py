@@ -89,7 +89,7 @@ class TestUserAuthClient(unittest.TestCase):
 
         # assert no exception is raised
         UserAuthenticationClient(ServiceClient()).set_token_by_registration(
-            "dummy_email", "dummy_password", "dummy_password"
+            "dummy_email", "dummy_password", "dummy_password", "dummy_validation"
         )
 
         # assert token is set
@@ -107,7 +107,7 @@ class TestUserAuthClient(unittest.TestCase):
         self.assertRaises(
             RuntimeError,
             UserAuthenticationClient(ServiceClient()).set_token_by_registration,
-            "dummy_email", "dummy_password", "dummy_password"
+            "dummy_email", "dummy_password", "dummy_password", "dummy_validation"
         )
 
         # assert token is not set

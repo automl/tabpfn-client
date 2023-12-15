@@ -5,7 +5,7 @@
 
 # production
 protocol: "https"
-host: "tabpfn.priorlabs.ai"
+host: "tabpfn-server-wjedmz7r5a-ez.a.run.app"
 port: "443"
 endpoints:
   root:

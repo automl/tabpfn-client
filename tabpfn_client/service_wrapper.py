@@ -34,12 +34,13 @@ class UserAuthenticationClient(ServiceClientWrapper):
             self,
             email: str,
             password: str,
-            password_confirm: str
+            password_confirm: str,
+            validation_link: str
     ) -> None:
         if password != password_confirm:
             raise ValueError("Password and password_confirm must be the same.")
 
-        is_created, message = self.service_client.register(email, password, password_confirm)
+        is_created, message = self.service_client.register(email, password, password_confirm, validation_link)
         if not is_created:
             raise RuntimeError(f"Failed to register user: {message}")
 

@@ -186,7 +186,8 @@ class ServiceClient:
             self,
             email: str,
             password: str,
-            password_confirm: str
+            password_confirm: str,
+            validation_link: str
     ) -> (bool, str):
         """
         Register a new user with the provided credentials.
@@ -196,6 +197,7 @@ class ServiceClient:
         email : str
         password : str
         password_confirm : str
+        validation_link: str
 
         Returns
         -------
@@ -207,7 +209,7 @@ class ServiceClient:
 
         response = self.httpx_client.post(
             self.server_endpoints.register.path,
-            params={"email": email, "password": password, "password_confirm": password_confirm}
+            params={"email": email, "password": password, "password_confirm": password_confirm, "validation_link": validation_link}
         )
 
         if response.status_code == 200:
