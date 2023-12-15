@@ -10,7 +10,7 @@ We did test it though and can say that it seems to work fine in the settings tha
 
 ### Tutorial
 
-We created a ![colab](https://colab.research.google.com/drive/1ns_KdtyHgl29AOVwTw9c-DZrPj7fx_DW?usp=sharing)
+We created a [colab](https://colab.research.google.com/drive/1ns_KdtyHgl29AOVwTw9c-DZrPj7fx_DW?usp=sharing)
 tutorial to get started quickly.
 
 ### Installation
