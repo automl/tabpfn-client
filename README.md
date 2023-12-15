@@ -1,4 +1,4 @@
-# Free client to use an updated TabPFN
+# Free Client for the Updated TabPFN
 
 This is an alpha family and friends service, so please do not expect this to never be down or run into errors.
 We did test it though and can say that it seems to work fine in the settings that we tried.
@@ -6,7 +6,7 @@ We did test it though and can say that it seems to work fine in the settings tha
 **We release this to get feedback, if you encounter bugs or curiosities please create an issue or email me (samuelgabrielmuller (at) gmail com).**
 
 
-# How to
+# How To
 
 ### Tutorial
 
