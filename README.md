@@ -1,6 +1,6 @@
 # PLEASE READ: Alpha Client for the Updated TabPFN
 
-Password for registration: tabpfn-2023
+Password for registration / validation link: tabpfn-2023
 
 This is an alpha family and friends service, so please do not expect this to never be down or run into errors.
 We did test it though and can say that it seems to work fine in the settings that we tried.
