@@ -34,6 +34,8 @@ class PromptAgent:
         choice = input(cls.indent(prompt))
 
         if choice == "1":
+            #validation_link = input(cls.indent("Please enter your secret code: "))
+            validation_link = "tabpfn-2023"
             # create account
             email = input(cls.indent("Please enter your email: "))
 
@@ -49,8 +51,6 @@ class PromptAgent:
             password = getpass.getpass(cls.indent(password_req_prompt))
             password_confirm = getpass.getpass(cls.indent("Please confirm your password: "))
 
-            validation_link = input(cls.indent("Please enter your secret code: "))
-            
             user_auth_handler.set_token_by_registration(email, password, password_confirm, validation_link)
 
             print(cls.indent("Account created successfully!") + "\n")
@@ -70,10 +70,8 @@ class PromptAgent:
     @classmethod
     def prompt_terms_and_cond(cls) -> bool:
         t_and_c = "\n".join([
-            "",
-            "Please refer to our terms and conditions at: https://www.priorlabs.ai/terms-eu-en"
+            "Please refer to our terms and conditions at: https://www.priorlabs.ai/terms-eu-en "
             "By using TabPFN, you agree to the following terms and conditions:",
-            "",
             "Do you agree to the above terms and conditions? (y/n): ",
         ])
 
