@@ -46,7 +46,7 @@ class PromptAgent:
             password = getpass.getpass(cls.indent(password_req_prompt))
             password_confirm = getpass.getpass(cls.indent("Please confirm your password: "))
 
-            validation_link = input(cls.indent("Please enter your validation link: "))
+            validation_link = input(cls.indent("Please enter your secret code: "))
             
             user_auth_handler.set_token_by_registration(email, password, password_confirm, validation_link)
 
