@@ -1,4 +1,4 @@
-# Alpha Client for the Updated TabPFN - Please read
+# PLEASE READ: Alpha Client for the Updated TabPFN
 
 
 
