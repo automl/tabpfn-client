@@ -3,6 +3,11 @@
 This is an alpha family and friends service, so please do not expect this to never be down or run into errors.
 We did test it though and can say that it seems to work fine in the settings that we tried.
 
+### What model is behind the API?
+
+It is a new TabPFN which we allow to handle up to 10K instances with up to 500 features.
+This TabPFN is not ensembled, we will put out improved and ensembled models soon.
+
 **We release this to get feedback, if you encounter bugs or curiosities please create an issue or email me (samuelgabrielmuller (at) gmail com).**
 
 
