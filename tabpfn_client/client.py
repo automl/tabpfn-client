@@ -81,9 +81,7 @@ class ServiceClient:
             ])
         )
 
-        if response.status_code != 200:
-            logger.error(f"Fail to call upload_train_set(), response status: {response.status_code}")
-            raise RuntimeError(f"Fail to call upload_train_set()")
+        self.error_raising(response, "upload_train_set")
 
         train_set_uid = response.json()["train_set_uid"]
         return train_set_uid
@@ -115,11 +113,24 @@ class ServiceClient:
             ])
         )
 
-        if response.status_code != 200:
-            logger.error(f"Fail to call predict(), response status: {response.status_code}")
-            raise RuntimeError(f"Fail to call predict()")
+        self.error_raising(response, "predict")
 
         return np.array(response.json()["y_pred"])
+
+    def error_raising(self, response, method_name):
+        if response.status_code != 200:
+            load = None
+            try:
+                load = response.json()
+            except Exception:
+                pass
+            if load is not None:
+                raise RuntimeError(f"Fail to call {method_name} with error: {load}")
+            logger.error(f"Fail to call {method_name}, response status: {response.status_code}")
+            if len(reponse_split_up:=response.text.split("The following exception has occurred:")) > 1:
+                raise RuntimeError(f"Fail to call {method_name} with error: {reponse_split_up[1]}")
+            raise RuntimeError(f"Fail to call {method_name} with error: {response.status_code} and reason: {response.reason_phrase}")
+
 
     def predict_proba(self, train_set_uid: str, x_test):
         """
@@ -146,9 +157,7 @@ class ServiceClient:
             ])
         )
 
-        if response.status_code != 200:
-            logger.error(f"Fail to call predict_proba(), response status: {response.status_code}")
-            raise RuntimeError(f"Fail to call predict_proba()")
+        self.error_raising(response, "predict_proba")
 
         return np.array(response.json()["y_pred_proba"])
 

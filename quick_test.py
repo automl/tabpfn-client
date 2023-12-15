@@ -1,8 +1,10 @@
 import logging
+import numpy as np
+
+logging.basicConfig(level=logging.DEBUG)
 
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
-from sklearn.utils.estimator_checks import check_estimator
 
 from tabpfn_client import tabpfn_classifier, UserDataClient
 from tabpfn_client.tabpfn_classifier import TabPFNClassifier
@@ -22,7 +24,7 @@ if __name__ == "__main__":
         tabpfn_classifier.init(use_server=False)
         tabpfn = TabPFNClassifier(device="cpu", N_ensemble_configurations=4)
         # check_estimator(tabpfn)
-        tabpfn.fit(X_train, y_train)
+        tabpfn.fit(np.repeat(X_train,100,axis=0), np.repeat(y_train,100,axis=0))
         print("predicting")
         print(tabpfn.predict(X_test))
         print("predicting_proba")
@@ -30,9 +32,10 @@ if __name__ == "__main__":
 
     else:
         tabpfn_classifier.init()
-        tabpfn = TabPFNClassifier(device="cpu", N_ensemble_configurations=4)
+        tabpfn = TabPFNClassifier()
         # print("checking estimator", check_estimator(tabpfn))
-        tabpfn.fit(X_train, y_train)
+        print(X_train.shape[0]*100)
+        tabpfn.fit(np.repeat(X_train, 100, axis=0), np.repeat(y_train, 100, axis=0))
         print("predicting")
         print(tabpfn.predict(X_test))
         print("predicting_proba")
