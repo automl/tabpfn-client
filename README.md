@@ -7,12 +7,10 @@ We did test it though and can say that it seems to work fine in the settings tha
 
 PLEASE DO NOT SHARE THIS REPOSITORY at this point outside of the NeurIPS Tabular Representation workshop.
 
-### What model is behind the API?
+What model is behind the API? For now, this version is the light version to save compute on our side, not the TabPFN (Fast) or TabPFN (Best-Q) which we presented at the Neurips Workshop. We will change this once we see our server is working stably. It is a new TabPFN which we allow to handle up to 10K instances with up to 500 features.
+This TabPFN is not ensembled, we will put out improved and ensembled models soon.
 
-**For now, this version is the light version to save compute on our side, not the TabPFN (Fast) or TabPFN (Best-Q) which we presented at the Neurips Workshop. We will change this once we see our server is working stably. It is a new TabPFN which we allow to handle up to 10K instances with up to 500 features.
-This TabPFN is not ensembled, we will put out improved and ensembled models soon.**
-
-**We release this to get feedback, if you encounter bugs or curiosities please create an issue or email me (samuelgabrielmuller (at) gmail com).**
+### We would really appreciate your feedback! If you encounter bugs or suggestions for improvement please create an issue or email me (samuelgabrielmuller (at) gmail com).
 
 
 # How To
