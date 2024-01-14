@@ -1,6 +1,6 @@
 ### Change Description
 
-**Brief** (a few bulletpoint describing your changes)
+**Brief** (a few bullet points describing your changes, use full sentences and try to link lines in the code whenever needed)
 
 
 
