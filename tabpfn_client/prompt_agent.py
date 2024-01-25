@@ -100,6 +100,12 @@ class PromptAgent:
         print(cls.indent(prompt))
 
     @classmethod
+    def prompt_retrieved_messages(cls, messages: list[str]):
+        for message in messages:
+            print(cls.indent(message))
+
+
+    @classmethod
     def prompt_confirm_password_for_user_account_deletion(cls) -> str:
         print(cls.indent("You are about to delete your account."))
         confirm_pass = getpass.getpass(cls.indent("Please confirm by entering your password: "))

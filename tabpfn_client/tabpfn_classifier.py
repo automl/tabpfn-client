@@ -52,6 +52,8 @@ def init(use_server=True):
             # prompt for login / register
             PromptAgent.prompt_and_set_token(user_auth_handler)
 
+        PromptAgent.prompt_retrieved_messages(user_auth_handler.retrieve_messages())
+
         g_tabpfn_config.use_server = True
         g_tabpfn_config.user_auth_handler = user_auth_handler
         g_tabpfn_config.inference_handler = InferenceClient(service_client)

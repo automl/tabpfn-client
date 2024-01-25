@@ -275,6 +275,19 @@ class ServiceClient:
 
         return response.json()["requirements"]
 
+    def retrieve_messages(self) -> list[str]:
+        """
+        Retrieve messages that are new for the user.
+        """
+        response = self.httpx_client.get(self.server_endpoints.retrieve_messages.path)
+
+        if response.status_code != 200:
+            logger.error(f"Fail to call retrieve_messages(), response status: {response.status_code}")
+            raise RuntimeError(f"Fail to call retrieve_messages()")
+
+        messages = response.json()["messages"]
+        return messages
+
     def get_data_summary(self) -> {}:
         """
         Get the data summary of the user from the server.

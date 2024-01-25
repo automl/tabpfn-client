@@ -28,6 +28,11 @@ endpoints:
     methods: [ "POST" ]
     description: "User login"
 
+  retrieve_messages:
+    path: "/retrieve_messages/"
+    methods: [ "GET" ]
+    description: "Retrieve new messages"
+
   protected_root:
     path: "/protected/"
     methods: [ "GET" ]
