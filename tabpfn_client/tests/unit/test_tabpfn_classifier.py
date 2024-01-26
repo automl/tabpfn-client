@@ -36,7 +36,11 @@ class TestTabPFNClassifierInit(unittest.TestCase):
 
     def test_init_local_classifier(self):
         tabpfn_classifier.init(use_server=False)
+<<<<<<< HEAD
         tabpfn = TabPFNClassifier(model="tabpfn_1_local").fit(self.X_train, self.y_train)
+=======
+        tabpfn = TabPFNClassifier(model="public_tabpfn_hosted").fit(self.X_train, self.y_train)
+>>>>>>> ae59bf5 (Fix: Test Cases in Client and Add Model to TabPFN Classifier)
         self.assertTrue(isinstance(tabpfn.classifier_, LocalTabPFNClassifier))
 
     @with_mock_server()
