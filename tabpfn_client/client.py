@@ -1,8 +1,7 @@
 from pathlib import Path
 import httpx
 import logging
-import copy
-
+from importlib.metadata import version
 import numpy as np
 from omegaconf import OmegaConf
 
@@ -14,8 +13,8 @@ logger = logging.getLogger(__name__)
 SERVER_CONFIG_FILE = Path(__file__).parent.resolve() / "server_config.yaml"
 SERVER_CONFIG = OmegaConf.load(SERVER_CONFIG_FILE)
 
+# CLIENT_VERSION = version('tabpfn-client')
 CLIENT_VERSION = "0.0.7"
-
 
 @common_utils.singleton
 class ServiceClient:
@@ -172,11 +171,12 @@ class ServiceClient:
 
     def try_connection(self) -> bool:
         """
-        Check if server is reachable and return True if successful.
+        Check if server is reachable and accepts the connection.
         """
         found_valid_connection = False
         try:
             response = self.httpx_client.get(self.server_endpoints.root.path)
+            self.error_raising(response, "try_connection", only_version_check=True)
             if response.status_code == 200:
                 found_valid_connection = True
 
@@ -292,7 +292,9 @@ class ServiceClient:
         """
         response = self.httpx_client.get(self.server_endpoints.retrieve_messages.path)
 
-        self.error_raising(response, "retrieve_messages")
+        self.error_raising(response, "retrieve_messages", only_version_check=True)
+        if response.status_code != 200:
+            return []
 
         messages = response.json()["messages"]
         return messages
