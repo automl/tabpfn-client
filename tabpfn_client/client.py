@@ -1,7 +1,7 @@
 from pathlib import Path
 import httpx
 import logging
-from importlib.metadata import version
+from importlib.metadata import version, PackageNotFoundError
 import numpy as np
 from omegaconf import OmegaConf
 
@@ -13,8 +13,15 @@ logger = logging.getLogger(__name__)
 SERVER_CONFIG_FILE = Path(__file__).parent.resolve() / "server_config.yaml"
 SERVER_CONFIG = OmegaConf.load(SERVER_CONFIG_FILE)
 
-# CLIENT_VERSION = version('tabpfn-client')
-CLIENT_VERSION = "0.0.7"
+
+def get_client_version() -> str:
+    try:
+        return version('tabpfn_client')
+    except PackageNotFoundError:
+        # Package not found, should only happen during development. Simply return a version number that works
+        # for development.
+        return '5.5.5'
+
 
 @common_utils.singleton
 class ServiceClient:
@@ -31,7 +38,7 @@ class ServiceClient:
         self.httpx_client = httpx.Client(
             base_url=self.base_url,
             timeout=self.httpx_timeout_s,
-            headers={"client_version": CLIENT_VERSION}
+            headers={"client-version": get_client_version()}
         )
 
         self._access_token = None

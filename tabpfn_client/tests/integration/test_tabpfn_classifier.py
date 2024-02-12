@@ -38,6 +38,8 @@ class TestTabPFNClassifier(unittest.TestCase):
         # mock connection and authentication
         mock_server.router.get(mock_server.endpoints.root.path).respond(200)
         mock_server.router.get(mock_server.endpoints.protected_root.path).respond(200)
+        mock_server.router.get(mock_server.endpoints.retrieve_messages.path).respond(
+            200, json={"messages": []})
         tabpfn_classifier.init(use_server=True)
 
         tabpfn = TabPFNClassifier()
