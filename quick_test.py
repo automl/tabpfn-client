@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
     if not use_server:
         tabpfn_classifier.init(use_server=False)
-        tabpfn = TabPFNClassifier(device="cpu", N_ensemble_configurations=4)
+        tabpfn = TabPFNClassifier(device="cpu", N_ensemble_configurations=4, model="tabpfn_1_local")
         # check_estimator(tabpfn)
         tabpfn.fit(np.repeat(X_train,100,axis=0), np.repeat(y_train,100,axis=0))
         print("predicting")
@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
     else:
         tabpfn_classifier.init()
-        tabpfn = TabPFNClassifier()
+        tabpfn = TabPFNClassifier(model="latest_tabpfn_hosted")
         # print("checking estimator", check_estimator(tabpfn))
         print(X_train.shape[0]*100)
         tabpfn.fit(np.repeat(X_train, 100, axis=0), np.repeat(y_train, 100, axis=0))
