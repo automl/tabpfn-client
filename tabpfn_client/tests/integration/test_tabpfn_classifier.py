@@ -21,7 +21,7 @@ class TestTabPFNClassifier(unittest.TestCase):
 
     def test_use_local_tabpfn_classifier(self):
         tabpfn_classifier.init(use_server=False)
-        tabpfn = TabPFNClassifier(device="cpu")
+        tabpfn = TabPFNClassifier(device="cpu", model="tabpfn_1_local")
         tabpfn.fit(self.X_train, self.y_train)
 
         self.assertTrue(isinstance(tabpfn.classifier_, LocalTabPFNClassifier))
