@@ -36,11 +36,7 @@ class TestTabPFNClassifierInit(unittest.TestCase):
 
     def test_init_local_classifier(self):
         tabpfn_classifier.init(use_server=False)
-<<<<<<< HEAD
         tabpfn = TabPFNClassifier(model="tabpfn_1_local").fit(self.X_train, self.y_train)
-=======
-        tabpfn = TabPFNClassifier(model="public_tabpfn_hosted").fit(self.X_train, self.y_train)
->>>>>>> ae59bf5 (Fix: Test Cases in Client and Add Model to TabPFN Classifier)
         self.assertTrue(isinstance(tabpfn.classifier_, LocalTabPFNClassifier))
 
     @with_mock_server()
@@ -56,7 +52,7 @@ class TestTabPFNClassifierInit(unittest.TestCase):
         mock_server.router.post(mock_server.endpoints.upload_train_set.path).respond(
             200, json={"train_set_uid": 5}
         )
-        mock_server.router.get(mock_server.endpoints.retrieve_messages.path).respond(
+        mock_server.router.get(mock_server.endpoints.retrieve_greeting_messages.path).respond(
             200, json={"messages": []})
 
         tabpfn_classifier.init(use_server=True)
@@ -70,7 +66,7 @@ class TestTabPFNClassifierInit(unittest.TestCase):
         # mock connection and authentication
         mock_server.router.get(mock_server.endpoints.root.path).respond(200)
         mock_server.router.get(mock_server.endpoints.protected_root.path).respond(200)
-        mock_server.router.get(mock_server.endpoints.retrieve_messages.path).respond(
+        mock_server.router.get(mock_server.endpoints.retrieve_greeting_messages.path).respond(
             200, json={"messages": []})
 
         # create dummy token file
@@ -118,7 +114,7 @@ class TestTabPFNClassifierInit(unittest.TestCase):
         # init classifier as usual
         mock_server.router.get(mock_server.endpoints.root.path).respond(200)
         mock_server.router.get(mock_server.endpoints.protected_root.path).respond(200)
-        mock_server.router.get(mock_server.endpoints.retrieve_messages.path).respond(
+        mock_server.router.get(mock_server.endpoints.retrieve_greeting_messages.path).respond(
             200, json={"messages": []})
         tabpfn_classifier.init(use_server=True)
 

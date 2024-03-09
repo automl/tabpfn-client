@@ -160,3 +160,4 @@ cython_debug/
 .idea/
 
 models_diff/
+tabpfn_client/.tabpfn/

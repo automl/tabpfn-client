@@ -100,8 +100,8 @@ class PromptAgent:
         print(cls.indent(prompt))
 
     @classmethod
-    def prompt_retrieved_messages(cls, messages: list[str]):
-        for message in messages:
+    def prompt_retrieved_greeting_messages(cls, greeting_messages: list[str]):
+        for message in greeting_messages:
             print(cls.indent(message))
 
 

@@ -28,10 +28,10 @@ endpoints:
     methods: [ "POST" ]
     description: "User login"
 
-  retrieve_messages:
-    path: "/retrieve_messages/"
+  retrieve_greeting_messages:
+    path: "/retrieve_greeting_messages/"
     methods: [ "GET" ]
-    description: "Retrieve new messages"
+    description: "Retrieve new greeting messages"
 
   protected_root:
     path: "/protected/"

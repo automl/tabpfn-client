@@ -72,10 +72,10 @@ class TestServiceClient(unittest.TestCase):
         self.assertTrue(self.client.try_authenticate("true_token"))
 
     @with_mock_server()
-    def test_retrieve_messages(self, mock_server):
-        mock_server.router.get(mock_server.endpoints.retrieve_messages.path).respond(
+    def test_retrieve_greeting_messages(self, mock_server):
+        mock_server.router.get(mock_server.endpoints.retrieve_greeting_messages.path).respond(
             200, json={"messages": ["message_1", "message_2"]})
-        self.assertEqual(self.client.retrieve_messages(), ["message_1", "message_2"])
+        self.assertEqual(self.client.retrieve_greeting_messages(), ["message_1", "message_2"])
 
     @with_mock_server()
     def test_predict_with_valid_train_set_and_test_set(self, mock_server):

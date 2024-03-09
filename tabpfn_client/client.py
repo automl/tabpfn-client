@@ -293,18 +293,18 @@ class ServiceClient:
 
         return response.json()["requirements"]
 
-    def retrieve_messages(self) -> list[str]:
+    def retrieve_greeting_messages(self) -> list[str]:
         """
-        Retrieve messages that are new for the user.
+        Retrieve greeting messages that are new for the user.
         """
-        response = self.httpx_client.get(self.server_endpoints.retrieve_messages.path)
+        response = self.httpx_client.get(self.server_endpoints.retrieve_greeting_messages.path)
 
-        self.error_raising(response, "retrieve_messages", only_version_check=True)
+        self.error_raising(response, "retrieve_greeting_messages", only_version_check=True)
         if response.status_code != 200:
             return []
 
-        messages = response.json()["messages"]
-        return messages
+        greeting_messages = response.json()["messages"]
+        return greeting_messages
 
     def get_data_summary(self) -> {}:
         """
