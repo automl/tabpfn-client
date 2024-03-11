@@ -18,8 +18,8 @@ def get_client_version() -> str:
     try:
         return version('tabpfn_client')
     except PackageNotFoundError:
-        # Package not found, should only happen during development. Simply return a version number that works
-        # for development.
+        # Package not found, should only happen during development. Execute 'pip install -e .' to use the actual
+        # version number during development. Otherwise, simply return a version number that is large enough.
         return '5.5.5'
 
 
@@ -90,7 +90,7 @@ class ServiceClient:
             ])
         )
 
-        self.error_raising(response, "upload_train_set")
+        self._validate_response(response, "upload_train_set")
 
         train_set_uid = response.json()["train_set_uid"]
         return train_set_uid
@@ -122,22 +122,30 @@ class ServiceClient:
             ])
         )
 
-        self.error_raising(response, "predict")
+        self._validate_response(response, "predict")
 
         return np.array(response.json()["y_pred"])
 
-    def error_raising(self, response, method_name, only_version_check=False):
-        if response.status_code != 200:
-            load = None
-            try:
-                load = response.json()
-            except Exception:
-                pass
-            if (response.status_code == 403 and load and load.get("detail").startswith("Client version too old")
-                    or response.status_code == 400 and load and load.get("detail").startswith("Client version")):
-                raise RuntimeError(load.get("detail"))
-            if only_version_check:
-                return
+    @staticmethod
+    def _validate_response(response, method_name, only_version_check=False):
+        # If status code is 200, no errors occurred on the server side.
+        if response.status_code == 200:
+            return
+
+        # Read response.
+        load = None
+        try:
+            load = response.json()
+        except Exception:
+            pass
+
+        # Check if the server requires a newer client version.
+        if response.status_code == 426:
+            logger.error(f"Fail to call {method_name}, response status: {response.status_code}")
+            raise RuntimeError(load.get("detail"))
+
+        # If we not only want to check the version compatibility, also raise other errors.
+        if not only_version_check:
             if load is not None:
                 raise RuntimeError(f"Fail to call {method_name} with error: {load}")
             logger.error(f"Fail to call {method_name}, response status: {response.status_code}")
@@ -172,7 +180,7 @@ class ServiceClient:
             ])
         )
 
-        self.error_raising(response, "predict_proba")
+        self._validate_response(response, "predict_proba")
 
         return np.array(response.json()["y_pred_proba"])
 
@@ -183,7 +191,7 @@ class ServiceClient:
         found_valid_connection = False
         try:
             response = self.httpx_client.get(self.server_endpoints.root.path)
-            self.error_raising(response, "try_connection", only_version_check=True)
+            self._validate_response(response, "try_connection", only_version_check=True)
             if response.status_code == 200:
                 found_valid_connection = True
 
@@ -202,7 +210,7 @@ class ServiceClient:
             headers={"Authorization": f"Bearer {access_token}"},
         )
 
-        self.error_raising(response, "try_authenticate", only_version_check=True)
+        self._validate_response(response, "try_authenticate", only_version_check=True)
 
         if response.status_code == 200:
             is_authenticated = True
@@ -239,7 +247,7 @@ class ServiceClient:
             params={"email": email, "password": password, "password_confirm": password_confirm, "validation_link": validation_link}
         )
 
-        self.error_raising(response, "register", only_version_check=True)
+        self._validate_response(response, "register", only_version_check=True)
         if response.status_code == 200:
             is_created = True
             message = response.json()["message"]
@@ -270,7 +278,7 @@ class ServiceClient:
             data=common_utils.to_oauth_request_form(email, password)
         )
 
-        self.error_raising(response, "login", only_version_check=True)
+        self._validate_response(response, "login", only_version_check=True)
         if response.status_code == 200:
             access_token = response.json()["access_token"]
 
@@ -289,7 +297,7 @@ class ServiceClient:
         response = self.httpx_client.get(
             self.server_endpoints.password_policy.path,
         )
-        self.error_raising(response, "get_password_policy", only_version_check=True)
+        self._validate_response(response, "get_password_policy", only_version_check=True)
 
         return response.json()["requirements"]
 
@@ -299,7 +307,7 @@ class ServiceClient:
         """
         response = self.httpx_client.get(self.server_endpoints.retrieve_greeting_messages.path)
 
-        self.error_raising(response, "retrieve_greeting_messages", only_version_check=True)
+        self._validate_response(response, "retrieve_greeting_messages", only_version_check=True)
         if response.status_code != 200:
             return []
 
@@ -318,7 +326,7 @@ class ServiceClient:
         response = self.httpx_client.get(
             self.server_endpoints.get_data_summary.path,
         )
-        self.error_raising(response, "get_data_summary")
+        self._validate_response(response, "get_data_summary")
 
         return response.json()
 
@@ -337,7 +345,7 @@ class ServiceClient:
 
         full_url = self.base_url + self.server_endpoints.download_all_data.path
         with httpx.stream("GET", full_url, headers={"Authorization": f"Bearer {self.access_token}"}) as response:
-            self.error_raising(response, "download_all_data")
+            self._validate_response(response, "download_all_data")
 
             filename = response.headers["Content-Disposition"].split("filename=")[1]
             save_path = Path(save_dir) / filename
@@ -368,7 +376,7 @@ class ServiceClient:
             params={"dataset_uid": dataset_uid}
         )
 
-        self.error_raising(response, "delete_dataset")
+        self._validate_response(response, "delete_dataset")
 
         return response.json()["deleted_dataset_uids"]
 
@@ -385,7 +393,7 @@ class ServiceClient:
             self.server_endpoints.delete_all_datasets.path,
         )
 
-        self.error_raising(response, "delete_all_datasets")
+        self._validate_response(response, "delete_all_datasets")
 
         return response.json()["deleted_dataset_uids"]
 
@@ -395,4 +403,4 @@ class ServiceClient:
             params={"confirm_password": confirm_pass}
         )
 
-        self.error_raising(response, "delete_user_account")
+        self._validate_response(response, "delete_user_account")

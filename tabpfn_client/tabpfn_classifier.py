@@ -52,6 +52,7 @@ def init(use_server=True):
             # prompt for login / register
             PromptAgent.prompt_and_set_token(user_auth_handler)
 
+        # Print new greeting messages. If there are no new messages, nothing will be printed.
         PromptAgent.prompt_retrieved_greeting_messages(user_auth_handler.retrieve_greeting_messages())
 
         g_tabpfn_config.use_server = True

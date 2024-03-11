@@ -31,12 +31,7 @@ class TestServiceClient(unittest.TestCase):
     @with_mock_server()
     def test_try_connection_with_outdated_client(self, mock_server):
         mock_server.router.get(mock_server.endpoints.root.path).respond(
-            400, json={"detail": "Client version header missing. Please make sure to use the ..."})
-        with self.assertRaises(RuntimeError) as cm:
-            self.client.try_connection()
-        self.assertTrue(str(cm.exception).startswith("Client version header missing"))
-        mock_server.router.get(mock_server.endpoints.root.path).respond(
-            403, json={"detail": "Client version too old. ..."})
+            426, json={"detail": "Client version too old. ..."})
         with self.assertRaises(RuntimeError) as cm:
             self.client.try_connection()
         self.assertTrue(str(cm.exception).startswith("Client version too old."))
@@ -95,46 +90,40 @@ class TestServiceClient(unittest.TestCase):
         )
         self.assertTrue(np.array_equal(pred, dummy_result["y_pred"]))
 
-    def test_error_raising_no_error(self):
+    def test_validate_response_no_error(self):
         response = Mock()
         response.status_code = 200
-        r = self.client.error_raising(response, "test")
+        r = self.client._validate_response(response, "test")
         self.assertIsNone(r)
 
-    def test_error_raising(self):
+    def test_validate_response(self):
         response = Mock()
         # Test for "Client version too old." error
-        response.status_code = 403
+        response.status_code = 426
         response.json.return_value = {"detail": "Client version too old."}
         with self.assertRaises(RuntimeError) as cm:
-            self.client.error_raising(response, "test")
+            self.client._validate_response(response, "test")
         self.assertEqual(str(cm.exception), "Client version too old.")
 
         # Test for "Some other error" which is translated to a generic failure message
         response.status_code = 400
         response.json.return_value = {"detail": "Some other error"}
         with self.assertRaises(RuntimeError) as cm:
-            self.client.error_raising(response, "test")
+            self.client._validate_response(response, "test")
         self.assertTrue(str(cm.exception).startswith("Fail to call test"))
 
-    def test_error_raising_only_version_check(self):
+    def test_validate_response_only_version_check(self):
         response = Mock()
-        response.status_code = 403
+        response.status_code = 426
         response.json.return_value = {"detail": "Client version too old."}
         with self.assertRaises(RuntimeError) as cm:
-            self.client.error_raising(response, "test", only_version_check=True)
+            self.client._validate_response(response, "test", only_version_check=True)
         self.assertEqual(str(cm.exception), "Client version too old.")
-
-        response.status_code = 400
-        response.json.return_value = {"detail": "Client version header missing."}
-        with self.assertRaises(RuntimeError) as cm:
-            self.client.error_raising(response, "test", only_version_check=True)
-        self.assertEqual(str(cm.exception), "Client version header missing.")
 
         # Errors that have nothing to do with client version should be skipped.
         response = Mock()
         response.status_code = 400
         response.json.return_value = {"detail": "Some other error"}
-        r = self.client.error_raising(response, "test", only_version_check=True)
+        r = self.client._validate_response(response, "test", only_version_check=True)
         self.assertIsNone(r)
 
