@@ -85,6 +85,9 @@ class UserAuthenticationClient(ServiceClientWrapper):
         self.service_client.reset_authorization()
         self.CACHED_TOKEN_FILE.unlink(missing_ok=True)
 
+    def retrieve_greeting_messages(self):
+        return self.service_client.retrieve_greeting_messages()
+
 
 class UserDataClient(ServiceClientWrapper):
     """

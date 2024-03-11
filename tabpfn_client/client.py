@@ -1,10 +1,10 @@
 from pathlib import Path
 import httpx
 import logging
-import copy
-
+from importlib.metadata import version, PackageNotFoundError
 import numpy as np
 from omegaconf import OmegaConf
+import json
 
 from tabpfn_client.tabpfn_common_utils import utils as common_utils
 
@@ -13,6 +13,15 @@ logger = logging.getLogger(__name__)
 
 SERVER_CONFIG_FILE = Path(__file__).parent.resolve() / "server_config.yaml"
 SERVER_CONFIG = OmegaConf.load(SERVER_CONFIG_FILE)
+
+
+def get_client_version() -> str:
+    try:
+        return version('tabpfn_client')
+    except PackageNotFoundError:
+        # Package not found, should only happen during development. Execute 'pip install -e .' to use the actual
+        # version number during development. Otherwise, simply return a version number that is large enough.
+        return '5.5.5'
 
 
 @common_utils.singleton
@@ -29,7 +38,8 @@ class ServiceClient:
         self.httpx_timeout_s = 30   # temporary workaround for slow computation on server side
         self.httpx_client = httpx.Client(
             base_url=self.base_url,
-            timeout=self.httpx_timeout_s
+            timeout=self.httpx_timeout_s,
+            headers={"client-version": get_client_version()}
         )
 
         self._access_token = None
@@ -81,7 +91,7 @@ class ServiceClient:
             ])
         )
 
-        self.error_raising(response, "upload_train_set")
+        self._validate_response(response, "upload_train_set")
 
         train_set_uid = response.json()["train_set_uid"]
         return train_set_uid
@@ -113,23 +123,37 @@ class ServiceClient:
             ])
         )
 
-        self.error_raising(response, "predict")
+        self._validate_response(response, "predict")
 
         return np.array(response.json()["y_pred"])
 
-    def error_raising(self, response, method_name):
-        if response.status_code != 200:
-            load = None
-            try:
-                load = response.json()
-            except Exception:
-                pass
+    @staticmethod
+    def _validate_response(response, method_name, only_version_check=False):
+        # If status code is 200, no errors occurred on the server side.
+        if response.status_code == 200:
+            return
+
+        # Read response.
+        load = None
+        try:
+            load = response.json()
+        except json.JSONDecodeError as e:
+            logging.error(f"Failed to parse JSON from response in {method_name}: {e}")
+
+        # Check if the server requires a newer client version.
+        if response.status_code == 426:
+            logger.error(f"Fail to call {method_name}, response status: {response.status_code}")
+            raise RuntimeError(load.get("detail"))
+
+        # If we not only want to check the version compatibility, also raise other errors.
+        if not only_version_check:
             if load is not None:
                 raise RuntimeError(f"Fail to call {method_name} with error: {load}")
             logger.error(f"Fail to call {method_name}, response status: {response.status_code}")
             if len(reponse_split_up:=response.text.split("The following exception has occurred:")) > 1:
                 raise RuntimeError(f"Fail to call {method_name} with error: {reponse_split_up[1]}")
-            raise RuntimeError(f"Fail to call {method_name} with error: {response.status_code} and reason: {response.reason_phrase}")
+            raise RuntimeError(f"Fail to call {method_name} with error: {response.status_code} and reason: "
+                               f"{response.reason_phrase}")
 
 
     def predict_proba(self, train_set_uid: str, x_test):
@@ -157,17 +181,18 @@ class ServiceClient:
             ])
         )
 
-        self.error_raising(response, "predict_proba")
+        self._validate_response(response, "predict_proba")
 
         return np.array(response.json()["y_pred_proba"])
 
     def try_connection(self) -> bool:
         """
-        Check if server is reachable and return True if successful.
+        Check if server is reachable and accepts the connection.
         """
         found_valid_connection = False
         try:
             response = self.httpx_client.get(self.server_endpoints.root.path)
+            self._validate_response(response, "try_connection", only_version_check=True)
             if response.status_code == 200:
                 found_valid_connection = True
 
@@ -185,6 +210,8 @@ class ServiceClient:
             self.server_endpoints.protected_root.path,
             headers={"Authorization": f"Bearer {access_token}"},
         )
+
+        self._validate_response(response, "try_authenticate", only_version_check=True)
 
         if response.status_code == 200:
             is_authenticated = True
@@ -221,6 +248,7 @@ class ServiceClient:
             params={"email": email, "password": password, "password_confirm": password_confirm, "validation_link": validation_link}
         )
 
+        self._validate_response(response, "register", only_version_check=True)
         if response.status_code == 200:
             is_created = True
             message = response.json()["message"]
@@ -251,6 +279,7 @@ class ServiceClient:
             data=common_utils.to_oauth_request_form(email, password)
         )
 
+        self._validate_response(response, "login", only_version_check=False)
         if response.status_code == 200:
             access_token = response.json()["access_token"]
 
@@ -269,11 +298,22 @@ class ServiceClient:
         response = self.httpx_client.get(
             self.server_endpoints.password_policy.path,
         )
-        if response.status_code != 200:
-            logger.error(f"Fail to call get_password_policy(), response status: {response.status_code}")
-            raise RuntimeError(f"Fail to call get_password_policy()")
+        self._validate_response(response, "get_password_policy", only_version_check=True)
 
         return response.json()["requirements"]
+
+    def retrieve_greeting_messages(self) -> list[str]:
+        """
+        Retrieve greeting messages that are new for the user.
+        """
+        response = self.httpx_client.get(self.server_endpoints.retrieve_greeting_messages.path)
+
+        self._validate_response(response, "retrieve_greeting_messages", only_version_check=True)
+        if response.status_code != 200:
+            return []
+
+        greeting_messages = response.json()["messages"]
+        return greeting_messages
 
     def get_data_summary(self) -> {}:
         """
@@ -287,9 +327,7 @@ class ServiceClient:
         response = self.httpx_client.get(
             self.server_endpoints.get_data_summary.path,
         )
-        if response.status_code != 200:
-            logger.error(f"Fail to call get_data_summary(), response status: {response.status_code}")
-            raise RuntimeError(f"Fail to call get_data_summary()")
+        self._validate_response(response, "get_data_summary")
 
         return response.json()
 
@@ -308,9 +346,7 @@ class ServiceClient:
 
         full_url = self.base_url + self.server_endpoints.download_all_data.path
         with httpx.stream("GET", full_url, headers={"Authorization": f"Bearer {self.access_token}"}) as response:
-            if response.status_code != 200:
-                logger.error(f"Fail to call download_all_data(), response status: {response.status_code}")
-                raise RuntimeError(f"Fail to call download_all_data()")
+            self._validate_response(response, "download_all_data")
 
             filename = response.headers["Content-Disposition"].split("filename=")[1]
             save_path = Path(save_dir) / filename
@@ -341,9 +377,7 @@ class ServiceClient:
             params={"dataset_uid": dataset_uid}
         )
 
-        if response.status_code != 200:
-            logger.error(f"Fail to call delete_dataset(), response status: {response.status_code}")
-            raise RuntimeError(f"Fail to call delete_dataset()")
+        self._validate_response(response, "delete_dataset")
 
         return response.json()["deleted_dataset_uids"]
 
@@ -360,9 +394,7 @@ class ServiceClient:
             self.server_endpoints.delete_all_datasets.path,
         )
 
-        if response.status_code != 200:
-            logger.error(f"Fail to call delete_all_datasets(), response status: {response.status_code}")
-            raise RuntimeError(f"Fail to call delete_all_datasets()")
+        self._validate_response(response, "delete_all_datasets")
 
         return response.json()["deleted_dataset_uids"]
 
@@ -372,6 +404,4 @@ class ServiceClient:
             params={"confirm_password": confirm_pass}
         )
 
-        if response.status_code != 200:
-            logger.error(f"Fail to call delete_user_account(), response status: {response.status_code}")
-            raise RuntimeError(f"Fail to call delete_user_account()")
+        self._validate_response(response, "delete_user_account")

@@ -52,6 +52,8 @@ class TestTabPFNClassifierInit(unittest.TestCase):
         mock_server.router.post(mock_server.endpoints.upload_train_set.path).respond(
             200, json={"train_set_uid": 5}
         )
+        mock_server.router.get(mock_server.endpoints.retrieve_greeting_messages.path).respond(
+            200, json={"messages": []})
 
         tabpfn_classifier.init(use_server=True)
         tabpfn = TabPFNClassifier().fit(self.X_train, self.y_train)
@@ -64,6 +66,8 @@ class TestTabPFNClassifierInit(unittest.TestCase):
         # mock connection and authentication
         mock_server.router.get(mock_server.endpoints.root.path).respond(200)
         mock_server.router.get(mock_server.endpoints.protected_root.path).respond(200)
+        mock_server.router.get(mock_server.endpoints.retrieve_greeting_messages.path).respond(
+            200, json={"messages": []})
 
         # create dummy token file
         token_file = UserAuthenticationClient.CACHED_TOKEN_FILE
@@ -110,6 +114,8 @@ class TestTabPFNClassifierInit(unittest.TestCase):
         # init classifier as usual
         mock_server.router.get(mock_server.endpoints.root.path).respond(200)
         mock_server.router.get(mock_server.endpoints.protected_root.path).respond(200)
+        mock_server.router.get(mock_server.endpoints.retrieve_greeting_messages.path).respond(
+            200, json={"messages": []})
         tabpfn_classifier.init(use_server=True)
 
         # check if access token is saved

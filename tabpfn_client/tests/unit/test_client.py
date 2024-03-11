@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import Mock
 
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
@@ -26,6 +27,14 @@ class TestServiceClient(unittest.TestCase):
     def test_try_connection_with_invalid_server(self, mock_server):
         mock_server.router.get(mock_server.endpoints.root.path).respond(404)
         self.assertFalse(self.client.try_connection())
+
+    @with_mock_server()
+    def test_try_connection_with_outdated_client_raises_runtime_error(self, mock_server):
+        mock_server.router.get(mock_server.endpoints.root.path).respond(
+            426, json={"detail": "Client version too old. ..."})
+        with self.assertRaises(RuntimeError) as cm:
+            self.client.try_connection()
+        self.assertTrue(str(cm.exception).startswith("Client version too old."))
 
     @with_mock_server()
     def test_register_user(self, mock_server):
@@ -58,6 +67,12 @@ class TestServiceClient(unittest.TestCase):
         self.assertTrue(self.client.try_authenticate("true_token"))
 
     @with_mock_server()
+    def test_retrieve_greeting_messages(self, mock_server):
+        mock_server.router.get(mock_server.endpoints.retrieve_greeting_messages.path).respond(
+            200, json={"messages": ["message_1", "message_2"]})
+        self.assertEqual(self.client.retrieve_greeting_messages(), ["message_1", "message_2"])
+
+    @with_mock_server()
     def test_predict_with_valid_train_set_and_test_set(self, mock_server):
         dummy_json = {"train_set_uid": 5}
         mock_server.router.post(mock_server.endpoints.upload_train_set.path).respond(
@@ -74,3 +89,41 @@ class TestServiceClient(unittest.TestCase):
             x_test=self.X_test
         )
         self.assertTrue(np.array_equal(pred, dummy_result["y_pred"]))
+
+    def test_validate_response_no_error(self):
+        response = Mock()
+        response.status_code = 200
+        r = self.client._validate_response(response, "test")
+        self.assertIsNone(r)
+
+    def test_validate_response(self):
+        response = Mock()
+        # Test for "Client version too old." error
+        response.status_code = 426
+        response.json.return_value = {"detail": "Client version too old."}
+        with self.assertRaises(RuntimeError) as cm:
+            self.client._validate_response(response, "test")
+        self.assertEqual(str(cm.exception), "Client version too old.")
+
+        # Test for "Some other error" which is translated to a generic failure message
+        response.status_code = 400
+        response.json.return_value = {"detail": "Some other error"}
+        with self.assertRaises(RuntimeError) as cm:
+            self.client._validate_response(response, "test")
+        self.assertTrue(str(cm.exception).startswith("Fail to call test"))
+
+    def test_validate_response_only_version_check(self):
+        response = Mock()
+        response.status_code = 426
+        response.json.return_value = {"detail": "Client version too old."}
+        with self.assertRaises(RuntimeError) as cm:
+            self.client._validate_response(response, "test", only_version_check=True)
+        self.assertEqual(str(cm.exception), "Client version too old.")
+
+        # Errors that have nothing to do with client version should be skipped.
+        response = Mock()
+        response.status_code = 400
+        response.json.return_value = {"detail": "Some other error"}
+        r = self.client._validate_response(response, "test", only_version_check=True)
+        self.assertIsNone(r)
+
