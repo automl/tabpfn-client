@@ -278,7 +278,7 @@ class ServiceClient:
             data=common_utils.to_oauth_request_form(email, password)
         )
 
-        self._validate_response(response, "login", only_version_check=True)
+        self._validate_response(response, "login", only_version_check=False)
         if response.status_code == 200:
             access_token = response.json()["access_token"]
 
