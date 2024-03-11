@@ -4,6 +4,7 @@ import logging
 from importlib.metadata import version, PackageNotFoundError
 import numpy as np
 from omegaconf import OmegaConf
+import json
 
 from tabpfn_client.tabpfn_common_utils import utils as common_utils
 
@@ -136,8 +137,8 @@ class ServiceClient:
         load = None
         try:
             load = response.json()
-        except Exception:
-            pass
+        except json.JSONDecodeError as e:
+            logging.error(f"Failed to parse JSON from response in {method_name}: {e}")
 
         # Check if the server requires a newer client version.
         if response.status_code == 426:

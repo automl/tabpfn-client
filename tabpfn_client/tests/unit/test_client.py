@@ -29,7 +29,7 @@ class TestServiceClient(unittest.TestCase):
         self.assertFalse(self.client.try_connection())
 
     @with_mock_server()
-    def test_try_connection_with_outdated_client(self, mock_server):
+    def test_try_connection_with_outdated_client_raises_runtime_error(self, mock_server):
         mock_server.router.get(mock_server.endpoints.root.path).respond(
             426, json={"detail": "Client version too old. ..."})
         with self.assertRaises(RuntimeError) as cm:
