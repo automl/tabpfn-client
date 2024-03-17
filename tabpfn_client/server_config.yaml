@@ -34,7 +34,7 @@ endpoints:
     description: "Retrieve new greeting messages"
 
   add_user_information:
-    path: "/add_user_information"
+    path: "/add_user_information/"
     methods: [ "POST" ]
     description: "Add additional user information to database"
 

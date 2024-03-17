@@ -46,14 +46,14 @@ class UserAuthenticationClient(ServiceClientWrapper):
             self.set_token_by_login(email, password)
         return is_created, message
 
-    def set_token_by_login(self, email: str, password: str) -> bool:
-        access_token = self.service_client.login(email, password)
+    def set_token_by_login(self, email: str, password: str) -> tuple[bool, str]:
+        access_token, message = self.service_client.login(email, password)
 
         if access_token is None:
-            raise False
+            return False, message
 
         self.set_token(access_token)
-        return True
+        return True, message
 
     def try_reuse_existing_token(self) -> bool:
         if self.service_client.access_token is None:

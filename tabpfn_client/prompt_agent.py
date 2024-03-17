@@ -1,6 +1,14 @@
 import textwrap
 import getpass
 
+ERRORS_NEED_RETRY = [
+    "Invalid email",
+    "Email already exists",
+    "Password mismatch",
+    "Weak password",
+    "Incorrect email or password"
+]
+
 
 class PromptAgent:
     @staticmethod
@@ -23,6 +31,7 @@ class PromptAgent:
 
     @classmethod
     def prompt_and_set_token(cls, user_auth_handler: "UserAuthenticationClient"):
+        # Choose between registration and login
         prompt = "\n".join([
             "Please choose one of the following options:",
             "(1) Create a TabPFN account",
@@ -30,9 +39,18 @@ class PromptAgent:
             "",
             "Please enter your choice: ",
         ])
-
         choice = input(cls.indent(prompt))
+        is_valid_choice = False
+        for _ in range(3):
+            if choice not in ["1", "2"]:
+                choice = input(cls.indent("Invalid choice, please enter '1' or '2': "))
+            else:
+                is_valid_choice = True
+                break
+        if not is_valid_choice:
+            raise RuntimeError("Invalid choice")
 
+        # Registration
         if choice == "1":
             #validation_link = input(cls.indent("Please enter your secret code: "))
             validation_link = "tabpfn-2023"
@@ -52,23 +70,28 @@ class PromptAgent:
                 password = getpass.getpass(cls.indent(password_req_prompt))
                 password_confirm = getpass.getpass(cls.indent("Please confirm your password: "))
 
-                is_created, error_message = user_auth_handler.set_token_by_registration(
+                is_created, message = user_auth_handler.set_token_by_registration(
                     email, password, password_confirm, validation_link)
                 if is_created:
                     break
-                print(cls.indent("User registration failed:" + error_message) + "\n")
+                elif message not in ERRORS_NEED_RETRY:
+                    raise RuntimeError(message)
+                print(cls.indent("User registration failed: " + message) + "\n")
             cls.prompt_add_user_information(user_auth_handler)
             print(cls.indent("Account created successfully!") + "\n")
 
+        # Login
         elif choice == "2":
             # login to account
             while True:
                 email = input(cls.indent("Please enter your email: "))
                 password = getpass.getpass(cls.indent("Please enter your password: "))
 
-                successful = user_auth_handler.set_token_by_login(email, password)
+                successful, message = user_auth_handler.set_token_by_login(email, password)
                 if successful:
                     break
+                elif message not in ERRORS_NEED_RETRY:
+                    raise RuntimeError(message)
                 print(cls.indent("Failed to login, please check your email and password.") + "\n")
             print(cls.indent("Login successful!") + "\n")
 

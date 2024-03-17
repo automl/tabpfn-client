@@ -245,7 +245,8 @@ class ServiceClient:
 
         response = self.httpx_client.post(
             self.server_endpoints.register.path,
-            params={"email": email, "password": password, "password_confirm": password_confirm, "validation_link": validation_link}
+            params={"email": email, "password": password, "password_confirm": password_confirm,
+                    "validation_link": validation_link}
         )
 
         self._validate_response(response, "register", only_version_check=True)
@@ -258,7 +259,7 @@ class ServiceClient:
 
         return is_created, message
 
-    def login(self, email: str, password: str) -> str | None:
+    def login(self, email: str, password: str) -> tuple[str, str]:
         """
         Login with the provided credentials and return the access token if successful.
 
@@ -282,8 +283,11 @@ class ServiceClient:
         self._validate_response(response, "login", only_version_check=False)
         if response.status_code == 200:
             access_token = response.json()["access_token"]
+            message = ""
+        else:
+            message = response.json()["detail"]
 
-        return access_token
+        return access_token, message
 
     def get_password_policy(self) -> {}:
         """
