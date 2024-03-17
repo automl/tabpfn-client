@@ -37,31 +37,39 @@ class PromptAgent:
             #validation_link = input(cls.indent("Please enter your secret code: "))
             validation_link = "tabpfn-2023"
             # create account
-            email = input(cls.indent("Please enter your email: "))
+            while True:
+                email = input(cls.indent("Please enter your email: "))
 
-            password_req = user_auth_handler.get_password_policy()
-            password_req_prompt = "\n".join([
-                "",
-                "Password requirements (minimum):",
-                "\n".join([f". {req}" for req in password_req]),
-                "",
-                "Please enter your password: ",
-            ])
+                password_req = user_auth_handler.get_password_policy()
+                password_req_prompt = "\n".join([
+                    "",
+                    "Password requirements (minimum):",
+                    "\n".join([f". {req}" for req in password_req]),
+                    "",
+                    "Please enter your password: ",
+                ])
 
-            password = getpass.getpass(cls.indent(password_req_prompt))
-            password_confirm = getpass.getpass(cls.indent("Please confirm your password: "))
+                password = getpass.getpass(cls.indent(password_req_prompt))
+                password_confirm = getpass.getpass(cls.indent("Please confirm your password: "))
 
-            user_auth_handler.set_token_by_registration(email, password, password_confirm, validation_link)
+                is_created, error_message = user_auth_handler.set_token_by_registration(
+                    email, password, password_confirm, validation_link)
+                if is_created:
+                    break
+                print(cls.indent("User registration failed:" + error_message) + "\n")
 
             print(cls.indent("Account created successfully!") + "\n")
 
         elif choice == "2":
             # login to account
-            email = input(cls.indent("Please enter your email: "))
-            password = getpass.getpass(cls.indent("Please enter your password: "))
+            while True:
+                email = input(cls.indent("Please enter your email: "))
+                password = getpass.getpass(cls.indent("Please enter your password: "))
 
-            user_auth_handler.set_token_by_login(email, password)
-
+                successful = user_auth_handler.set_token_by_login(email, password)
+                if successful:
+                    break
+                print(cls.indent("Failed to login, please check your email and password.") + "\n")
             print(cls.indent("Login successful!") + "\n")
 
         else:

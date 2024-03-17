@@ -36,24 +36,24 @@ class UserAuthenticationClient(ServiceClientWrapper):
             password: str,
             password_confirm: str,
             validation_link: str
-    ) -> None:
+    ) -> tuple[bool, str]:
         if password != password_confirm:
             raise ValueError("Password and password_confirm must be the same.")
 
         is_created, message = self.service_client.register(email, password, password_confirm, validation_link)
-        if not is_created:
-            raise RuntimeError(f"Failed to register user: {message}")
+        if is_created:
+            # login after registration
+            self.set_token_by_login(email, password)
+        return is_created, message
 
-        # login after registration
-        self.set_token_by_login(email, password)
-
-    def set_token_by_login(self, email: str, password: str) -> None:
+    def set_token_by_login(self, email: str, password: str) -> bool:
         access_token = self.service_client.login(email, password)
 
         if access_token is None:
-            raise RuntimeError("Failed to login, please check your email and password.")
+            raise False
 
         self.set_token(access_token)
+        return True
 
     def try_reuse_existing_token(self) -> bool:
         if self.service_client.access_token is None:
