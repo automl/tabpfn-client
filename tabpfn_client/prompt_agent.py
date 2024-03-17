@@ -57,7 +57,7 @@ class PromptAgent:
                 if is_created:
                     break
                 print(cls.indent("User registration failed:" + error_message) + "\n")
-
+            cls.prompt_add_user_information(user_auth_handler)
             print(cls.indent("Account created successfully!") + "\n")
 
         elif choice == "2":
@@ -98,6 +98,29 @@ class PromptAgent:
             raise RuntimeError("Invalid choice")
 
         return choice.lower() == "y"
+
+    @classmethod
+    def prompt_add_user_information(cls, user_auth_handler: "UserAuthenticationClient"):
+        print(cls.indent("To help us tailor our support and services to your needs, we have a few optional questions. "
+                         "Feel free to skip any question by leaving it blank.") + "\n")
+        company = input(cls.indent("Where do you work?: "))
+        role = input(cls.indent("What is your role?: "))
+        use_case = input(cls.indent("What do you want to use TabPFN for?: "))
+
+        contact_via_email = input(cls.indent("Can we reach out to you via email to support you? (y/n):"))
+        is_valid_choice = False
+        for _ in range(3):
+            if contact_via_email.lower() not in ["y", "n"]:
+                contact_via_email = input(cls.indent("Invalid choice, please enter 'y' or 'n': "))
+            else:
+                is_valid_choice = True
+                break
+        if not is_valid_choice or contact_via_email.lower() == "n":
+            contact_via_email = False
+        else:
+            contact_via_email = True
+
+        user_auth_handler.add_user_information(company, role, use_case, contact_via_email)
 
     @classmethod
     def prompt_reusing_existing_token(cls):

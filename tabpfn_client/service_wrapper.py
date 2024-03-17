@@ -78,6 +78,9 @@ class UserAuthenticationClient(ServiceClientWrapper):
     def get_password_policy(self):
         return self.service_client.get_password_policy()
 
+    def add_user_information(self, company: str, role: str, use_case: str, contact_via_email: bool):
+        self.service_client.add_user_information(company, role, use_case, contact_via_email)
+
     def reset_cache(self):
         self._reset_token()
 

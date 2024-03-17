@@ -302,6 +302,20 @@ class ServiceClient:
 
         return response.json()["requirements"]
 
+    def add_user_information(self, company: str, role: str, use_case: str, contact_via_email: bool):
+        information = {
+            "company": company,
+            "role": role,
+            "use_case": use_case,
+            "contact_via_email": contact_via_email
+        }
+        response = self.httpx_client.post(
+            self.server_endpoints.add_user_information.path,
+            json=information
+        )
+
+        self._validate_response(response, "login", only_version_check=True)
+
     def retrieve_greeting_messages(self) -> list[str]:
         """
         Retrieve greeting messages that are new for the user.
