@@ -1,14 +1,6 @@
 import textwrap
 import getpass
 
-ERRORS_NEED_RETRY = [
-    "Invalid email",
-    "Email already exists",
-    "Password mismatch",
-    "Weak password",
-    "Incorrect email or password"
-]
-
 
 class PromptAgent:
     @staticmethod
@@ -39,16 +31,7 @@ class PromptAgent:
             "",
             "Please enter your choice: ",
         ])
-        choice = input(cls.indent(prompt))
-        is_valid_choice = False
-        for _ in range(3):
-            if choice not in ["1", "2"]:
-                choice = input(cls.indent("Invalid choice, please enter '1' or '2': "))
-            else:
-                is_valid_choice = True
-                break
-        if not is_valid_choice:
-            raise RuntimeError("Invalid choice")
+        choice = cls._choice_with_retries(prompt, ["1", "2"])
 
         # Registration
         if choice == "1":
@@ -74,8 +57,6 @@ class PromptAgent:
                     email, password, password_confirm, validation_link)
                 if is_created:
                     break
-                elif message not in ERRORS_NEED_RETRY:
-                    raise RuntimeError(message)
                 print(cls.indent("User registration failed: " + message) + "\n")
             cls.prompt_add_user_information(user_auth_handler)
             print(cls.indent("Account created successfully!") + "\n")
@@ -90,9 +71,7 @@ class PromptAgent:
                 successful, message = user_auth_handler.set_token_by_login(email, password)
                 if successful:
                     break
-                elif message not in ERRORS_NEED_RETRY:
-                    raise RuntimeError(message)
-                print(cls.indent("Failed to login, please check your email and password.") + "\n")
+                print(cls.indent("Login failed: " + message) + "\n")
             print(cls.indent("Login successful!") + "\n")
 
         else:
@@ -105,21 +84,7 @@ class PromptAgent:
             "By using TabPFN, you agree to the following terms and conditions:",
             "Do you agree to the above terms and conditions? (y/n): ",
         ])
-
-        choice = input(cls.indent(t_and_c))
-
-        # retry for 3 attempts until valid choice is made
-        is_valid_choice = False
-        for _ in range(3):
-            if choice.lower() not in ["y", "n"]:
-                choice = input(cls.indent("Invalid choice, please enter 'y' or 'n': "))
-            else:
-                is_valid_choice = True
-                break
-
-        if not is_valid_choice:
-            raise RuntimeError("Invalid choice")
-
+        choice = cls._choice_with_retries(t_and_c, ["y", "n"])
         return choice.lower() == "y"
 
     @classmethod
@@ -130,18 +95,10 @@ class PromptAgent:
         role = input(cls.indent("What is your role?: "))
         use_case = input(cls.indent("What do you want to use TabPFN for?: "))
 
-        contact_via_email = input(cls.indent("Can we reach out to you via email to support you? (y/n):"))
-        is_valid_choice = False
-        for _ in range(3):
-            if contact_via_email.lower() not in ["y", "n"]:
-                contact_via_email = input(cls.indent("Invalid choice, please enter 'y' or 'n': "))
-            else:
-                is_valid_choice = True
-                break
-        if not is_valid_choice or contact_via_email.lower() == "n":
-            contact_via_email = False
-        else:
-            contact_via_email = True
+        choice_contact = cls._choice_with_retries(
+            "Can we reach out to you via email to support you? (y/n):", ["y", "n"]
+        )
+        contact_via_email = True if choice_contact == "y" else False
 
         user_auth_handler.add_user_information(company, role, use_case, contact_via_email)
 
@@ -169,3 +126,26 @@ class PromptAgent:
     @classmethod
     def prompt_account_deleted(cls):
         print(cls.indent("Your account has been deleted."))
+
+    @classmethod
+    def _choice_with_retries(cls, prompt: str, choices: list, max_attempts: int = 3) -> str:
+        """
+        Prompt text and give user predefined number of attempts to select one of the possible choices. If valid choice
+        is selected, return choice in lowercase, otherwise raise RuntimeError.
+        """
+        choice = input(cls.indent(prompt))
+
+        # retry for 3 attempts until valid choice is made
+        is_valid_choice = False
+        for _ in range(max_attempts):
+            if choice.lower() not in choices:
+                choices_str = ", ".join(f"'{item}'" for item in choices[:-1]) + f" or '{choices[-1]}'"
+                choice = input(cls.indent(f"Invalid choice, please enter {choices_str}: "))
+            else:
+                is_valid_choice = True
+                break
+
+        if not is_valid_choice:
+            raise RuntimeError("Invalid choice")
+
+        return choice.lower()

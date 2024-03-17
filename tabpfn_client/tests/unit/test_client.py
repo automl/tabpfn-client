@@ -95,9 +95,12 @@ class TestServiceClient(unittest.TestCase):
         mock_server.router.post(mock_server.endpoints.add_user_information.path).respond(200)
         self.assertIsNone(self.client.add_user_information(
             "company", "dev", "", True))
+
+    @with_mock_server()
+    def test_add_user_information_raises_runtime_error(self, mock_server):
         mock_server.router.post(mock_server.endpoints.add_user_information.path).respond(500)
-        self.assertIsNone(self.client.add_user_information(
-            "company", "dev", "", True))
+        with self.assertRaises(RuntimeError):
+            self.client.add_user_information("company", "dev", "", True)
 
     def test_validate_response_no_error(self):
         response = Mock()

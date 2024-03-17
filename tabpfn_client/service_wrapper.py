@@ -37,8 +37,6 @@ class UserAuthenticationClient(ServiceClientWrapper):
             password_confirm: str,
             validation_link: str
     ) -> tuple[bool, str]:
-        if password != password_confirm:
-            raise ValueError("Password and password_confirm must be the same.")
 
         is_created, message = self.service_client.register(email, password, password_confirm, validation_link)
         if is_created:

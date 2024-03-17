@@ -29,8 +29,8 @@ class TestUserAuthClient(unittest.TestCase):
             json={"access_token": dummy_token}
         )
 
-        # assert no exception is raised
-        UserAuthenticationClient(ServiceClient()).set_token_by_login("dummy_email", "dummy_password")
+        self.assertTrue(UserAuthenticationClient(ServiceClient()).set_token_by_login(
+            "dummy_email", "dummy_password")[0])
 
         # assert token is set
         self.assertEqual(dummy_token, ServiceClient().access_token)
@@ -85,9 +85,10 @@ class TestUserAuthClient(unittest.TestCase):
             json={"access_token": dummy_token}
         )
 
-        # assert no exception is raised
-        UserAuthenticationClient(ServiceClient()).set_token_by_registration(
-            "dummy_email", "dummy_password", "dummy_password", "dummy_validation"
+        self.assertTrue(
+            UserAuthenticationClient(ServiceClient()).set_token_by_registration(
+                "dummy_email", "dummy_password", "dummy_password", "dummy_validation"
+            )[0]
         )
 
         # assert token is set
