@@ -46,12 +46,7 @@ class TestPromptAgent(unittest.TestCase):
         result = PromptAgent._choice_with_retries("Please enter your choice: ", ["1", "2"], max_attempts=3)
         self.assertEqual(result, '1')
 
-    # Test handling all inputs invalid within the allowed attempts
     @patch('builtins.input', side_effect=['3', '4', '5'])
     def test_choice_with_retries_raises_runtime_error(self, mock_input):
         with self.assertRaises(RuntimeError):
             PromptAgent._choice_with_retries("Please enter your choice: ", ["1", "2"], max_attempts=3)
-
-
-if __name__ == '__main__':
-    unittest.main()
