@@ -136,16 +136,14 @@ class PromptAgent:
         choice = input(cls.indent(prompt))
 
         # retry for 3 attempts until valid choice is made
-        is_valid_choice = False
-        for _ in range(max_attempts):
+        for _ in range(max_attempts - 1):
             if choice.lower() not in choices:
                 choices_str = ", ".join(f"'{item}'" for item in choices[:-1]) + f" or '{choices[-1]}'"
                 choice = input(cls.indent(f"Invalid choice, please enter {choices_str}: "))
             else:
-                is_valid_choice = True
                 break
 
-        if not is_valid_choice:
+        if not choice.lower() in choices:
             raise RuntimeError("Invalid choice")
 
         return choice.lower()
