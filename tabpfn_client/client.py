@@ -338,16 +338,20 @@ class ServiceClient:
 
         return response.json()["requirements"]
 
-    def add_user_information(self, company: str, role: str, use_case: str, contact_via_email: bool):
+    def add_user_information(
+            self, company: str | None, role: str | None, use_case: str | None, contact_via_email: bool
+    ):
         """
         Send additional user information to the server.
         """
-        information = {
-            "company": company,
-            "role": role,
-            "use_case": use_case,
-            "contact_via_email": contact_via_email
-        }
+        information = {"contact_via_email": contact_via_email}
+        if company:
+            information["company"] = company
+        if role:
+            information["role"] = role
+        if use_case:
+            information["use_case"] = use_case
+
         response = self.httpx_client.post(
             self.server_endpoints.add_user_information.path,
             json=information
