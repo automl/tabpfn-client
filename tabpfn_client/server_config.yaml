@@ -18,6 +18,11 @@ endpoints:
     methods: [ "GET" ]
     description: "Password policy"
 
+  validate_email:
+    path: "/auth/validate_email/"
+    methods: [ "POST" ]
+    description: "Validate email"
+
   register:
     path: "/auth/register/"
     methods: [ "POST" ]
@@ -32,6 +37,11 @@ endpoints:
     path: "/retrieve_greeting_messages/"
     methods: [ "GET" ]
     description: "Retrieve new greeting messages"
+
+  add_user_information:
+    path: "/add_user_information/"
+    methods: [ "POST" ]
+    description: "Add additional user information to database"
 
   protected_root:
     path: "/protected/"

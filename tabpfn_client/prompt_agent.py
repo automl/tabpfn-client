@@ -1,5 +1,6 @@
 import textwrap
 import getpass
+from password_strength import PasswordPolicy
 
 
 class PromptAgent:
@@ -8,6 +9,20 @@ class PromptAgent:
         indent_factor = 2
         indent_str = " " * indent_factor
         return textwrap.indent(text, indent_str)
+
+    @staticmethod
+    def password_req_to_policy(password_req: list[str]):
+        """
+        Small function that receives password requirements as a list of
+        strings like "Length(8)" and returns a corresponding
+        PasswordPolicy object.
+        """
+        requirements = {}
+        for req in password_req:
+            word_part, number_part = req.split('(')
+            number = int(number_part[:-1])
+            requirements[word_part.lower()] = number
+        return PasswordPolicy.from_names(**requirements)
 
     @classmethod
     def prompt_welcome(cls):
@@ -23,6 +38,7 @@ class PromptAgent:
 
     @classmethod
     def prompt_and_set_token(cls, user_auth_handler: "UserAuthenticationClient"):
+        # Choose between registration and login
         prompt = "\n".join([
             "Please choose one of the following options:",
             "(1) Create a TabPFN account",
@@ -30,16 +46,23 @@ class PromptAgent:
             "",
             "Please enter your choice: ",
         ])
+        choice = cls._choice_with_retries(prompt, ["1", "2"])
 
-        choice = input(cls.indent(prompt))
-
+        # Registration
         if choice == "1":
-            #validation_link = input(cls.indent("Please enter your secret code: "))
+            # validation_link = input(cls.indent("Please enter your secret code: "))
             validation_link = "tabpfn-2023"
-            # create account
-            email = input(cls.indent("Please enter your email: "))
+            while True:
+                email = input(cls.indent("Please enter your email: "))
+                # Send request to server to check if email is valid and not already taken.
+                is_valid, message = user_auth_handler.validate_email(email)
+                if is_valid:
+                    break
+                else:
+                    print(cls.indent(message + "\n"))
 
             password_req = user_auth_handler.get_password_policy()
+            password_policy = cls.password_req_to_policy(password_req)
             password_req_prompt = "\n".join([
                 "",
                 "Password requirements (minimum):",
@@ -47,25 +70,38 @@ class PromptAgent:
                 "",
                 "Please enter your password: ",
             ])
+            while True:
+                password = getpass.getpass(cls.indent(password_req_prompt))
+                password_req_prompt = "Please enter your password: "
+                if len(password_policy.test(password)) != 0:
+                    print(cls.indent("Password requirements not satisfied.\n"))
+                    continue
 
-            password = getpass.getpass(cls.indent(password_req_prompt))
-            password_confirm = getpass.getpass(cls.indent("Please confirm your password: "))
+                password_confirm = getpass.getpass(cls.indent("Please confirm your password: "))
+                if password == password_confirm:
+                    break
+                else:
+                    print(cls.indent("Entered password and confirmation password do not match, please try again.\n"))
 
-            user_auth_handler.set_token_by_registration(email, password, password_confirm, validation_link)
-
+            is_created, message = user_auth_handler.set_token_by_registration(
+                email, password, password_confirm, validation_link)
+            if not is_created:
+                raise RuntimeError("User registration failed: " + message + "\n")
+            cls.prompt_add_user_information(user_auth_handler)
             print(cls.indent("Account created successfully!") + "\n")
 
+        # Login
         elif choice == "2":
             # login to account
-            email = input(cls.indent("Please enter your email: "))
-            password = getpass.getpass(cls.indent("Please enter your password: "))
+            while True:
+                email = input(cls.indent("Please enter your email: "))
+                password = getpass.getpass(cls.indent("Please enter your password: "))
 
-            user_auth_handler.set_token_by_login(email, password)
-
+                successful, message = user_auth_handler.set_token_by_login(email, password)
+                if successful:
+                    break
+                print(cls.indent("Login failed: " + message) + "\n")
             print(cls.indent("Login successful!") + "\n")
-
-        else:
-            raise RuntimeError("Invalid choice")
 
     @classmethod
     def prompt_terms_and_cond(cls) -> bool:
@@ -74,22 +110,23 @@ class PromptAgent:
             "By using TabPFN, you agree to the following terms and conditions:",
             "Do you agree to the above terms and conditions? (y/n): ",
         ])
+        choice = cls._choice_with_retries(t_and_c, ["y", "n"])
+        return choice == "y"
 
-        choice = input(cls.indent(t_and_c))
+    @classmethod
+    def prompt_add_user_information(cls, user_auth_handler: "UserAuthenticationClient"):
+        print(cls.indent("To help us tailor our support and services to your needs, we have a few optional questions. "
+                         "Feel free to skip any question by leaving it blank.") + "\n")
+        company = input(cls.indent("Where do you work? "))
+        role = input(cls.indent("What is your role? "))
+        use_case = input(cls.indent("What do you want to use TabPFN for? "))
 
-        # retry for 3 attempts until valid choice is made
-        is_valid_choice = False
-        for _ in range(3):
-            if choice.lower() not in ["y", "n"]:
-                choice = input(cls.indent("Invalid choice, please enter 'y' or 'n': "))
-            else:
-                is_valid_choice = True
-                break
+        choice_contact = cls._choice_with_retries(
+            "Can we reach out to you via email to support you? (y/n):", ["y", "n"]
+        )
+        contact_via_email = True if choice_contact == "y" else False
 
-        if not is_valid_choice:
-            raise RuntimeError("Invalid choice")
-
-        return choice.lower() == "y"
+        user_auth_handler.add_user_information(company, role, use_case, contact_via_email)
 
     @classmethod
     def prompt_reusing_existing_token(cls):
@@ -115,3 +152,22 @@ class PromptAgent:
     @classmethod
     def prompt_account_deleted(cls):
         print(cls.indent("Your account has been deleted."))
+
+    @classmethod
+    def _choice_with_retries(cls, prompt: str, choices: list) -> str:
+        """
+        Prompt text and give user infinitely many attempts to select one of the possible choices. If valid choice
+        is selected, return choice in lowercase.
+        """
+        assert all(c.lower() == c for c in choices), "Choices need to be lower case."
+        choice = input(cls.indent(prompt))
+
+        # retry until valid choice is made
+        while True:
+            if choice.lower() not in choices:
+                choices_str = ", ".join(f"'{item}'" for item in choices[:-1]) + f" or '{choices[-1]}'"
+                choice = input(cls.indent(f"Invalid choice, please enter {choices_str}: "))
+            else:
+                break
+
+        return choice.lower()

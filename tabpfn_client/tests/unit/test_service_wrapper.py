@@ -29,8 +29,8 @@ class TestUserAuthClient(unittest.TestCase):
             json={"access_token": dummy_token}
         )
 
-        # assert no exception is raised
-        UserAuthenticationClient(ServiceClient()).set_token_by_login("dummy_email", "dummy_password")
+        self.assertTrue(UserAuthenticationClient(ServiceClient()).set_token_by_login(
+            "dummy_email", "dummy_password")[0])
 
         # assert token is set
         self.assertEqual(dummy_token, ServiceClient().access_token)
@@ -38,13 +38,11 @@ class TestUserAuthClient(unittest.TestCase):
     @with_mock_server()
     def test_set_token_by_invalid_login(self, mock_server):
         # mock invalid login response
-        mock_server.router.post(mock_server.endpoints.login.path).respond(400)
-
-        # assert exception is raised
-        self.assertRaises(
-            RuntimeError,
-            UserAuthenticationClient(ServiceClient()).set_token_by_login,
-            "dummy_email", "dummy_password"
+        mock_server.router.post(mock_server.endpoints.login.path).respond(401, json={
+            "detail": "Incorrect email or password"})
+        self.assertEqual(
+            (False, "Incorrect email or password"),
+            UserAuthenticationClient(ServiceClient()).set_token_by_login("dummy_email", "dummy_password")
         )
 
         # assert token is not set
@@ -87,9 +85,10 @@ class TestUserAuthClient(unittest.TestCase):
             json={"access_token": dummy_token}
         )
 
-        # assert no exception is raised
-        UserAuthenticationClient(ServiceClient()).set_token_by_registration(
-            "dummy_email", "dummy_password", "dummy_password", "dummy_validation"
+        self.assertTrue(
+            UserAuthenticationClient(ServiceClient()).set_token_by_registration(
+                "dummy_email", "dummy_password", "dummy_password", "dummy_validation"
+            )[0]
         )
 
         # assert token is set
@@ -98,16 +97,13 @@ class TestUserAuthClient(unittest.TestCase):
     @with_mock_server()
     def test_set_token_by_invalid_registration(self, mock_server):
         # mock invalid registration response
-        mock_server.router.post(mock_server.endpoints.register.path).respond(
-            400,
-            json={"detail": "doesn't matter"}
-        )
-
-        # assert exception is raised
-        self.assertRaises(
-            RuntimeError,
-            UserAuthenticationClient(ServiceClient()).set_token_by_registration,
-            "dummy_email", "dummy_password", "dummy_password", "dummy_validation"
+        mock_server.router.post(mock_server.endpoints.register.path).respond(401, json={
+            "detail": "Password mismatch"})
+        self.assertEqual(
+            (False, "Password mismatch"),
+            UserAuthenticationClient(ServiceClient()).set_token_by_registration(
+                "dummy_email", "dummy_password", "dummy_password",
+                "dummy_validation")
         )
 
         # assert token is not set

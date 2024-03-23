@@ -30,30 +30,32 @@ class UserAuthenticationClient(ServiceClientWrapper):
         self.CACHED_TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
         self.CACHED_TOKEN_FILE.write_text(access_token)
 
+    def validate_email(self, email: str) -> tuple[bool, str]:
+        is_valid, message = self.service_client.validate_email(email)
+        return is_valid, message
+
     def set_token_by_registration(
             self,
             email: str,
             password: str,
             password_confirm: str,
             validation_link: str
-    ) -> None:
-        if password != password_confirm:
-            raise ValueError("Password and password_confirm must be the same.")
+    ) -> tuple[bool, str]:
 
         is_created, message = self.service_client.register(email, password, password_confirm, validation_link)
-        if not is_created:
-            raise RuntimeError(f"Failed to register user: {message}")
+        if is_created:
+            # login after registration
+            self.set_token_by_login(email, password)
+        return is_created, message
 
-        # login after registration
-        self.set_token_by_login(email, password)
-
-    def set_token_by_login(self, email: str, password: str) -> None:
-        access_token = self.service_client.login(email, password)
+    def set_token_by_login(self, email: str, password: str) -> tuple[bool, str]:
+        access_token, message = self.service_client.login(email, password)
 
         if access_token is None:
-            raise RuntimeError("Failed to login, please check your email and password.")
+            return False, message
 
         self.set_token(access_token)
+        return True, message
 
     def try_reuse_existing_token(self) -> bool:
         if self.service_client.access_token is None:
@@ -77,6 +79,11 @@ class UserAuthenticationClient(ServiceClientWrapper):
 
     def get_password_policy(self):
         return self.service_client.get_password_policy()
+
+    def add_user_information(
+            self, company: str | None, role: str | None, use_case: str | None, contact_via_email: bool
+    ):
+        self.service_client.add_user_information(company, role, use_case, contact_via_email)
 
     def reset_cache(self):
         self._reset_token()
