@@ -37,6 +37,17 @@ class TestServiceClient(unittest.TestCase):
         self.assertTrue(str(cm.exception).startswith("Client version too old."))
 
     @with_mock_server()
+    def test_validate_email(self, mock_server):
+        mock_server.router.post(mock_server.endpoints.validate_email.path).respond(200, json={"message": "dummy_message"})
+        self.assertTrue(self.client.validate_email("dummy_email")[0])
+
+    @with_mock_server()
+    def test_validate_email_invalid(self, mock_server):
+        mock_server.router.post(mock_server.endpoints.validate_email.path).respond(401, json={"detail": "dummy_message"})
+        self.assertFalse(self.client.validate_email("dummy_email")[0])
+        self.assertEqual("dummy_message", self.client.validate_email("dummy_email")[1])
+
+    @with_mock_server()
     def test_register_user(self, mock_server):
         mock_server.router.post(mock_server.endpoints.register.path).respond(200, json={"message": "dummy_message"})
         self.assertTrue(self.client.register("dummy_email", "dummy_password", "dummy_password", "dummy_validation")[0])

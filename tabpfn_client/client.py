@@ -218,13 +218,43 @@ class ServiceClient:
 
         return is_authenticated
 
+    def validate_email(self, email: str) -> tuple[bool, str]:
+        """
+        Send entered email to server that checks if it is valid and not already in use.
+
+        Parameters
+        ----------
+        email : str
+
+        Returns
+        -------
+        is_valid : bool
+            True if the email is valid.
+        message : str
+            The message returned from the server.
+        """
+        response = self.httpx_client.post(
+            self.server_endpoints.validate_email.path,
+            params={"email": email}
+        )
+
+        self._validate_response(response, "validate_email", only_version_check=True)
+        if response.status_code == 200:
+            is_valid = True
+            message = ""
+        else:
+            is_valid = False
+            message = response.json()["detail"]
+
+        return is_valid, message
+
     def register(
             self,
             email: str,
             password: str,
             password_confirm: str,
             validation_link: str
-    ) -> (bool, str):
+    ) -> tuple[bool, str]:
         """
         Register a new user with the provided credentials.
 
@@ -272,6 +302,8 @@ class ServiceClient:
         -------
         access_token : str | None
             The access token returned from the server. Return None if login fails.
+        message : str
+            The message returned from the server.
         """
 
         access_token = None
@@ -307,6 +339,9 @@ class ServiceClient:
         return response.json()["requirements"]
 
     def add_user_information(self, company: str, role: str, use_case: str, contact_via_email: bool):
+        """
+        Send additional user information to the server.
+        """
         information = {
             "company": company,
             "role": role,

@@ -30,6 +30,10 @@ class UserAuthenticationClient(ServiceClientWrapper):
         self.CACHED_TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
         self.CACHED_TOKEN_FILE.write_text(access_token)
 
+    def validate_email(self, email: str) -> tuple[bool, str]:
+        is_valid, message = self.service_client.validate_email(email)
+        return is_valid, message
+
     def set_token_by_registration(
             self,
             email: str,

@@ -18,6 +18,11 @@ endpoints:
     methods: [ "GET" ]
     description: "Password policy"
 
+  validate_email:
+    path: "/auth/validate_email/"
+    methods: [ "POST" ]
+    description: "Validate email"
+
   register:
     path: "/auth/register/"
     methods: [ "POST" ]
