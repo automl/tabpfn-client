@@ -218,13 +218,43 @@ class ServiceClient:
 
         return is_authenticated
 
+    def validate_email(self, email: str) -> tuple[bool, str]:
+        """
+        Send entered email to server that checks if it is valid and not already in use.
+
+        Parameters
+        ----------
+        email : str
+
+        Returns
+        -------
+        is_valid : bool
+            True if the email is valid.
+        message : str
+            The message returned from the server.
+        """
+        response = self.httpx_client.post(
+            self.server_endpoints.validate_email.path,
+            params={"email": email}
+        )
+
+        self._validate_response(response, "validate_email", only_version_check=True)
+        if response.status_code == 200:
+            is_valid = True
+            message = ""
+        else:
+            is_valid = False
+            message = response.json()["detail"]
+
+        return is_valid, message
+
     def register(
             self,
             email: str,
             password: str,
             password_confirm: str,
             validation_link: str
-    ) -> (bool, str):
+    ) -> tuple[bool, str]:
         """
         Register a new user with the provided credentials.
 
@@ -245,7 +275,8 @@ class ServiceClient:
 
         response = self.httpx_client.post(
             self.server_endpoints.register.path,
-            params={"email": email, "password": password, "password_confirm": password_confirm, "validation_link": validation_link}
+            params={"email": email, "password": password, "password_confirm": password_confirm,
+                    "validation_link": validation_link}
         )
 
         self._validate_response(response, "register", only_version_check=True)
@@ -258,7 +289,7 @@ class ServiceClient:
 
         return is_created, message
 
-    def login(self, email: str, password: str) -> str | None:
+    def login(self, email: str, password: str) -> tuple[str, str]:
         """
         Login with the provided credentials and return the access token if successful.
 
@@ -271,6 +302,8 @@ class ServiceClient:
         -------
         access_token : str | None
             The access token returned from the server. Return None if login fails.
+        message : str
+            The message returned from the server.
         """
 
         access_token = None
@@ -279,11 +312,14 @@ class ServiceClient:
             data=common_utils.to_oauth_request_form(email, password)
         )
 
-        self._validate_response(response, "login", only_version_check=False)
+        self._validate_response(response, "login", only_version_check=True)
         if response.status_code == 200:
             access_token = response.json()["access_token"]
+            message = ""
+        else:
+            message = response.json()["detail"]
 
-        return access_token
+        return access_token, message
 
     def get_password_policy(self) -> {}:
         """
@@ -301,6 +337,27 @@ class ServiceClient:
         self._validate_response(response, "get_password_policy", only_version_check=True)
 
         return response.json()["requirements"]
+
+    def add_user_information(
+            self, company: str | None, role: str | None, use_case: str | None, contact_via_email: bool
+    ):
+        """
+        Send additional user information to the server.
+        """
+        information = {"contact_via_email": contact_via_email}
+        if company:
+            information["company"] = company
+        if role:
+            information["role"] = role
+        if use_case:
+            information["use_case"] = use_case
+
+        response = self.httpx_client.post(
+            self.server_endpoints.add_user_information.path,
+            json=information
+        )
+
+        self._validate_response(response, "add_user_information")
 
     def retrieve_greeting_messages(self) -> list[str]:
         """
