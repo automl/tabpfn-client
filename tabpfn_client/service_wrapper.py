@@ -39,13 +39,11 @@ class UserAuthenticationClient(ServiceClientWrapper):
             email: str,
             password: str,
             password_confirm: str,
-            validation_link: str
+            validation_link: str,
+            additional_info: dict
     ) -> tuple[bool, str]:
 
-        is_created, message = self.service_client.register(email, password, password_confirm, validation_link)
-        if is_created:
-            # login after registration
-            self.set_token_by_login(email, password)
+        is_created, message = self.service_client.register(email, password, password_confirm, validation_link, additional_info)
         return is_created, message
 
     def set_token_by_login(self, email: str, password: str) -> tuple[bool, str]:

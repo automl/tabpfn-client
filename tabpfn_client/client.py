@@ -263,7 +263,8 @@ class ServiceClient:
             email: str,
             password: str,
             password_confirm: str,
-            validation_link: str
+            validation_link: str,
+            additional_info: dict
     ) -> tuple[bool, str]:
         """
         Register a new user with the provided credentials.
@@ -274,6 +275,7 @@ class ServiceClient:
         password : str
         password_confirm : str
         validation_link: str
+        additional_info : dict
 
         Returns
         -------
@@ -285,8 +287,16 @@ class ServiceClient:
 
         response = self.httpx_client.post(
             self.server_endpoints.register.path,
-            params={"email": email, "password": password, "password_confirm": password_confirm,
-                    "validation_link": validation_link}
+            params={
+                "email": email, 
+                "password": password, 
+                "password_confirm": password_confirm,
+                "validation_link": validation_link, 
+                "company": additional_info["company"], 
+                "role": additional_info["role"], 
+                "use_case": additional_info["use_case"], 
+                "contact_via_email": additional_info["contact_via_email"]
+            }
         )
 
         self._validate_response(response, "register", only_version_check=True)
