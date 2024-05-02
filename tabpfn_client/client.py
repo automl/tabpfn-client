@@ -196,7 +196,10 @@ class ServiceClient:
             if response.status_code == 200:
                 found_valid_connection = True
 
-        except httpx.ConnectError:
+        except httpx.ConnectError as e:
+            logger.error(f"Failed to connect to the server with error: {e}")
+            import traceback
+            traceback.print_exc()
             found_valid_connection = False
 
         return found_valid_connection
