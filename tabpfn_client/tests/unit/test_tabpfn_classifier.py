@@ -2,13 +2,13 @@ import unittest
 from unittest.mock import patch
 import shutil
 
+import numpy as np
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
-from tabpfn import TabPFNClassifier as LocalTabPFNClassifier
+from sklearn.exceptions import NotFittedError
 
 from tabpfn_client import tabpfn_classifier
 from tabpfn_client.tabpfn_classifier import TabPFNClassifier
-from tabpfn_client.remote_tabpfn_classifier import RemoteTabPFNClassifier
 from tabpfn_client.service_wrapper import UserAuthenticationClient
 from tabpfn_client.client import ServiceClient
 from tabpfn_client.tests.mock_tabpfn_server import with_mock_server
@@ -34,11 +34,6 @@ class TestTabPFNClassifierInit(unittest.TestCase):
         # remove cache dir
         shutil.rmtree(CACHE_DIR, ignore_errors=True)
 
-    def test_init_local_classifier(self):
-        tabpfn_classifier.init(use_server=False)
-        tabpfn = TabPFNClassifier(model="tabpfn_1_local").fit(self.X_train, self.y_train)
-        self.assertTrue(isinstance(tabpfn.classifier_, LocalTabPFNClassifier))
-
     @with_mock_server()
     @patch("tabpfn_client.prompt_agent.PromptAgent.prompt_and_set_token")
     @patch("tabpfn_client.prompt_agent.PromptAgent.prompt_terms_and_cond",
@@ -54,12 +49,25 @@ class TestTabPFNClassifierInit(unittest.TestCase):
         )
         mock_server.router.get(mock_server.endpoints.retrieve_greeting_messages.path).respond(
             200, json={"messages": []})
+        mock_predict_response = [[1, 0.],[.9, .1],[0.01, 0.99]]
+        mock_server.router.post(mock_server.endpoints.predict.path).respond(
+            200, json={"y_pred": mock_predict_response}
+        )
 
         tabpfn_classifier.init(use_server=True)
-        tabpfn = TabPFNClassifier().fit(self.X_train, self.y_train)
-        self.assertTrue(isinstance(tabpfn.classifier_, RemoteTabPFNClassifier))
+
+        tabpfn = TabPFNClassifier()
+        self.assertRaises(
+            NotFittedError,
+            tabpfn.predict,
+            self.X_test
+        )
+        tabpfn.fit(self.X_train, self.y_train)
         self.assertTrue(mock_prompt_and_set_token.called)
         self.assertTrue(mock_prompt_for_terms_and_cond.called)
+
+        y_pred = tabpfn.predict(self.X_test)
+        self.assertTrue(np.all(np.argmax(mock_predict_response, axis=1) == y_pred))
 
     @with_mock_server()
     def test_reuse_saved_access_token(self, mock_server):
@@ -98,11 +106,6 @@ class TestTabPFNClassifierInit(unittest.TestCase):
 
         self.assertRaises(RuntimeError, tabpfn_classifier.init, use_server=True)
         self.assertTrue(mock_prompt_and_set_token.called)
-
-    def test_reset_on_local_classifier(self):
-        tabpfn_classifier.init(use_server=False)
-        tabpfn_classifier.reset()
-        self.assertFalse(tabpfn_classifier.g_tabpfn_config.is_initialized)
 
     @with_mock_server()
     def test_reset_on_remote_classifier(self, mock_server):
