@@ -229,7 +229,7 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
     def fit(self, X, y):
         # assert init() is called
         if not g_tabpfn_config.is_initialized:
-            raise RuntimeError("TabPFNClassifier.init() must be called before using TabPFNClassifier")
+            raise RuntimeError("tabpfn_client.init() must be called before using TabPFNClassifier")
 
         if g_tabpfn_config.use_server:
             try:
