@@ -50,13 +50,14 @@ class TestTabPFNClassifierInit(unittest.TestCase):
         mock_server.router.get(mock_server.endpoints.retrieve_greeting_messages.path).respond(
             200, json={"messages": []})
         mock_predict_response = [[1, 0.],[.9, .1],[0.01, 0.99]]
-        mock_server.router.post(mock_server.endpoints.predict.path).respond(
+        predict_route = mock_server.router.post(mock_server.endpoints.predict.path)
+        predict_route.respond(
             200, json={"y_pred": mock_predict_response}
         )
 
         tabpfn_classifier.init(use_server=True)
 
-        tabpfn = TabPFNClassifier()
+        tabpfn = TabPFNClassifier(n_estimators=10)
         self.assertRaises(
             NotFittedError,
             tabpfn.predict,
@@ -68,6 +69,8 @@ class TestTabPFNClassifierInit(unittest.TestCase):
 
         y_pred = tabpfn.predict(self.X_test)
         self.assertTrue(np.all(np.argmax(mock_predict_response, axis=1) == y_pred))
+
+        self.assertIn('n_estimators%22%3A%2010', str(predict_route.calls.last.request.url), "check that n_estimators is passed to the server")
 
     @with_mock_server()
     def test_reuse_saved_access_token(self, mock_server):
