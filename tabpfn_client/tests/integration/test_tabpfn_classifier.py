@@ -43,7 +43,7 @@ class TestTabPFNClassifier(unittest.TestCase):
         # mock prediction
         mock_server.router.post(mock_server.endpoints.predict.path).respond(
             200,
-            json={"y_pred": LocalTabPFNClassifier().fit(self.X_train, self.y_train).predict_proba(self.X_test).tolist()}
+            json={"y_pred_proba": LocalTabPFNClassifier().fit(self.X_train, self.y_train).predict_proba(self.X_test).tolist()}
         )
         pred = tabpfn.predict(self.X_test)
         self.assertEqual(pred.shape[0], self.X_test.shape[0])

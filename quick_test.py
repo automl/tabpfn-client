@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
     else:
         tabpfn_classifier.init()
-        tabpfn = TabPFNClassifier(model="latest_tabpfn_hosted")
+        tabpfn = TabPFNClassifier(model="latest_tabpfn_hosted", n_estimators=3)
         # print("checking estimator", check_estimator(tabpfn))
         tabpfn.fit(X_train[:99], y_train[:99])
         print("predicting")

@@ -51,7 +51,7 @@ class PromptAgent:
         # Registration
         if choice == "1":
             # validation_link = input(cls.indent("Please enter your secret code: "))
-            validation_link = "tabpfn-2023"
+            validation_link = "tabpfn-test"
             while True:
                 email = input(cls.indent("Please enter your email: "))
                 # Send request to server to check if email is valid and not already taken.

@@ -52,7 +52,7 @@ class TestTabPFNClassifierInit(unittest.TestCase):
         mock_predict_response = [[1, 0.],[.9, .1],[0.01, 0.99]]
         predict_route = mock_server.router.post(mock_server.endpoints.predict.path)
         predict_route.respond(
-            200, json={"y_pred": mock_predict_response}
+            200, json={"y_pred_proba": mock_predict_response}
         )
 
         tabpfn_classifier.init(use_server=True)

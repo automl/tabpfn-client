@@ -133,7 +133,7 @@ class ServiceClient:
 
         self._validate_response(response, "predict")
 
-        return np.array(response.json()["y_pred"])
+        return np.array(response.json()["y_pred_proba"])
 
     @staticmethod
     def _validate_response(response, method_name, only_version_check=False):
