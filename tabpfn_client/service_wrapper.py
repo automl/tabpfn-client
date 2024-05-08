@@ -166,7 +166,7 @@ class InferenceClient(ServiceClientWrapper):
 
     def fit(self, X, y) -> None:
         if not self.service_client.is_initialized:
-            raise RuntimeError("Service client is not initialized.")
+            raise RuntimeError("Either email is not verified or Service client is not initialized. Please Verify your email and try again!")
 
         self.last_train_set_uid = self.service_client.upload_train_set(X, y)
 
