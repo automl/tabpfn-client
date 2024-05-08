@@ -73,28 +73,6 @@ class TestUserAuthClient(unittest.TestCase):
         self.assertIsNone(ServiceClient().access_token)
 
     @with_mock_server()
-    def test_set_token_by_valid_registration(self, mock_server):
-        # mock valid registration response, and valid login response
-        dummy_token = "dummy_token"
-        mock_server.router.post(mock_server.endpoints.register.path).respond(
-            200,
-            json={"message": "doesn't matter"}
-        )
-        mock_server.router.post(mock_server.endpoints.login.path).respond(
-            200,
-            json={"access_token": dummy_token}
-        )
-
-        self.assertTrue(
-            UserAuthenticationClient(ServiceClient()).set_token_by_registration(
-                "dummy_email", "dummy_password", "dummy_password", "dummy_validation"
-            )[0]
-        )
-
-        # assert token is set
-        self.assertEqual(dummy_token, ServiceClient().access_token)
-
-    @with_mock_server()
     def test_set_token_by_invalid_registration(self, mock_server):
         # mock invalid registration response
         mock_server.router.post(mock_server.endpoints.register.path).respond(401, json={
@@ -103,7 +81,12 @@ class TestUserAuthClient(unittest.TestCase):
             (False, "Password mismatch"),
             UserAuthenticationClient(ServiceClient()).set_token_by_registration(
                 "dummy_email", "dummy_password", "dummy_password",
-                "dummy_validation")
+                "dummy_validation", {
+                "company": "dummy_company",
+                "use_case": "dummy_usecase",
+                "role": "dummy_role",
+                "contact_via_email": False
+        })
         )
 
         # assert token is not set

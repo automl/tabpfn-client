@@ -50,22 +50,42 @@ class TestServiceClient(unittest.TestCase):
     @with_mock_server()
     def test_register_user(self, mock_server):
         mock_server.router.post(mock_server.endpoints.register.path).respond(200, json={"message": "dummy_message"})
-        self.assertTrue(self.client.register("dummy_email", "dummy_password", "dummy_password", "dummy_validation")[0])
+        self.assertTrue(self.client.register("dummy_email", "dummy_password", "dummy_password", "dummy_validation", {
+            "company": "dummy_company",
+            "use_case": "dummy_usecase",
+            "role": "dummy_role",
+            "contact_via_email": False
+        })[0])
 
     @with_mock_server()
     def test_register_user_with_invalid_email(self, mock_server):
         mock_server.router.post(mock_server.endpoints.register.path).respond(401, json={"detail": "dummy_message"})
-        self.assertFalse(self.client.register("dummy_email", "dummy_password", "dummy_password", "dummy_validation")[0])
+        self.assertFalse(self.client.register("dummy_email", "dummy_password", "dummy_password", "dummy_validation", {
+            "company": "dummy_company",
+            "use_case": "dummy_usecase",
+            "role": "dummy_role",
+            "contact_via_email": False
+        })[0])
 
     @with_mock_server()
     def test_register_user_with_invalid_validation_link(self, mock_server):
         mock_server.router.post(mock_server.endpoints.register.path).respond(401, json={"detail": "dummy_message"})
-        self.assertFalse(self.client.register("dummy_email", "dummy_password", "dummy_password", "dummy_validation")[0])
+        self.assertFalse(self.client.register("dummy_email", "dummy_password", "dummy_password", "dummy_validation", {
+            "company": "dummy_company",
+            "use_case": "dummy_usecase",
+            "role": "dummy_role",
+            "contact_via_email": False
+        })[0])
 
     @with_mock_server()
     def test_register_user_with_limit_reached(self, mock_server):
         mock_server.router.post(mock_server.endpoints.register.path).respond(401, json={"detail": "dummy_message"})
-        self.assertFalse(self.client.register("dummy_email", "dummy_password", "dummy_password", "dummy_validation")[0])
+        self.assertFalse(self.client.register("dummy_email", "dummy_password", "dummy_password", "dummy_validation", {
+            "company": "dummy_company",
+            "use_case": "dummy_usecase",
+            "role": "dummy_role",
+            "contact_via_email": False
+        })[0])
 
     @with_mock_server()
     def test_invalid_auth_token(self, mock_server):
@@ -100,18 +120,6 @@ class TestServiceClient(unittest.TestCase):
             x_test=self.X_test
         )
         self.assertTrue(np.array_equal(pred, dummy_result["y_pred_proba"]))
-
-    @with_mock_server()
-    def test_add_user_information(self, mock_server):
-        mock_server.router.post(mock_server.endpoints.add_user_information.path).respond(200)
-        self.assertIsNone(self.client.add_user_information(
-            "company", "dev", "", True))
-
-    @with_mock_server()
-    def test_add_user_information_raises_runtime_error(self, mock_server):
-        mock_server.router.post(mock_server.endpoints.add_user_information.path).respond(500)
-        with self.assertRaises(RuntimeError):
-            self.client.add_user_information("company", "dev", "", True)
 
     def test_validate_response_no_error(self):
         response = Mock()
