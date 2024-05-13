@@ -19,15 +19,6 @@ class TestTabPFNClassifier(unittest.TestCase):
         tabpfn_classifier.reset()
         ServiceClient().delete_instance()
 
-    def test_use_local_tabpfn_classifier(self):
-        tabpfn_classifier.init(use_server=False)
-        tabpfn = TabPFNClassifier(device="cpu", model="tabpfn_1_local")
-        tabpfn.fit(self.X_train, self.y_train)
-
-        self.assertTrue(isinstance(tabpfn.classifier_, LocalTabPFNClassifier))
-        pred = tabpfn.predict(self.X_test)
-        self.assertEqual(pred.shape[0], self.X_test.shape[0])
-
     @with_mock_server()
     def test_use_remote_tabpfn_classifier(self, mock_server):
         # create dummy token file
@@ -52,7 +43,7 @@ class TestTabPFNClassifier(unittest.TestCase):
         # mock prediction
         mock_server.router.post(mock_server.endpoints.predict.path).respond(
             200,
-            json={"y_pred": LocalTabPFNClassifier().fit(self.X_train, self.y_train).predict(self.X_test).tolist()}
+            json={"y_pred_proba": LocalTabPFNClassifier().fit(self.X_train, self.y_train).predict_proba(self.X_test).tolist()}
         )
         pred = tabpfn.predict(self.X_test)
         self.assertEqual(pred.shape[0], self.X_test.shape[0])

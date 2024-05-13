@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import traceback
 from pathlib import Path
 import httpx
 import logging
@@ -96,7 +99,7 @@ class ServiceClient:
         train_set_uid = response.json()["train_set_uid"]
         return train_set_uid
 
-    def predict(self, train_set_uid: str, x_test):
+    def predict(self, train_set_uid: str, x_test, tabpfn_config: dict | None=None):
         """
         Predict the class labels for the provided data (test set).
 
@@ -115,9 +118,14 @@ class ServiceClient:
 
         x_test = common_utils.serialize_to_csv_formatted_bytes(x_test)
 
+        params = {"train_set_uid": train_set_uid}
+
+        if tabpfn_config is not None:
+            params["tabpfn_config"] = json.dumps(tabpfn_config, default=lambda x: x.to_dict())
+
         response = self.httpx_client.post(
             url=self.server_endpoints.predict.path,
-            params={"train_set_uid": train_set_uid},
+            params=params,
             files=common_utils.to_httpx_post_file_format([
                 ("x_file", "x_test_filename", x_test)
             ])
@@ -125,7 +133,7 @@ class ServiceClient:
 
         self._validate_response(response, "predict")
 
-        return np.array(response.json()["y_pred"])
+        return np.array(response.json()["y_pred_proba"])
 
     @staticmethod
     def _validate_response(response, method_name, only_version_check=False):
@@ -198,7 +206,6 @@ class ServiceClient:
 
         except httpx.ConnectError as e:
             logger.error(f"Failed to connect to the server with error: {e}")
-            import traceback
             traceback.print_exc()
             found_valid_connection = False
 
