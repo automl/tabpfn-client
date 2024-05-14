@@ -51,7 +51,7 @@ class PromptAgent:
         # Registration
         if choice == "1":
             # validation_link = input(cls.indent("Please enter your secret code: "))
-            validation_link = "tabpfn-2023"
+            validation_link = "tabpfn-test"
             while True:
                 email = input(cls.indent("Please enter your email: "))
                 # Send request to server to check if email is valid and not already taken.
@@ -101,6 +101,29 @@ class PromptAgent:
                 if successful:
                     break
                 print(cls.indent("Login failed: " + message) + "\n")
+
+                prompt = "\n".join([
+                    "Please choose one of the following options:",
+                    "(1) Retry login",
+                    "(2) Reset your password",
+                    "",
+                    "Please enter your choice: ",
+                ])
+                choice = cls._choice_with_retries(prompt, ["1", "2"])
+
+                if choice == "1":
+                    continue
+                elif choice == "2":
+                    sent = False
+                    print(cls.indent("We will send you an email with a link "
+                                     "that allows you to reset your password. \n"))
+                    while not sent:
+                        email = input(cls.indent("Please enter the email of your account: "))
+
+                        sent, message = user_auth_handler.send_reset_password_email(email)
+                        print("\n" + cls.indent(message))
+                    print(cls.indent("Once you have reset your password, you will be able to login here: "))
+
             print(cls.indent("Login successful!") + "\n")
 
     @classmethod

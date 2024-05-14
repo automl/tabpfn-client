@@ -34,6 +34,11 @@ endpoints:
     methods: [ "POST" ]
     description: "User login"
 
+  send_reset_password_email:
+    path: "/auth/send_reset_password_email/"
+    methods: [ "POST" ]
+    description: "Send reset password email"
+
   retrieve_greeting_messages:
     path: "/retrieve_greeting_messages/"
     methods: [ "GET" ]

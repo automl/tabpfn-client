@@ -355,6 +355,22 @@ class ServiceClient:
 
         return response.json()["requirements"]
 
+    def send_reset_password_email(self, email: str) -> tuple[bool, str]:
+        """
+        Let the server send an email for resetting the password.
+        """
+        response = self.httpx_client.post(
+            self.server_endpoints.send_reset_password_email.path,
+            params={"email": email}
+        )
+        if response.status_code == 200:
+            sent = True
+            message = response.json()["message"]
+        else:
+            sent = False
+            message = response.json()["detail"]
+        return sent, message
+
     def retrieve_greeting_messages(self) -> list[str]:
         """
         Retrieve greeting messages that are new for the user.
