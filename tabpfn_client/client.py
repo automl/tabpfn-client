@@ -263,7 +263,8 @@ class ServiceClient:
             email: str,
             password: str,
             password_confirm: str,
-            validation_link: str
+            validation_link: str,
+            additional_info: dict
     ) -> tuple[bool, str]:
         """
         Register a new user with the provided credentials.
@@ -274,6 +275,7 @@ class ServiceClient:
         password : str
         password_confirm : str
         validation_link: str
+        additional_info : dict
 
         Returns
         -------
@@ -285,8 +287,13 @@ class ServiceClient:
 
         response = self.httpx_client.post(
             self.server_endpoints.register.path,
-            params={"email": email, "password": password, "password_confirm": password_confirm,
-                    "validation_link": validation_link}
+            params={
+                "email": email, 
+                "password": password, 
+                "password_confirm": password_confirm,
+                "validation_link": validation_link, 
+                **additional_info
+            }
         )
 
         self._validate_response(response, "register", only_version_check=True)
@@ -347,27 +354,6 @@ class ServiceClient:
         self._validate_response(response, "get_password_policy", only_version_check=True)
 
         return response.json()["requirements"]
-
-    def add_user_information(
-            self, company: str | None, role: str | None, use_case: str | None, contact_via_email: bool
-    ):
-        """
-        Send additional user information to the server.
-        """
-        information = {"contact_via_email": contact_via_email}
-        if company:
-            information["company"] = company
-        if role:
-            information["role"] = role
-        if use_case:
-            information["use_case"] = use_case
-
-        response = self.httpx_client.post(
-            self.server_endpoints.add_user_information.path,
-            json=information
-        )
-
-        self._validate_response(response, "add_user_information")
 
     def retrieve_greeting_messages(self) -> list[str]:
         """

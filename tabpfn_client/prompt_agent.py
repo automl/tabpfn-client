@@ -82,12 +82,12 @@ class PromptAgent:
                     break
                 else:
                     print(cls.indent("Entered password and confirmation password do not match, please try again.\n"))
-
+            additional_info = cls.prompt_add_user_information()
             is_created, message = user_auth_handler.set_token_by_registration(
-                email, password, password_confirm, validation_link)
+                email, password, password_confirm, validation_link, additional_info)
             if not is_created:
                 raise RuntimeError("User registration failed: " + message + "\n")
-            cls.prompt_add_user_information(user_auth_handler)
+
             print(cls.indent("Account created successfully!") + "\n")
 
         # Login
@@ -114,7 +114,7 @@ class PromptAgent:
         return choice == "y"
 
     @classmethod
-    def prompt_add_user_information(cls, user_auth_handler: "UserAuthenticationClient"):
+    def prompt_add_user_information(cls) -> dict:
         print(cls.indent("To help us tailor our support and services to your needs, we have a few optional questions. "
                          "Feel free to skip any question by leaving it blank.") + "\n")
         company = input(cls.indent("Where do you work? "))
@@ -126,7 +126,12 @@ class PromptAgent:
         )
         contact_via_email = True if choice_contact == "y" else False
 
-        user_auth_handler.add_user_information(company, role, use_case, contact_via_email)
+        return {
+            "company": company,
+            "role": role,
+            "use_case": use_case,
+            "contact_via_email": contact_via_email
+        }
 
     @classmethod
     def prompt_reusing_existing_token(cls):

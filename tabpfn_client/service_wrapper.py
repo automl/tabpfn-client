@@ -39,13 +39,11 @@ class UserAuthenticationClient(ServiceClientWrapper):
             email: str,
             password: str,
             password_confirm: str,
-            validation_link: str
+            validation_link: str,
+            additional_info: dict
     ) -> tuple[bool, str]:
 
-        is_created, message = self.service_client.register(email, password, password_confirm, validation_link)
-        if is_created:
-            # login after registration
-            self.set_token_by_login(email, password)
+        is_created, message = self.service_client.register(email, password, password_confirm, validation_link, additional_info)
         return is_created, message
 
     def set_token_by_login(self, email: str, password: str) -> tuple[bool, str]:
@@ -79,11 +77,6 @@ class UserAuthenticationClient(ServiceClientWrapper):
 
     def get_password_policy(self):
         return self.service_client.get_password_policy()
-
-    def add_user_information(
-            self, company: str | None, role: str | None, use_case: str | None, contact_via_email: bool
-    ):
-        self.service_client.add_user_information(company, role, use_case, contact_via_email)
 
     def reset_cache(self):
         self._reset_token()
@@ -173,7 +166,7 @@ class InferenceClient(ServiceClientWrapper):
 
     def fit(self, X, y) -> None:
         if not self.service_client.is_initialized:
-            raise RuntimeError("Service client is not initialized.")
+            raise RuntimeError("Either email is not verified or Service client is not initialized. Please Verify your email and try again!")
 
         self.last_train_set_uid = self.service_client.upload_train_set(X, y)
 
