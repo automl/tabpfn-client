@@ -292,10 +292,7 @@ class ServiceClient:
                 "password": password, 
                 "password_confirm": password_confirm,
                 "validation_link": validation_link, 
-                "company": additional_info["company"], 
-                "role": additional_info["role"], 
-                "use_case": additional_info["use_case"], 
-                "contact_via_email": additional_info["contact_via_email"]
+                **additional_info
             }
         )
 
