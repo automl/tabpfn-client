@@ -86,7 +86,7 @@ class PromptAgent:
             is_created, message = user_auth_handler.set_token_by_registration(
                 email, password, password_confirm, validation_link, additional_info)
             if not is_created:
-                raise RuntimeError("User registration failed: " + message + "\n")
+                raise RuntimeError("User registration failed: " + str(message) + "\n")
 
             print(cls.indent("Account created successfully!") + "\n")
 
