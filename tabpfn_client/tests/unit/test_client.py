@@ -98,6 +98,12 @@ class TestServiceClient(unittest.TestCase):
         self.assertTrue(self.client.try_authenticate("true_token"))
 
     @with_mock_server()
+    def test_send_reset_password_email(self, mock_server):
+        mock_server.router.post(mock_server.endpoints.send_reset_password_email.path).respond(
+            200, json={"message": "Password reset email sent!"})
+        self.assertEqual(self.client.send_reset_password_email("test"), (True, "Password reset email sent!"))
+
+    @with_mock_server()
     def test_retrieve_greeting_messages(self, mock_server):
         mock_server.router.get(mock_server.endpoints.retrieve_greeting_messages.path).respond(
             200, json={"messages": ["message_1", "message_2"]})
