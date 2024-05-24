@@ -88,7 +88,7 @@ class PromptAgent:
             if not is_created:
                 raise RuntimeError("User registration failed: " + str(message) + "\n")
 
-            print(cls.indent("Account created successfully!") + "\n")
+            print(cls.indent("Account created successfully! To start using TabPFN please click on the link in the verification email we sent you.") + "\n")
 
         # Login
         elif choice == "2":
@@ -118,7 +118,7 @@ class PromptAgent:
                     print(cls.indent("We will send you an email with a link "
                                      "that allows you to reset your password. \n"))
                     while not sent:
-                        email = input(cls.indent("Please enter the email of your account: "))
+                        email = input(cls.indent("Please enter your email address: "))
 
                         sent, message = user_auth_handler.send_reset_password_email(email)
                         print("\n" + cls.indent(message))
