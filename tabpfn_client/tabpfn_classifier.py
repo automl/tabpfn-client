@@ -7,7 +7,6 @@ import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.utils.validation import check_is_fitted
 
-from tabpfn import TabPFNClassifier as LocalTabPFNClassifier
 from tabpfn_client.service_wrapper import UserAuthenticationClient, InferenceClient
 from tabpfn_client.client import ServiceClient
 from tabpfn_client.constants import CACHE_DIR
