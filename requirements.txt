@@ -3,6 +3,7 @@ omegaconf
 pandas
 password-strength
 scikit-learn
+torch
 
 # for testing
 respx
