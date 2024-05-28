@@ -88,6 +88,9 @@ class UserAuthenticationClient(ServiceClientWrapper):
     def retrieve_greeting_messages(self):
         return self.service_client.retrieve_greeting_messages()
 
+    def send_reset_password_email(self, email: str) -> tuple[bool, str]:
+        sent, message = self.service_client.send_reset_password_email(email)
+        return sent, message
 
 class UserDataClient(ServiceClientWrapper):
     """

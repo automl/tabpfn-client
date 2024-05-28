@@ -88,7 +88,7 @@ class PromptAgent:
             if not is_created:
                 raise RuntimeError("User registration failed: " + str(message) + "\n")
 
-            print(cls.indent("Account created successfully!") + "\n")
+            print(cls.indent("Account created successfully! To start using TabPFN please click on the link in the verification email we sent you.") + "\n")
 
         # Login
         elif choice == "2":
@@ -101,6 +101,29 @@ class PromptAgent:
                 if successful:
                     break
                 print(cls.indent("Login failed: " + message) + "\n")
+
+                prompt = "\n".join([
+                    "Please choose one of the following options:",
+                    "(1) Retry login",
+                    "(2) Reset your password",
+                    "",
+                    "Please enter your choice: ",
+                ])
+                choice = cls._choice_with_retries(prompt, ["1", "2"])
+
+                if choice == "1":
+                    continue
+                elif choice == "2":
+                    sent = False
+                    print(cls.indent("We will send you an email with a link "
+                                     "that allows you to reset your password. \n"))
+                    while not sent:
+                        email = input(cls.indent("Please enter your email address: "))
+
+                        sent, message = user_auth_handler.send_reset_password_email(email)
+                        print("\n" + cls.indent(message))
+                    print(cls.indent("Once you have reset your password, you will be able to login here: "))
+
             print(cls.indent("Login successful!") + "\n")
 
     @classmethod

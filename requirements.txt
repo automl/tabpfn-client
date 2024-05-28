@@ -1,8 +1,9 @@
 httpx
 omegaconf
 pandas
-tabpfn
 password-strength
+scikit-learn
+torch
 
 # for testing
 respx
