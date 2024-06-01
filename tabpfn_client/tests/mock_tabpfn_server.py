@@ -25,5 +25,7 @@ def with_mock_server():
         def wrapper(test_class, *args, **kwargs):
             with MockTabPFNServer() as mock_server:
                 return func(test_class, mock_server, *args, **kwargs)
+
         return wrapper
+
     return decorator

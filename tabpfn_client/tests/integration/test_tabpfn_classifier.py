@@ -13,7 +13,9 @@ from tabpfn_client.client import ServiceClient
 class TestTabPFNClassifier(unittest.TestCase):
     def setUp(self):
         X, y = load_breast_cancer(return_X_y=True)
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y, test_size=0.33, random_state=42)
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
+            X, y, test_size=0.33, random_state=42
+        )
 
     def tearDown(self):
         tabpfn_classifier.reset()
@@ -29,21 +31,27 @@ class TestTabPFNClassifier(unittest.TestCase):
         # mock connection and authentication
         mock_server.router.get(mock_server.endpoints.root.path).respond(200)
         mock_server.router.get(mock_server.endpoints.protected_root.path).respond(200)
-        mock_server.router.get(mock_server.endpoints.retrieve_greeting_messages.path).respond(
-            200, json={"messages": []})
+        mock_server.router.get(
+            mock_server.endpoints.retrieve_greeting_messages.path
+        ).respond(200, json={"messages": []})
         tabpfn_classifier.init(use_server=True)
 
         tabpfn = TabPFNClassifier()
 
         # mock fitting
         mock_server.router.post(mock_server.endpoints.upload_train_set.path).respond(
-            200, json={"train_set_uid": 5})
+            200, json={"train_set_uid": 5}
+        )
         tabpfn.fit(self.X_train, self.y_train)
 
         # mock prediction
         mock_server.router.post(mock_server.endpoints.predict.path).respond(
             200,
-            json={"y_pred_proba": np.random.rand(len(self.X_test), len(np.unique(self.y_train))).tolist()}
+            json={
+                "y_pred_proba": np.random.rand(
+                    len(self.X_test), len(np.unique(self.y_train))
+                ).tolist()
+            },
         )
         pred = tabpfn.predict(self.X_test)
         self.assertEqual(pred.shape[0], self.X_test.shape[0])

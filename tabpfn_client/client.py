@@ -20,11 +20,11 @@ SERVER_CONFIG = OmegaConf.load(SERVER_CONFIG_FILE)
 
 def get_client_version() -> str:
     try:
-        return version('tabpfn_client')
+        return version("tabpfn_client")
     except PackageNotFoundError:
         # Package not found, should only happen during development. Execute 'pip install -e .' to use the actual
         # version number during development. Otherwise, simply return a version number that is large enough.
-        return '5.5.5'
+        return "5.5.5"
 
 
 @common_utils.singleton
@@ -38,11 +38,13 @@ class ServiceClient:
         self.server_config = SERVER_CONFIG
         self.server_endpoints = SERVER_CONFIG["endpoints"]
         self.base_url = f"{self.server_config.protocol}://{self.server_config.host}:{self.server_config.port}"
-        self.httpx_timeout_s = 30   # temporary workaround for slow computation on server side
+        self.httpx_timeout_s = (
+            30  # temporary workaround for slow computation on server side
+        )
         self.httpx_client = httpx.Client(
             base_url=self.base_url,
             timeout=self.httpx_timeout_s,
-            headers={"client-version": get_client_version()}
+            headers={"client-version": get_client_version()},
         )
 
         self._access_token = None
@@ -63,8 +65,7 @@ class ServiceClient:
 
     @property
     def is_initialized(self):
-        return self.access_token is not None \
-            and self.access_token != ""
+        return self.access_token is not None and self.access_token != ""
 
     def upload_train_set(self, X, y) -> str:
         """
@@ -88,10 +89,9 @@ class ServiceClient:
 
         response = self.httpx_client.post(
             url=self.server_endpoints.upload_train_set.path,
-            files=common_utils.to_httpx_post_file_format([
-                ("x_file", "x_train_filename", X),
-                ("y_file", "y_train_filename", y)
-            ])
+            files=common_utils.to_httpx_post_file_format(
+                [("x_file", "x_train_filename", X), ("y_file", "y_train_filename", y)]
+            ),
         )
 
         self._validate_response(response, "upload_train_set")
@@ -99,7 +99,7 @@ class ServiceClient:
         train_set_uid = response.json()["train_set_uid"]
         return train_set_uid
 
-    def predict(self, train_set_uid: str, x_test, tabpfn_config: dict | None=None):
+    def predict(self, train_set_uid: str, x_test, tabpfn_config: dict | None = None):
         """
         Predict the class labels for the provided data (test set).
 
@@ -121,14 +121,16 @@ class ServiceClient:
         params = {"train_set_uid": train_set_uid}
 
         if tabpfn_config is not None:
-            params["tabpfn_config"] = json.dumps(tabpfn_config, default=lambda x: x.to_dict())
+            params["tabpfn_config"] = json.dumps(
+                tabpfn_config, default=lambda x: x.to_dict()
+            )
 
         response = self.httpx_client.post(
             url=self.server_endpoints.predict.path,
             params=params,
-            files=common_utils.to_httpx_post_file_format([
-                ("x_file", "x_test_filename", x_test)
-            ])
+            files=common_utils.to_httpx_post_file_format(
+                [("x_file", "x_test_filename", x_test)]
+            ),
         )
 
         self._validate_response(response, "predict")
@@ -150,19 +152,33 @@ class ServiceClient:
 
         # Check if the server requires a newer client version.
         if response.status_code == 426:
-            logger.error(f"Fail to call {method_name}, response status: {response.status_code}")
+            logger.error(
+                f"Fail to call {method_name}, response status: {response.status_code}"
+            )
             raise RuntimeError(load.get("detail"))
 
         # If we not only want to check the version compatibility, also raise other errors.
         if not only_version_check:
             if load is not None:
                 raise RuntimeError(f"Fail to call {method_name} with error: {load}")
-            logger.error(f"Fail to call {method_name}, response status: {response.status_code}")
-            if len(reponse_split_up:=response.text.split("The following exception has occurred:")) > 1:
-                raise RuntimeError(f"Fail to call {method_name} with error: {reponse_split_up[1]}")
-            raise RuntimeError(f"Fail to call {method_name} with error: {response.status_code} and reason: "
-                               f"{response.reason_phrase}")
-
+            logger.error(
+                f"Fail to call {method_name}, response status: {response.status_code}"
+            )
+            if (
+                len(
+                    reponse_split_up := response.text.split(
+                        "The following exception has occurred:"
+                    )
+                )
+                > 1
+            ):
+                raise RuntimeError(
+                    f"Fail to call {method_name} with error: {reponse_split_up[1]}"
+                )
+            raise RuntimeError(
+                f"Fail to call {method_name} with error: {response.status_code} and reason: "
+                f"{response.reason_phrase}"
+            )
 
     def predict_proba(self, train_set_uid: str, x_test):
         """
@@ -184,9 +200,9 @@ class ServiceClient:
         response = self.httpx_client.post(
             url=self.server_endpoints.predict_proba.path,
             params={"train_set_uid": train_set_uid},
-            files=common_utils.to_httpx_post_file_format([
-                ("x_file", "x_test_filename", x_test)
-            ])
+            files=common_utils.to_httpx_post_file_format(
+                [("x_file", "x_test_filename", x_test)]
+            ),
         )
 
         self._validate_response(response, "predict_proba")
@@ -244,8 +260,7 @@ class ServiceClient:
             The message returned from the server.
         """
         response = self.httpx_client.post(
-            self.server_endpoints.validate_email.path,
-            params={"email": email}
+            self.server_endpoints.validate_email.path, params={"email": email}
         )
 
         self._validate_response(response, "validate_email", only_version_check=True)
@@ -259,12 +274,12 @@ class ServiceClient:
         return is_valid, message
 
     def register(
-            self,
-            email: str,
-            password: str,
-            password_confirm: str,
-            validation_link: str,
-            additional_info: dict
+        self,
+        email: str,
+        password: str,
+        password_confirm: str,
+        validation_link: str,
+        additional_info: dict,
     ) -> tuple[bool, str]:
         """
         Register a new user with the provided credentials.
@@ -288,12 +303,12 @@ class ServiceClient:
         response = self.httpx_client.post(
             self.server_endpoints.register.path,
             params={
-                "email": email, 
-                "password": password, 
+                "email": email,
+                "password": password,
                 "password_confirm": password_confirm,
-                "validation_link": validation_link, 
-                **additional_info
-            }
+                "validation_link": validation_link,
+                **additional_info,
+            },
         )
 
         self._validate_response(response, "register", only_version_check=True)
@@ -326,7 +341,7 @@ class ServiceClient:
         access_token = None
         response = self.httpx_client.post(
             self.server_endpoints.login.path,
-            data=common_utils.to_oauth_request_form(email, password)
+            data=common_utils.to_oauth_request_form(email, password),
         )
 
         self._validate_response(response, "login", only_version_check=True)
@@ -351,7 +366,9 @@ class ServiceClient:
         response = self.httpx_client.get(
             self.server_endpoints.password_policy.path,
         )
-        self._validate_response(response, "get_password_policy", only_version_check=True)
+        self._validate_response(
+            response, "get_password_policy", only_version_check=True
+        )
 
         return response.json()["requirements"]
 
@@ -361,7 +378,7 @@ class ServiceClient:
         """
         response = self.httpx_client.post(
             self.server_endpoints.send_reset_password_email.path,
-            params={"email": email}
+            params={"email": email},
         )
         if response.status_code == 200:
             sent = True
@@ -375,9 +392,13 @@ class ServiceClient:
         """
         Retrieve greeting messages that are new for the user.
         """
-        response = self.httpx_client.get(self.server_endpoints.retrieve_greeting_messages.path)
+        response = self.httpx_client.get(
+            self.server_endpoints.retrieve_greeting_messages.path
+        )
 
-        self._validate_response(response, "retrieve_greeting_messages", only_version_check=True)
+        self._validate_response(
+            response, "retrieve_greeting_messages", only_version_check=True
+        )
         if response.status_code != 200:
             return []
 
@@ -414,7 +435,9 @@ class ServiceClient:
         save_path = None
 
         full_url = self.base_url + self.server_endpoints.download_all_data.path
-        with httpx.stream("GET", full_url, headers={"Authorization": f"Bearer {self.access_token}"}) as response:
+        with httpx.stream(
+            "GET", full_url, headers={"Authorization": f"Bearer {self.access_token}"}
+        ) as response:
             self._validate_response(response, "download_all_data")
 
             filename = response.headers["Content-Disposition"].split("filename=")[1]
@@ -443,7 +466,7 @@ class ServiceClient:
         """
         response = self.httpx_client.delete(
             self.server_endpoints.delete_dataset.path,
-            params={"dataset_uid": dataset_uid}
+            params={"dataset_uid": dataset_uid},
         )
 
         self._validate_response(response, "delete_dataset")
@@ -470,7 +493,7 @@ class ServiceClient:
     def delete_user_account(self, confirm_pass: str) -> None:
         response = self.httpx_client.delete(
             self.server_endpoints.delete_user_account.path,
-            params={"confirm_password": confirm_pass}
+            params={"confirm_password": confirm_pass},
         )
 
         self._validate_response(response, "delete_user_account")

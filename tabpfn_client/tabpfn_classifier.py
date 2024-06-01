@@ -39,7 +39,9 @@ def init(use_server=True):
 
         # check connection to server
         if not user_auth_handler.is_accessible_connection():
-            raise RuntimeError("TabPFN is inaccessible at the moment, please try again later.")
+            raise RuntimeError(
+                "TabPFN is inaccessible at the moment, please try again later."
+            )
 
         is_valid_token_set = user_auth_handler.try_reuse_existing_token()
 
@@ -47,13 +49,17 @@ def init(use_server=True):
             PromptAgent.prompt_reusing_existing_token()
         else:
             if not PromptAgent.prompt_terms_and_cond():
-                raise RuntimeError("You must agree to the terms and conditions to use TabPFN")
+                raise RuntimeError(
+                    "You must agree to the terms and conditions to use TabPFN"
+                )
 
             # prompt for login / register
             PromptAgent.prompt_and_set_token(user_auth_handler)
 
         # Print new greeting messages. If there are no new messages, nothing will be printed.
-        PromptAgent.prompt_retrieved_greeting_messages(user_auth_handler.retrieve_greeting_messages())
+        PromptAgent.prompt_retrieved_greeting_messages(
+            user_auth_handler.retrieve_greeting_messages()
+        )
 
         g_tabpfn_config.use_server = True
         g_tabpfn_config.user_auth_handler = user_auth_handler
@@ -171,7 +177,10 @@ class PreprocessorConfig:
         return not self.subsample_features > 0
 
     def to_dict(self):
-        return {k: str(v) if not isinstance(v, (str, int, float, list, dict)) else v for k, v in asdict(self).items()}
+        return {
+            k: str(v) if not isinstance(v, (str, int, float, list, dict)) else v
+            for k, v in asdict(self).items()
+        }
 
 
 ClassificationOptimizationMetricType = Literal[
@@ -228,17 +237,23 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
     def fit(self, X, y):
         # assert init() is called
         if not g_tabpfn_config.is_initialized:
-            raise RuntimeError("tabpfn_client.init() must be called before using TabPFNClassifier")
+            raise RuntimeError(
+                "tabpfn_client.init() must be called before using TabPFNClassifier"
+            )
 
         if g_tabpfn_config.use_server:
             try:
-                assert self.model == "latest_tabpfn_hosted", "Only 'latest_tabpfn_hosted' model is supported at the moment for tabpfn_classifier.init(use_server=True)"
+                assert (
+                    self.model == "latest_tabpfn_hosted"
+                ), "Only 'latest_tabpfn_hosted' model is supported at the moment for tabpfn_classifier.init(use_server=True)"
             except AssertionError as e:
                 print(e)
             g_tabpfn_config.inference_handler.fit(X, y)
             self.fitted_ = True
         else:
-            raise NotImplementedError("Only server mode is supported at the moment for tabpfn_classifier.init(use_server=False)")
+            raise NotImplementedError(
+                "Only server mode is supported at the moment for tabpfn_classifier.init(use_server=False)"
+            )
         return self
 
     def predict(self, X):
@@ -248,5 +263,3 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
     def predict_proba(self, X):
         check_is_fitted(self)
         return g_tabpfn_config.inference_handler.predict(X, config=self.get_params())
-
-

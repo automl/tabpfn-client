@@ -20,6 +20,7 @@ class UserAuthenticationClient(ServiceClientWrapper):
     - access token caching
 
     """
+
     CACHED_TOKEN_FILE = CACHE_DIR / "config"
 
     def is_accessible_connection(self) -> bool:
@@ -35,15 +36,16 @@ class UserAuthenticationClient(ServiceClientWrapper):
         return is_valid, message
 
     def set_token_by_registration(
-            self,
-            email: str,
-            password: str,
-            password_confirm: str,
-            validation_link: str,
-            additional_info: dict
+        self,
+        email: str,
+        password: str,
+        password_confirm: str,
+        validation_link: str,
+        additional_info: dict,
     ) -> tuple[bool, str]:
-
-        is_created, message = self.service_client.register(email, password, password_confirm, validation_link, additional_info)
+        is_created, message = self.service_client.register(
+            email, password, password_confirm, validation_link, additional_info
+        )
         return is_created, message
 
     def set_token_by_login(self, email: str, password: str) -> tuple[bool, str]:
@@ -92,13 +94,15 @@ class UserAuthenticationClient(ServiceClientWrapper):
         sent, message = self.service_client.send_reset_password_email(email)
         return sent, message
 
+
 class UserDataClient(ServiceClientWrapper):
     """
     Wrapper of ServiceClient to handle user data, including:
     - query, or delete user account data
     - query, download, or delete uploaded data
     """
-    def __init__(self, service_client = ServiceClient()):
+
+    def __init__(self, service_client=ServiceClient()):
         super().__init__(service_client)
 
     def get_data_summary(self) -> {}:
@@ -163,19 +167,19 @@ class InferenceClient(ServiceClientWrapper):
     - prediction
     """
 
-    def __init__(self, service_client = ServiceClient()):
+    def __init__(self, service_client=ServiceClient()):
         super().__init__(service_client)
         self.last_train_set_uid = None
 
     def fit(self, X, y) -> None:
         if not self.service_client.is_initialized:
-            raise RuntimeError("Either email is not verified or Service client is not initialized. Please Verify your email and try again!")
+            raise RuntimeError(
+                "Either email is not verified or Service client is not initialized. Please Verify your email and try again!"
+            )
 
         self.last_train_set_uid = self.service_client.upload_train_set(X, y)
 
     def predict(self, X, config=None):
         return self.service_client.predict(
-            train_set_uid=self.last_train_set_uid,
-            x_test=X,
-            tabpfn_config=config
+            train_set_uid=self.last_train_set_uid, x_test=X, tabpfn_config=config
         )
