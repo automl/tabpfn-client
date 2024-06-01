@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from tabpfn_client.tabpfn_classifier import UserAuthenticationClient
 
+from tabpfn_client.service_wrapper import UserAuthenticationClient
+
 
 class PromptAgent:
     @staticmethod
@@ -43,7 +45,7 @@ class PromptAgent:
         print(cls.indent(prompt))
 
     @classmethod
-    def prompt_and_set_token(cls, user_auth_handler: "UserAuthenticationClient"):
+    def prompt_and_set_token(cls, user_auth_handler: UserAuthenticationClient):
         # Choose between registration and login
         prompt = "\n".join(
             [
