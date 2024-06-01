@@ -43,3 +43,10 @@ tabpfn.fit(X_train, y_train)
 tabpfn.predict(X_test)
 # or you can also use tabpfn.predict_proba(X_test)
 ```
+
+# Development
+
+To encourage better coding practices, `ruff` has been added to the pre-commit hooks. This will ensure that the code is formatted properly before being committed. To enable pre-commit (if you haven't), run the following command:
+```sh
+pre-commit install
+```

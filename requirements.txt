@@ -7,3 +7,7 @@ torch
 
 # for testing
 respx
+
+# development tool
+pre-commit
+ruff == 0.3.3

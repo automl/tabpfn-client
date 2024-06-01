@@ -5,6 +5,16 @@ on:
       - main
 
 jobs:
+  check_python_linting:
+    name: Ruff Linting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: chartboost/ruff-action@v1
+        with:
+          src: "./"
+          version: 0.3.3
+
   test:
     name: Run unit and integration tests
     runs-on: ubuntu-latest
