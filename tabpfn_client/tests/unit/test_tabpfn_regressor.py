@@ -55,9 +55,14 @@ class TestTabPFNRegressorInit(unittest.TestCase):
         mock_server.router.get(
             mock_server.endpoints.retrieve_greeting_messages.path
         ).respond(200, json={"messages": []})
-        mock_predict_response = [100, 200, 300]
+
+        mock_predict_response = {
+            "mean": [100, 200, 300],
+            "median": [110, 210, 310],
+            "mode": [120, 220, 320],
+        }
         predict_route = mock_server.router.post(mock_server.endpoints.predict.path)
-        predict_route.respond(200, json={"regression": {"mean": mock_predict_response}})
+        predict_route.respond(200, json={"regression": mock_predict_response})
 
         init(use_server=True)
 
@@ -67,8 +72,10 @@ class TestTabPFNRegressorInit(unittest.TestCase):
         self.assertTrue(mock_prompt_and_set_token.called)
         self.assertTrue(mock_prompt_for_terms_and_cond.called)
 
-        y_pred = tabpfn.predict(self.X_test)
-        self.assertTrue(np.all(np.array(mock_predict_response) == y_pred))
+        for metric in ["mean", "median", "mode"]:
+            tabpfn.optimize_metric = metric
+            y_pred = tabpfn.predict(self.X_test)
+            self.assertTrue(np.all(np.array(mock_predict_response[metric]) == y_pred))
 
         self.assertIn(
             "n_estimators%22%3A%2010",
