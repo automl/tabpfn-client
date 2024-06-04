@@ -25,12 +25,14 @@ class TestUserAuthClient(unittest.TestCase):
         # mock valid login response
         dummy_token = "dummy_token"
         mock_server.router.post(mock_server.endpoints.login.path).respond(
-            200,
-            json={"access_token": dummy_token}
+            200, json={"access_token": dummy_token}
         )
 
-        self.assertTrue(UserAuthenticationClient(ServiceClient()).set_token_by_login(
-            "dummy_email", "dummy_password")[0])
+        self.assertTrue(
+            UserAuthenticationClient(ServiceClient()).set_token_by_login(
+                "dummy_email", "dummy_password"
+            )[0]
+        )
 
         # assert token is set
         self.assertEqual(dummy_token, ServiceClient().access_token)
@@ -38,11 +40,14 @@ class TestUserAuthClient(unittest.TestCase):
     @with_mock_server()
     def test_set_token_by_invalid_login(self, mock_server):
         # mock invalid login response
-        mock_server.router.post(mock_server.endpoints.login.path).respond(401, json={
-            "detail": "Incorrect email or password"})
+        mock_server.router.post(mock_server.endpoints.login.path).respond(
+            401, json={"detail": "Incorrect email or password"}
+        )
         self.assertEqual(
             (False, "Incorrect email or password"),
-            UserAuthenticationClient(ServiceClient()).set_token_by_login("dummy_email", "dummy_password")
+            UserAuthenticationClient(ServiceClient()).set_token_by_login(
+                "dummy_email", "dummy_password"
+            ),
         )
 
         # assert token is not set
@@ -75,18 +80,23 @@ class TestUserAuthClient(unittest.TestCase):
     @with_mock_server()
     def test_set_token_by_invalid_registration(self, mock_server):
         # mock invalid registration response
-        mock_server.router.post(mock_server.endpoints.register.path).respond(401, json={
-            "detail": "Password mismatch"})
+        mock_server.router.post(mock_server.endpoints.register.path).respond(
+            401, json={"detail": "Password mismatch"}
+        )
         self.assertEqual(
             (False, "Password mismatch"),
             UserAuthenticationClient(ServiceClient()).set_token_by_registration(
-                "dummy_email", "dummy_password", "dummy_password",
-                "dummy_validation", {
-                "company": "dummy_company",
-                "use_case": "dummy_usecase",
-                "role": "dummy_role",
-                "contact_via_email": False
-        })
+                "dummy_email",
+                "dummy_password",
+                "dummy_password",
+                "dummy_validation",
+                {
+                    "company": "dummy_company",
+                    "use_case": "dummy_usecase",
+                    "role": "dummy_role",
+                    "contact_via_email": False,
+                },
+            ),
         )
 
         # assert token is not set
@@ -102,7 +112,9 @@ class TestUserAuthClient(unittest.TestCase):
 
         # mock authentication
         mock_server.router.get(mock_server.endpoints.protected_root.path).respond(200)
-        self.assertTrue(UserAuthenticationClient(ServiceClient()).try_reuse_existing_token())
+        self.assertTrue(
+            UserAuthenticationClient(ServiceClient()).try_reuse_existing_token()
+        )
 
         # assert token is set
         self.assertEqual(dummy_token, ServiceClient().access_token)
@@ -134,10 +146,11 @@ class TestUserDataClient(unittest.TestCase):
     @with_mock_server()
     def test_get_data_summary_accepts_dict(self, mock_server):
         # mock get_data_summary response
-        mock_summary = {"content": "does not matter as long as this is returned by the server"}
+        mock_summary = {
+            "content": "does not matter as long as this is returned by the server"
+        }
         mock_server.router.get(mock_server.endpoints.get_data_summary.path).respond(
-            200,
-            json=mock_summary
+            200, json=mock_summary
         )
 
         self.assertEqual(mock_summary, UserDataClient().get_data_summary())
@@ -146,14 +159,14 @@ class TestUserDataClient(unittest.TestCase):
     def test_download_all_data_accepts_empty_zip(self, mock_server):
         # mock download_all_data response (with empty zip file)
         zip_buffer = BytesIO()
-        with zipfile.ZipFile(zip_buffer, "w") as zip_file:
+        with zipfile.ZipFile(zip_buffer, "w"):
             pass
         zip_buffer.seek(0)
 
         mock_server.router.get(mock_server.endpoints.download_all_data.path).respond(
             200,
             stream=zip_buffer,
-            headers={"Content-Disposition": "attachment; filename=all_data.zip"}
+            headers={"Content-Disposition": "attachment; filename=all_data.zip"},
         )
 
         # assert no exception is raised, and zip file is empty
@@ -174,7 +187,7 @@ class TestUserDataClient(unittest.TestCase):
         mock_server.router.get(mock_server.endpoints.download_all_data.path).respond(
             200,
             stream=zip_buffer,
-            headers={"Content-Disposition": "attachment; filename=all_data.zip"}
+            headers={"Content-Disposition": "attachment; filename=all_data.zip"},
         )
 
         # assert no exception is raised, and zip file is not empty
@@ -188,8 +201,7 @@ class TestUserDataClient(unittest.TestCase):
     def test_delete_datasets_accepts_empty_uid_list(self, mock_server):
         # mock delete_dataset response (with empty list)
         mock_server.router.delete(mock_server.endpoints.delete_dataset.path).respond(
-            200,
-            json={"deleted_dataset_uids": []}
+            200, json={"deleted_dataset_uids": []}
         )
 
         # assert no exception is raised
@@ -199,8 +211,7 @@ class TestUserDataClient(unittest.TestCase):
     def test_delete_datasets_accepts_uid_list(self, mock_server):
         # mock delete_dataset response (with non-empty list)
         mock_server.router.delete(mock_server.endpoints.delete_dataset.path).respond(
-            200,
-            json={"deleted_dataset_uids": ["dummy_uid"]}
+            200, json={"deleted_dataset_uids": ["dummy_uid"]}
         )
 
         # assert no exception is raised
@@ -209,10 +220,9 @@ class TestUserDataClient(unittest.TestCase):
     @with_mock_server()
     def test_delete_all_datasets_accepts_empty_uid_list(self, mock_server):
         # mock delete_all_datasets response (with empty list)
-        mock_server.router.delete(mock_server.endpoints.delete_all_datasets.path).respond(
-            200,
-            json={"deleted_dataset_uids": []}
-        )
+        mock_server.router.delete(
+            mock_server.endpoints.delete_all_datasets.path
+        ).respond(200, json={"deleted_dataset_uids": []})
 
         # assert no exception is raised
         self.assertEqual([], UserDataClient().delete_all_datasets())
@@ -220,19 +230,24 @@ class TestUserDataClient(unittest.TestCase):
     @with_mock_server()
     def test_delete_all_datasets_accepts_uid_list(self, mock_server):
         # mock delete_all_datasets response (with non-empty list)
-        mock_server.router.delete(mock_server.endpoints.delete_all_datasets.path).respond(
-            200,
-            json={"deleted_dataset_uids": ["dummy_uid"]}
-        )
+        mock_server.router.delete(
+            mock_server.endpoints.delete_all_datasets.path
+        ).respond(200, json={"deleted_dataset_uids": ["dummy_uid"]})
 
         # assert no exception is raised
         self.assertEqual(["dummy_uid"], UserDataClient().delete_all_datasets())
 
     @with_mock_server()
-    @patch("tabpfn_client.service_wrapper.PromptAgent.prompt_confirm_password_for_user_account_deletion")
-    def test_delete_user_account_with_valid_password(self, mock_server, mock_prompt_confirm_password):
+    @patch(
+        "tabpfn_client.service_wrapper.PromptAgent.prompt_confirm_password_for_user_account_deletion"
+    )
+    def test_delete_user_account_with_valid_password(
+        self, mock_server, mock_prompt_confirm_password
+    ):
         # mock delete_user_account response
-        mock_server.router.delete(mock_server.endpoints.delete_user_account.path).respond(200)
+        mock_server.router.delete(
+            mock_server.endpoints.delete_user_account.path
+        ).respond(200)
 
         # mock password prompting
         mock_prompt_confirm_password.return_value = "dummy_password"
@@ -241,10 +256,16 @@ class TestUserDataClient(unittest.TestCase):
         UserDataClient().delete_user_account()
 
     @with_mock_server()
-    @patch("tabpfn_client.service_wrapper.PromptAgent.prompt_confirm_password_for_user_account_deletion")
-    def test_delete_user_account_with_invalid_password(self, mock_server, mock_prompt_confirm_password):
+    @patch(
+        "tabpfn_client.service_wrapper.PromptAgent.prompt_confirm_password_for_user_account_deletion"
+    )
+    def test_delete_user_account_with_invalid_password(
+        self, mock_server, mock_prompt_confirm_password
+    ):
         # mock delete_user_account response
-        mock_server.router.delete(mock_server.endpoints.delete_user_account.path).respond(400)
+        mock_server.router.delete(
+            mock_server.endpoints.delete_user_account.path
+        ).respond(400)
 
         # mock password prompting
         mock_prompt_confirm_password.return_value = "dummy_password"
