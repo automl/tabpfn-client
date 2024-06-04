@@ -1,8 +1,6 @@
 ### Change Description
 
 *Try to be precise. You can additionally add comments to your PR, this might help the reviewer a lot.*
-*Follow this [workflow](documentation/dev_workflow.md).*
-
 
 
 **If you used new dependencies: Did you add them to `requirements.txt`?**
