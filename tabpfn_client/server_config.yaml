@@ -1,13 +1,13 @@
 ## testing
-# protocol: "http"
-# host: "localhost"
-# port: "8080"
+protocol: "http"
+host: "localhost"
+port: "8081"
 
 # production
-protocol: "https"
-host: "tabpfn-server-wjedmz7r5a-ez.a.run.app"
-# host: tabpfn-server-preprod-wjedmz7r5a-ez.a.run.app   # preprod
-port: "443"
+# protocol: "https"
+# host: "tabpfn-server-wjedmz7r5a-ez.a.run.app"
+# # host: tabpfn-server-preprod-wjedmz7r5a-ez.a.run.app   # preprod
+# port: "443"
 endpoints:
   root:
     path: "/"

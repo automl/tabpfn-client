@@ -173,15 +173,15 @@ class TestServiceClient(unittest.TestCase):
 
         self.client.upload_train_set(self.X_train, self.y_train)
 
-        dummy_result = {"y_pred_proba": [1, 2, 3]}
+        dummy_result = {"classification": [1, 2, 3]}
         mock_server.router.post(mock_server.endpoints.predict.path).respond(
             200, json=dummy_result
         )
 
         pred = self.client.predict(
-            train_set_uid=dummy_json["train_set_uid"], x_test=self.X_test
+            train_set_uid=dummy_json["train_set_uid"], x_test=self.X_test, task="classification"
         )
-        self.assertTrue(np.array_equal(pred, dummy_result["y_pred_proba"]))
+        self.assertTrue(np.array_equal(pred["probas"], dummy_result["classification"]))
 
     def test_validate_response_no_error(self):
         response = Mock()

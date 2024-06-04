@@ -8,6 +8,7 @@ from importlib.metadata import version, PackageNotFoundError
 import numpy as np
 from omegaconf import OmegaConf
 import json
+from typing import Literal
 
 from tabpfn_client.tabpfn_common_utils import utils as common_utils
 
@@ -99,7 +100,7 @@ class ServiceClient:
         train_set_uid = response.json()["train_set_uid"]
         return train_set_uid
 
-    def predict(self, train_set_uid: str, x_test, tabpfn_config: dict | None = None):
+    def predict(self, train_set_uid: str, x_test, task: Literal["classification", "regression"], tabpfn_config: dict | None = None) -> dict[str, np.ndarray]:
         """
         Predict the class labels for the provided data (test set).
 
@@ -118,7 +119,7 @@ class ServiceClient:
 
         x_test = common_utils.serialize_to_csv_formatted_bytes(x_test)
 
-        params = {"train_set_uid": train_set_uid}
+        params = {"train_set_uid": train_set_uid, "task": task}
 
         if tabpfn_config is not None:
             params["tabpfn_config"] = json.dumps(
@@ -135,7 +136,15 @@ class ServiceClient:
 
         self._validate_response(response, "predict")
 
-        return np.array(response.json()["y_pred_proba"])
+        result = response.json()[task]
+
+        if not isinstance(result, dict):
+            result = {"probas": result}
+        
+        for k in result:
+            result[k] = np.array(result[k])
+
+        return result
 
     @staticmethod
     def _validate_response(response, method_name, only_version_check=False):
