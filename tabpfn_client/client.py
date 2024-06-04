@@ -100,7 +100,13 @@ class ServiceClient:
         train_set_uid = response.json()["train_set_uid"]
         return train_set_uid
 
-    def predict(self, train_set_uid: str, x_test, task: Literal["classification", "regression"], tabpfn_config: dict | None = None) -> dict[str, np.ndarray]:
+    def predict(
+        self,
+        train_set_uid: str,
+        x_test,
+        task: Literal["classification", "regression"],
+        tabpfn_config: dict | None = None,
+    ) -> dict[str, np.ndarray]:
         """
         Predict the class labels for the provided data (test set).
 
@@ -140,7 +146,7 @@ class ServiceClient:
 
         if not isinstance(result, dict):
             result = {"probas": result}
-        
+
         for k in result:
             result[k] = np.array(result[k])
 

@@ -180,7 +180,10 @@ class InferenceClient(ServiceClientWrapper):
 
         self.last_train_set_uid = self.service_client.upload_train_set(X, y)
 
-    def predict(self, X, task:Literal["classification","regression"], config=None):
+    def predict(self, X, task: Literal["classification", "regression"], config=None):
         return self.service_client.predict(
-            train_set_uid=self.last_train_set_uid, x_test=X, tabpfn_config=config, task=task,
+            train_set_uid=self.last_train_set_uid,
+            x_test=X,
+            tabpfn_config=config,
+            task=task,
         )

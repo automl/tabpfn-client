@@ -5,7 +5,7 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 
 from tabpfn_client import init, reset
-from tabpfn_client import estimator, TabPFNClassifier
+from tabpfn_client import TabPFNClassifier
 from tabpfn_client.tests.mock_tabpfn_server import with_mock_server
 from tabpfn_client.service_wrapper import UserAuthenticationClient
 from tabpfn_client.client import ServiceClient

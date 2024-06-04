@@ -10,6 +10,7 @@ from tabpfn_client import config
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass(eq=True, frozen=True)
 class PreprocessorConfig:
     """
@@ -108,6 +109,7 @@ class PreprocessorConfig:
             for k, v in asdict(self).items()
         }
 
+
 class TabPFNClassifier(BaseEstimator, ClassifierMixin):
     def __init__(
         self,
@@ -128,7 +130,9 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
         feature_shift_decoder: str = "shuffle",
         normalize_with_test: bool = False,
         average_logits: bool = False,
-        optimize_metric: Literal["auroc", "roc", "auroc_ovo", "balanced_acc", "acc", "log_loss", None] = "roc",
+        optimize_metric: Literal[
+            "auroc", "roc", "auroc_ovo", "balanced_acc", "acc", "log_loss", None
+        ] = "roc",
         transformer_predict_kwargs: Optional[dict] = None,
         multiclass_decoder="shuffle",
         softmax_temperature: Optional[float] = -0.1,
@@ -205,7 +209,9 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
 
     def predict_proba(self, X):
         check_is_fitted(self)
-        return config.g_tabpfn_config.inference_handler.predict(X, task="classification", config=self.get_params())["probas"]
+        return config.g_tabpfn_config.inference_handler.predict(
+            X, task="classification", config=self.get_params()
+        )["probas"]
 
 
 class TabPFNRegressor(BaseEstimator, RegressorMixin):
@@ -225,7 +231,9 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
         feature_shift_decoder: str = "shuffle",
         normalize_with_test: bool = False,
         average_logits: bool = False,
-        optimize_metric: Literal["mse", "rmse", "mae", "r2", "mean", "median", "mode", "exact_match", None] = "rmse",
+        optimize_metric: Literal[
+            "mse", "rmse", "mae", "r2", "mean", "median", "mode", "exact_match", None
+        ] = "rmse",
         transformer_predict_kwargs: Optional[Dict] = None,
         softmax_temperature: Optional[float] = -0.1,
         use_poly_features=False,
@@ -324,7 +332,7 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
                 "Only server mode is supported at the moment for tabpfn_classifier.init(use_server=False)"
             )
         return self
-    
+
     def predict(self, X):
         full_prediction_dict = self.predict_full(X)
         if self.optimize_metric in ("mse", "rmse", "r2", "mean", None):
@@ -335,7 +343,9 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
             return full_prediction_dict["mode"]
         else:
             raise ValueError(f"Optimize metric {self.optimize_metric} not supported")
-    
+
     def predict_full(self, X):
         check_is_fitted(self)
-        return config.g_tabpfn_config.inference_handler.predict(X, task="regression", config=self.get_params())
+        return config.g_tabpfn_config.inference_handler.predict(
+            X, task="regression", config=self.get_params()
+        )

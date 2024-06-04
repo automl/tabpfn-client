@@ -179,7 +179,9 @@ class TestServiceClient(unittest.TestCase):
         )
 
         pred = self.client.predict(
-            train_set_uid=dummy_json["train_set_uid"], x_test=self.X_test, task="classification"
+            train_set_uid=dummy_json["train_set_uid"],
+            x_test=self.X_test,
+            task="classification",
         )
         self.assertTrue(np.array_equal(pred["probas"], dummy_result["classification"]))
 
