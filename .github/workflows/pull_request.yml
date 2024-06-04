@@ -6,10 +6,14 @@ on:
 
 jobs:
   check_python_linting:
-    name: Ruff Linting
+    name: Ruff Linting & Formatting
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: chartboost/ruff-action@v1
+        with:
+          src: "./"
+          version: 0.3.3
       - uses: chartboost/ruff-action@v1
         with:
           src: "./"
