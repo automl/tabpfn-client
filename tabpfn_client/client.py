@@ -142,8 +142,15 @@ class ServiceClient:
 
         self._validate_response(response, "predict")
 
+        # The response from the predict API always returns a dictionary with the task as the key.
+        # This is just s.t. we do not confuse the tasks, as they both use the same API endpoint.
+        # That is why below we use the task as the key to access the response.
         result = response.json()[task]
 
+        # The results contain different things for the different tasks
+        # - classification: probas_array
+        # - regression: {"mean": mean_array, "median": median_array, "mode": mode_array, ...}
+        # So, if the result is not a dictionary, we add a "probas" key to it.
         if not isinstance(result, dict):
             result = {"probas": result}
 

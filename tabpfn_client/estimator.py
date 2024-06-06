@@ -192,14 +192,14 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
             try:
                 assert (
                     self.model == "latest_tabpfn_hosted"
-                ), "Only 'latest_tabpfn_hosted' model is supported at the moment for tabpfn_classifier.init(use_server=True)"
+                ), "Only 'latest_tabpfn_hosted' model is supported at the moment for init(use_server=True)"
             except AssertionError as e:
                 print(e)
             config.g_tabpfn_config.inference_handler.fit(X, y)
             self.fitted_ = True
         else:
             raise NotImplementedError(
-                "Only server mode is supported at the moment for tabpfn_classifier.init(use_server=False)"
+                "Only server mode is supported at the moment for init(use_server=False)"
             )
         return self
 
@@ -315,21 +315,21 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
         # assert init() is called
         if not config.g_tabpfn_config.is_initialized:
             raise RuntimeError(
-                "tabpfn_client.init() must be called before using TabPFNClassifier"
+                "tabpfn_client.init() must be called before using TabPFNRegressor"
             )
 
         if config.g_tabpfn_config.use_server:
             try:
                 assert (
                     self.model == "latest_tabpfn_hosted"
-                ), "Only 'latest_tabpfn_hosted' model is supported at the moment for tabpfn_classifier.init(use_server=True)"
+                ), "Only 'latest_tabpfn_hosted' model is supported at the moment for init(use_server=True)"
             except AssertionError as e:
                 print(e)
             config.g_tabpfn_config.inference_handler.fit(X, y)
             self.fitted_ = True
         else:
             raise NotImplementedError(
-                "Only server mode is supported at the moment for tabpfn_classifier.init(use_server=False)"
+                "Only server mode is supported at the moment for init(use_server=False)"
             )
         return self
 
