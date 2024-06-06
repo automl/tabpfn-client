@@ -3,7 +3,7 @@
 # host: "localhost"
 # port: "8080"
 
-production
+# production
 protocol: "https"
 host: "tabpfn-server-wjedmz7r5a-ez.a.run.app"
 # host: tabpfn-server-preprod-wjedmz7r5a-ez.a.run.app   # preprod
