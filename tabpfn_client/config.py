@@ -60,8 +60,6 @@ def init(use_server=True):
 
     g_tabpfn_config.is_initialized = True
 
-    print(f"{g_tabpfn_config.is_initialized=}")
-
 
 def reset():
     # reset config
