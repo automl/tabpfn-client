@@ -8,6 +8,7 @@ from importlib.metadata import version, PackageNotFoundError
 import numpy as np
 from omegaconf import OmegaConf
 import json
+from typing import Literal
 
 from tabpfn_client.tabpfn_common_utils import utils as common_utils
 
@@ -99,7 +100,13 @@ class ServiceClient:
         train_set_uid = response.json()["train_set_uid"]
         return train_set_uid
 
-    def predict(self, train_set_uid: str, x_test, tabpfn_config: dict | None = None):
+    def predict(
+        self,
+        train_set_uid: str,
+        x_test,
+        task: Literal["classification", "regression"],
+        tabpfn_config: dict | None = None,
+    ) -> dict[str, np.ndarray]:
         """
         Predict the class labels for the provided data (test set).
 
@@ -118,7 +125,7 @@ class ServiceClient:
 
         x_test = common_utils.serialize_to_csv_formatted_bytes(x_test)
 
-        params = {"train_set_uid": train_set_uid}
+        params = {"train_set_uid": train_set_uid, "task": task}
 
         if tabpfn_config is not None:
             params["tabpfn_config"] = json.dumps(
@@ -135,7 +142,22 @@ class ServiceClient:
 
         self._validate_response(response, "predict")
 
-        return np.array(response.json()["y_pred_proba"])
+        # The response from the predict API always returns a dictionary with the task as the key.
+        # This is just s.t. we do not confuse the tasks, as they both use the same API endpoint.
+        # That is why below we use the task as the key to access the response.
+        result = response.json()[task]
+
+        # The results contain different things for the different tasks
+        # - classification: probas_array
+        # - regression: {"mean": mean_array, "median": median_array, "mode": mode_array, ...}
+        # So, if the result is not a dictionary, we add a "probas" key to it.
+        if not isinstance(result, dict):
+            result = {"probas": result}
+
+        for k in result:
+            result[k] = np.array(result[k])
+
+        return result
 
     @staticmethod
     def _validate_response(response, method_name, only_version_check=False):
@@ -179,35 +201,6 @@ class ServiceClient:
                 f"Fail to call {method_name} with error: {response.status_code} and reason: "
                 f"{response.reason_phrase}"
             )
-
-    def predict_proba(self, train_set_uid: str, x_test):
-        """
-        Predict the class probabilities for the provided data (test set).
-
-        Parameters
-        ----------
-        train_set_uid : str
-            The unique ID of the train set in the server.
-        x_test : array-like of shape (n_samples, n_features)
-            The test input.
-
-        Returns
-        -------
-
-        """
-        x_test = common_utils.serialize_to_csv_formatted_bytes(x_test)
-
-        response = self.httpx_client.post(
-            url=self.server_endpoints.predict_proba.path,
-            params={"train_set_uid": train_set_uid},
-            files=common_utils.to_httpx_post_file_format(
-                [("x_file", "x_test_filename", x_test)]
-            ),
-        )
-
-        self._validate_response(response, "predict_proba")
-
-        return np.array(response.json()["y_pred_proba"])
 
     def try_connection(self) -> bool:
         """

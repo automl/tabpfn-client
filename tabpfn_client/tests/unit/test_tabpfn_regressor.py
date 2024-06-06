@@ -1,27 +1,26 @@
 import unittest
 from unittest.mock import patch
 import shutil
-
 import numpy as np
-from sklearn.datasets import load_breast_cancer
+from sklearn.datasets import load_diabetes
 from sklearn.model_selection import train_test_split
 from sklearn.exceptions import NotFittedError
 
 from tabpfn_client import init, reset
 from tabpfn_client import estimator
-from tabpfn_client.estimator import TabPFNClassifier
+from tabpfn_client.estimator import TabPFNRegressor
 from tabpfn_client.service_wrapper import UserAuthenticationClient
 from tabpfn_client.client import ServiceClient
 from tabpfn_client.tests.mock_tabpfn_server import with_mock_server
 from tabpfn_client.constants import CACHE_DIR
 
 
-class TestTabPFNClassifierInit(unittest.TestCase):
+class TestTabPFNRegressorInit(unittest.TestCase):
     dummy_token = "dummy_token"
 
     def setUp(self):
         # set up dummy data
-        X, y = load_breast_cancer(return_X_y=True)
+        X, y = load_diabetes(return_X_y=True)
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
             X, y, test_size=0.33
         )
@@ -41,7 +40,7 @@ class TestTabPFNClassifierInit(unittest.TestCase):
         "tabpfn_client.prompt_agent.PromptAgent.prompt_terms_and_cond",
         return_value=True,
     )
-    def test_init_remote_classifier(
+    def test_init_remote_regressor(
         self, mock_server, mock_prompt_for_terms_and_cond, mock_prompt_and_set_token
     ):
         mock_prompt_and_set_token.side_effect = (
@@ -53,25 +52,30 @@ class TestTabPFNClassifierInit(unittest.TestCase):
         mock_server.router.post(mock_server.endpoints.upload_train_set.path).respond(
             200, json={"train_set_uid": 5}
         )
-
         mock_server.router.get(
             mock_server.endpoints.retrieve_greeting_messages.path
         ).respond(200, json={"messages": []})
 
-        mock_predict_response = [[1, 0.0], [0.9, 0.1], [0.01, 0.99]]
+        mock_predict_response = {
+            "mean": [100, 200, 300],
+            "median": [110, 210, 310],
+            "mode": [120, 220, 320],
+        }
         predict_route = mock_server.router.post(mock_server.endpoints.predict.path)
-        predict_route.respond(200, json={"classification": mock_predict_response})
+        predict_route.respond(200, json={"regression": mock_predict_response})
 
         init(use_server=True)
 
-        tabpfn = TabPFNClassifier(n_estimators=10)
+        tabpfn = TabPFNRegressor(n_estimators=10)
         self.assertRaises(NotFittedError, tabpfn.predict, self.X_test)
         tabpfn.fit(self.X_train, self.y_train)
         self.assertTrue(mock_prompt_and_set_token.called)
         self.assertTrue(mock_prompt_for_terms_and_cond.called)
 
-        y_pred = tabpfn.predict(self.X_test)
-        self.assertTrue(np.all(np.argmax(mock_predict_response, axis=1) == y_pred))
+        for metric in ["mean", "median", "mode"]:
+            tabpfn.optimize_metric = metric
+            y_pred = tabpfn.predict(self.X_test)
+            self.assertTrue(np.all(np.array(mock_predict_response[metric]) == y_pred))
 
         self.assertIn(
             "n_estimators%22%3A%2010",
@@ -123,7 +127,7 @@ class TestTabPFNClassifierInit(unittest.TestCase):
         self.assertTrue(mock_prompt_and_set_token.called)
 
     @with_mock_server()
-    def test_reset_on_remote_classifier(self, mock_server):
+    def test_reset_on_remote_regressor(self, mock_server):
         # create dummy token file
         token_file = UserAuthenticationClient.CACHED_TOKEN_FILE
         token_file.parent.mkdir(parents=True, exist_ok=True)

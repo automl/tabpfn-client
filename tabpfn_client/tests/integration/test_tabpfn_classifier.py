@@ -4,7 +4,8 @@ from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 import numpy as np
 
-from tabpfn_client import tabpfn_classifier, TabPFNClassifier
+from tabpfn_client import init, reset
+from tabpfn_client import TabPFNClassifier
 from tabpfn_client.tests.mock_tabpfn_server import with_mock_server
 from tabpfn_client.service_wrapper import UserAuthenticationClient
 from tabpfn_client.client import ServiceClient
@@ -18,7 +19,7 @@ class TestTabPFNClassifier(unittest.TestCase):
         )
 
     def tearDown(self):
-        tabpfn_classifier.reset()
+        reset()
         ServiceClient().delete_instance()
 
     @with_mock_server()
@@ -34,7 +35,7 @@ class TestTabPFNClassifier(unittest.TestCase):
         mock_server.router.get(
             mock_server.endpoints.retrieve_greeting_messages.path
         ).respond(200, json={"messages": []})
-        tabpfn_classifier.init(use_server=True)
+        init(use_server=True)
 
         tabpfn = TabPFNClassifier()
 
@@ -48,7 +49,7 @@ class TestTabPFNClassifier(unittest.TestCase):
         mock_server.router.post(mock_server.endpoints.predict.path).respond(
             200,
             json={
-                "y_pred_proba": np.random.rand(
+                "classification": np.random.rand(
                     len(self.X_test), len(np.unique(self.y_train))
                 ).tolist()
             },
