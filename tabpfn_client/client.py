@@ -202,35 +202,6 @@ class ServiceClient:
                 f"{response.reason_phrase}"
             )
 
-    def predict_proba(self, train_set_uid: str, x_test):
-        """
-        Predict the class probabilities for the provided data (test set).
-
-        Parameters
-        ----------
-        train_set_uid : str
-            The unique ID of the train set in the server.
-        x_test : array-like of shape (n_samples, n_features)
-            The test input.
-
-        Returns
-        -------
-
-        """
-        x_test = common_utils.serialize_to_csv_formatted_bytes(x_test)
-
-        response = self.httpx_client.post(
-            url=self.server_endpoints.predict_proba.path,
-            params={"train_set_uid": train_set_uid},
-            files=common_utils.to_httpx_post_file_format(
-                [("x_file", "x_test_filename", x_test)]
-            ),
-        )
-
-        self._validate_response(response, "predict_proba")
-
-        return np.array(response.json()["y_pred_proba"])
-
     def try_connection(self) -> bool:
         """
         Check if server is reachable and accepts the connection.
