@@ -55,6 +55,7 @@ class PromptAgent:
             ]
         )
         choice = cls._choice_with_retries(prompt, ["1", "2"])
+        email = ""
 
         # Registration
         if choice == "1":
@@ -161,6 +162,7 @@ class PromptAgent:
                     )
 
             print(cls.indent("Login successful!") + "\n")
+        return email
 
     @classmethod
     def prompt_terms_and_cond(cls) -> bool:

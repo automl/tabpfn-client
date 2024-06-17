@@ -8,6 +8,7 @@ from tabpfn_client.prompt_agent import PromptAgent
 
 class TabPFNConfig:
     is_initialized = None
+    user_email = None
     use_server = None
     user_auth_handler = None
     inference_handler = None
@@ -44,7 +45,7 @@ def init(use_server=True):
                 )
 
             # prompt for login / register
-            PromptAgent.prompt_and_set_token(user_auth_handler)
+            g_tabpfn_config.user_email = PromptAgent.prompt_and_set_token(user_auth_handler)
 
         # Print new greeting messages. If there are no new messages, nothing will be printed.
         PromptAgent.prompt_retrieved_greeting_messages(

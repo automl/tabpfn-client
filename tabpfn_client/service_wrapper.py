@@ -58,6 +58,9 @@ class UserAuthenticationClient(ServiceClientWrapper):
         self.set_token(access_token)
         return True, message
 
+    def get_user_email_verification_status(self, email: str) -> tuple[bool, str]:
+        return self.service_client.get_user_email_verification_status(email)
+
     def try_reuse_existing_token(self) -> bool:
         if self.service_client.access_token is None:
             if not self.CACHED_TOKEN_FILE.exists():
@@ -175,7 +178,7 @@ class InferenceClient(ServiceClientWrapper):
     def fit(self, X, y) -> None:
         if not self.service_client.is_initialized:
             raise RuntimeError(
-                "Either email is not verified or Service client is not initialized. Please Verify your email and try again!"
+                "Service client is not initialized!"
             )
 
         self.last_train_set_uid = self.service_client.upload_train_set(X, y)

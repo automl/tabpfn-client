@@ -397,6 +397,17 @@ class ServiceClient:
 
         greeting_messages = response.json()["messages"]
         return greeting_messages
+    
+    def get_user_email_verification_status(self, email: str) -> tuple[bool, str]:
+        """
+        Check if the user's email is verified.
+        """
+        response = self.httpx_client.post(
+            self.server_endpoints.get_user_verification_status_via_email.path,
+            params={"email": email},
+        )
+
+        return response.json() or False
 
     def get_data_summary(self) -> {}:
         """

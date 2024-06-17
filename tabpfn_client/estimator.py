@@ -181,6 +181,12 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
         self.add_fingerprint_features = add_fingerprint_features
         self.subsample_samples = subsample_samples
 
+        # check if user is verified
+        if config.g_tabpfn_config.user_email and not config.g_tabpfn_config.user_auth_handler.get_user_email_verification_status(config.g_tabpfn_config.user_email):
+            raise RuntimeError(
+                "Dear User, your email has not been verified. Please, check your mailbox, verify your email and try again!"
+            )
+
     def fit(self, X, y):
         # assert init() is called
         if not config.g_tabpfn_config.is_initialized:
@@ -310,6 +316,12 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
         self.cancel_nan_borders = cancel_nan_borders
         self.super_bar_dist_averaging = super_bar_dist_averaging
         self.subsample_samples = subsample_samples
+
+        # check if user is verified
+        if config.g_tabpfn_config.user_email and not config.g_tabpfn_config.user_auth_handler.get_user_email_verification_status(config.g_tabpfn_config.user_email):
+            raise RuntimeError(
+                "Dear User, your email has not been verified. Please, check your mailbox, verify your email and try again!"
+            )
 
     def fit(self, X, y):
         # assert init() is called
