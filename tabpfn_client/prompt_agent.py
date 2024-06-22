@@ -229,7 +229,12 @@ class PromptAgent:
             password = getpass.getpass(cls.indent("Please enter your password: "))
 
             user_auth_handler.set_token_by_login(email, password)
-            print(cls.indent("A verification email has been sent, provided the details are correct!") + "\n")
+            print(
+                cls.indent(
+                    "A verification email has been sent, provided the details are correct!"
+                )
+                + "\n"
+            )
         return
 
     @classmethod

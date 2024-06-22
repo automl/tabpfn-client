@@ -38,7 +38,9 @@ def init(use_server=True):
 
         if isinstance(is_valid_token_set, bool) and is_valid_token_set:
             PromptAgent.prompt_reusing_existing_token()
-        elif isinstance(is_valid_token_set, tuple) and is_valid_token_set[1] is not None:
+        elif (
+            isinstance(is_valid_token_set, tuple) and is_valid_token_set[1] is not None
+        ):
             print("Access token is valid but email is not verified...")
             PromptAgent.reverify_email(user_auth_handler)
             return init(use_server)
@@ -49,7 +51,9 @@ def init(use_server=True):
                 )
 
             # prompt for login / register
-            g_tabpfn_config.user_email = PromptAgent.prompt_and_set_token(user_auth_handler)
+            g_tabpfn_config.user_email = PromptAgent.prompt_and_set_token(
+                user_auth_handler
+            )
 
         # Print new greeting messages. If there are no new messages, nothing will be printed.
         PromptAgent.prompt_retrieved_greeting_messages(

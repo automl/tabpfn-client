@@ -35,6 +35,7 @@ class ServiceClient:
     Singleton class for handling communication with the server.
     It encapsulates all the API calls to the server.
     """
+
     class Status(Enum):
         OKAY = 0
         USER_NOT_VERIFIED = 1
@@ -401,8 +402,10 @@ class ServiceClient:
 
         greeting_messages = response.json()["messages"]
         return greeting_messages
-    
-    def get_user_email_verification_status(self, email: str, access_token_required: bool) -> tuple[bool, str]:
+
+    def get_user_email_verification_status(
+        self, email: str, access_token_required: bool
+    ) -> tuple[bool, str]:
         """
         Check if the user's email is verified.
         """

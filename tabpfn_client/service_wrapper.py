@@ -47,7 +47,9 @@ class UserAuthenticationClient(ServiceClientWrapper):
         is_created, message = self.service_client.register(
             email, password, password_confirm, validation_link, additional_info
         )
-        is_verified, access_token = self.get_user_email_verification_status(email, access_token_required=True)
+        is_verified, access_token = self.get_user_email_verification_status(
+            email, access_token_required=True
+        )
         if not is_verified:
             self.set_token(access_token)
         return is_created, message
@@ -61,8 +63,12 @@ class UserAuthenticationClient(ServiceClientWrapper):
         self.set_token(access_token)
         return True, message
 
-    def get_user_email_verification_status(self, email: str, access_token_required: bool = False) -> tuple[bool, str]:
-        return self.service_client.get_user_email_verification_status(email, access_token_required)
+    def get_user_email_verification_status(
+        self, email: str, access_token_required: bool = False
+    ) -> tuple[bool, str]:
+        return self.service_client.get_user_email_verification_status(
+            email, access_token_required
+        )
 
     def try_reuse_existing_token(self) -> bool or (bool, str):
         if self.service_client.access_token is None:
@@ -78,7 +84,11 @@ class UserAuthenticationClient(ServiceClientWrapper):
         if not is_valid:
             self._reset_token()
             return False
-        elif isinstance(is_valid, tuple) and not is_valid[0] and is_valid[1] == self.service_client.Status.USER_NOT_VERIFIED:
+        elif (
+            isinstance(is_valid, tuple)
+            and not is_valid[0]
+            and is_valid[1] == self.service_client.Status.USER_NOT_VERIFIED
+        ):
             return False, access_token
 
         logger.debug(f"Reusing existing access token? {is_valid}")
@@ -182,9 +192,7 @@ class InferenceClient(ServiceClientWrapper):
 
     def fit(self, X, y) -> None:
         if not self.service_client.is_initialized:
-            raise RuntimeError(
-                "Service client is not initialized!"
-            )
+            raise RuntimeError("Service client is not initialized!")
 
         self.last_train_set_uid = self.service_client.upload_train_set(X, y)
 

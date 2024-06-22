@@ -183,7 +183,12 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
         self.subsample_samples = subsample_samples
 
         # check if user is verified
-        if config.g_tabpfn_config.user_email and not config.g_tabpfn_config.user_auth_handler.get_user_email_verification_status(config.g_tabpfn_config.user_email)[0]:
+        if (
+            config.g_tabpfn_config.user_email
+            and not config.g_tabpfn_config.user_auth_handler.get_user_email_verification_status(
+                config.g_tabpfn_config.user_email
+            )[0]
+        ):
             raise RuntimeError(
                 "Dear User, your email has not been verified. Please, check your mailbox, verify your email and try again!"
             )
@@ -317,7 +322,12 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
         self.subsample_samples = subsample_samples
 
         # check if user is verified
-        if config.g_tabpfn_config.user_email and not config.g_tabpfn_config.user_auth_handler.get_user_email_verification_status(config.g_tabpfn_config.user_email)[0]:
+        if (
+            config.g_tabpfn_config.user_email
+            and not config.g_tabpfn_config.user_auth_handler.get_user_email_verification_status(
+                config.g_tabpfn_config.user_email
+            )[0]
+        ):
             raise RuntimeError(
                 "Dear User, your email has not been verified. Please, check your mailbox, verify your email and try again!"
             )
