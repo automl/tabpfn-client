@@ -402,7 +402,6 @@ class ServiceClient:
         greeting_messages = response.json()["messages"]
         return greeting_messages
     
-    # bool optional parameter is accesstoken required
     def get_user_email_verification_status(self, email: str, access_token_required: bool) -> tuple[bool, str]:
         """
         Check if the user's email is verified.
