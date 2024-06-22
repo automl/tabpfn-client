@@ -6,6 +6,7 @@ import httpx
 import logging
 from importlib.metadata import version, PackageNotFoundError
 import numpy as np
+from enum import Enum
 from omegaconf import OmegaConf
 import json
 from typing import Literal
@@ -34,6 +35,9 @@ class ServiceClient:
     Singleton class for handling communication with the server.
     It encapsulates all the API calls to the server.
     """
+    class Status(Enum):
+        OKAY = 0
+        USER_NOT_VERIFIED = 1
 
     def __init__(self):
         self.server_config = SERVER_CONFIG
@@ -231,10 +235,10 @@ class ServiceClient:
         )
 
         self._validate_response(response, "try_authenticate", only_version_check=True)
-
         if response.status_code == 200:
             is_authenticated = True
-
+        elif response.status_code == 403:
+            is_authenticated = (False, self.Status.USER_NOT_VERIFIED)
         return is_authenticated
 
     def validate_email(self, email: str) -> tuple[bool, str]:
@@ -398,16 +402,16 @@ class ServiceClient:
         greeting_messages = response.json()["messages"]
         return greeting_messages
     
-    def get_user_email_verification_status(self, email: str) -> tuple[bool, str]:
+    # bool optional parameter is accesstoken required
+    def get_user_email_verification_status(self, email: str, access_token_required: bool) -> tuple[bool, str]:
         """
         Check if the user's email is verified.
         """
         response = self.httpx_client.post(
             self.server_endpoints.get_user_verification_status_via_email.path,
-            params={"email": email},
+            params={"email": email, "access_token_required": access_token_required},
         )
-
-        return response.json() or False
+        return response.json()
 
     def get_data_summary(self) -> {}:
         """

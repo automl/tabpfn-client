@@ -3,6 +3,7 @@ import logging
 from dataclasses import dataclass, asdict
 
 import numpy as np
+from tabpfn_client import init
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
 from sklearn.utils.validation import check_is_fitted
 
@@ -182,7 +183,7 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
         self.subsample_samples = subsample_samples
 
         # check if user is verified
-        if config.g_tabpfn_config.user_email and not config.g_tabpfn_config.user_auth_handler.get_user_email_verification_status(config.g_tabpfn_config.user_email):
+        if config.g_tabpfn_config.user_email and not config.g_tabpfn_config.user_auth_handler.get_user_email_verification_status(config.g_tabpfn_config.user_email)[0]:
             raise RuntimeError(
                 "Dear User, your email has not been verified. Please, check your mailbox, verify your email and try again!"
             )
@@ -190,9 +191,7 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
     def fit(self, X, y):
         # assert init() is called
         if not config.g_tabpfn_config.is_initialized:
-            raise RuntimeError(
-                "tabpfn_client.init() must be called before using TabPFNClassifier"
-            )
+            init()
 
         if config.g_tabpfn_config.use_server:
             try:
@@ -318,7 +317,7 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
         self.subsample_samples = subsample_samples
 
         # check if user is verified
-        if config.g_tabpfn_config.user_email and not config.g_tabpfn_config.user_auth_handler.get_user_email_verification_status(config.g_tabpfn_config.user_email):
+        if config.g_tabpfn_config.user_email and not config.g_tabpfn_config.user_auth_handler.get_user_email_verification_status(config.g_tabpfn_config.user_email)[0]:
             raise RuntimeError(
                 "Dear User, your email has not been verified. Please, check your mailbox, verify your email and try again!"
             )
@@ -326,9 +325,7 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
     def fit(self, X, y):
         # assert init() is called
         if not config.g_tabpfn_config.is_initialized:
-            raise RuntimeError(
-                "tabpfn_client.init() must be called before using TabPFNRegressor"
-            )
+            init()
 
         if config.g_tabpfn_config.use_server:
             try:

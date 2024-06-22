@@ -39,6 +39,11 @@ endpoints:
     methods: [ "POST" ]
     description: "Send reset password email"
 
+  get_user_verification_status_via_email:
+    path: "/auth/get_user_verification_status_via_email/"
+    methods: ["POST"]
+    description: "Get user verification status via email"
+
   retrieve_greeting_messages:
     path: "/retrieve_greeting_messages/"
     methods: [ "GET" ]

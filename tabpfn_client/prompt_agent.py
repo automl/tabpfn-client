@@ -210,6 +210,29 @@ class PromptAgent:
         print(cls.indent(prompt))
 
     @classmethod
+    def reverify_email(cls, user_auth_handler: "UserAuthenticationClient"):
+        prompt = "\n".join(
+            [
+                "Please check your inbox for the verification email.",
+                "Note: The email might be in your spam folder or could have expired.",
+            ]
+        )
+        print(cls.indent(prompt))
+        retry_verification = "\n".join(
+            [
+                "Do you want to resend email verification link? (y/n): ",
+            ]
+        )
+        choice = cls._choice_with_retries(retry_verification, ["y", "n"])
+        if choice == "y":
+            email = input(cls.indent("Please enter your email: "))
+            password = getpass.getpass(cls.indent("Please enter your password: "))
+
+            user_auth_handler.set_token_by_login(email, password)
+            print(cls.indent("A verification email has been sent, provided the details are correct!") + "\n")
+        return
+
+    @classmethod
     def prompt_retrieved_greeting_messages(cls, greeting_messages: list[str]):
         for message in greeting_messages:
             print(cls.indent(message))
