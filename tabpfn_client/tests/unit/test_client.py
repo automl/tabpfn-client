@@ -58,7 +58,7 @@ class TestServiceClient(unittest.TestCase):
     @with_mock_server()
     def test_register_user(self, mock_server):
         mock_server.router.post(mock_server.endpoints.register.path).respond(
-            200, json={"message": "dummy_message"}
+            200, json={"message": "dummy_message", "token": "DUMMY_TOKEN"}
         )
         self.assertTrue(
             self.client.register(
@@ -78,7 +78,7 @@ class TestServiceClient(unittest.TestCase):
     @with_mock_server()
     def test_register_user_with_invalid_email(self, mock_server):
         mock_server.router.post(mock_server.endpoints.register.path).respond(
-            401, json={"detail": "dummy_message"}
+            401, json={"detail": "dummy_message", "token": None}
         )
         self.assertFalse(
             self.client.register(
@@ -98,7 +98,7 @@ class TestServiceClient(unittest.TestCase):
     @with_mock_server()
     def test_register_user_with_invalid_validation_link(self, mock_server):
         mock_server.router.post(mock_server.endpoints.register.path).respond(
-            401, json={"detail": "dummy_message"}
+            401, json={"detail": "dummy_message", "token": None}
         )
         self.assertFalse(
             self.client.register(
@@ -118,7 +118,7 @@ class TestServiceClient(unittest.TestCase):
     @with_mock_server()
     def test_register_user_with_limit_reached(self, mock_server):
         mock_server.router.post(mock_server.endpoints.register.path).respond(
-            401, json={"detail": "dummy_message"}
+            401, json={"detail": "dummy_message", "token": "DUMMY_TOKEN"}
         )
         self.assertFalse(
             self.client.register(

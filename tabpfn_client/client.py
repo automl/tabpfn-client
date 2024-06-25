@@ -6,6 +6,7 @@ import httpx
 import logging
 from importlib.metadata import version, PackageNotFoundError
 import numpy as np
+from enum import Enum
 from omegaconf import OmegaConf
 import json
 from typing import Literal
@@ -34,6 +35,10 @@ class ServiceClient:
     Singleton class for handling communication with the server.
     It encapsulates all the API calls to the server.
     """
+
+    class Status(Enum):
+        OKAY = 0
+        USER_NOT_VERIFIED = 1
 
     def __init__(self):
         self.server_config = SERVER_CONFIG
@@ -231,10 +236,10 @@ class ServiceClient:
         )
 
         self._validate_response(response, "try_authenticate", only_version_check=True)
-
         if response.status_code == 200:
             is_authenticated = True
-
+        elif response.status_code == 403:
+            is_authenticated = (False, self.Status.USER_NOT_VERIFIED)
         return is_authenticated
 
     def validate_email(self, email: str) -> tuple[bool, str]:
@@ -312,7 +317,8 @@ class ServiceClient:
             is_created = False
             message = response.json()["detail"]
 
-        return is_created, message
+        access_token = response.json()["token"] if is_created else None
+        return is_created, message, access_token
 
     def login(self, email: str, password: str) -> tuple[str, str]:
         """
