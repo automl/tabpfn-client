@@ -44,13 +44,10 @@ class UserAuthenticationClient(ServiceClientWrapper):
         validation_link: str,
         additional_info: dict,
     ) -> tuple[bool, str]:
-        is_created, message = self.service_client.register(
+        is_created, message, access_token = self.service_client.register(
             email, password, password_confirm, validation_link, additional_info
         )
-        is_verified, access_token = self.get_user_email_verification_status(
-            email, access_token_required=True
-        )
-        if not is_verified:
+        if access_token is not None:
             self.set_token(access_token)
         return is_created, message
 
@@ -192,7 +189,10 @@ class InferenceClient(ServiceClientWrapper):
 
     def fit(self, X, y) -> None:
         if not self.service_client.is_initialized:
-            raise RuntimeError("Service client is not initialized!")
+            raise RuntimeError(
+                "Dear TabPFN User, please initialize the client first by verifying your E-mail address sent to your registered E-mail account."
+                "Please Note: The email verification token expires in 30 minutes."
+            )
 
         self.last_train_set_uid = self.service_client.upload_train_set(X, y)
 

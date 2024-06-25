@@ -162,7 +162,6 @@ class PromptAgent:
                     )
 
             print(cls.indent("Login successful!") + "\n")
-        return email
 
     @classmethod
     def prompt_terms_and_cond(cls) -> bool:

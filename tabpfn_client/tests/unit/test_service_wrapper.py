@@ -83,9 +83,6 @@ class TestUserAuthClient(unittest.TestCase):
         mock_server.router.post(mock_server.endpoints.register.path).respond(
             401, json={"detail": "Password mismatch"}
         )
-        mock_server.router.post(
-            mock_server.endpoints.get_user_verification_status_via_email.path
-        ).respond(200, json={"is_verified": False, "access_token": "dummy_token"})
         self.assertEqual(
             (False, "Password mismatch"),
             UserAuthenticationClient(ServiceClient()).set_token_by_registration(

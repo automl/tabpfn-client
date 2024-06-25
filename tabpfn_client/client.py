@@ -317,7 +317,8 @@ class ServiceClient:
             is_created = False
             message = response.json()["detail"]
 
-        return is_created, message
+        access_token = response.json()["token"] if is_created else None
+        return is_created, message, access_token
 
     def login(self, email: str, password: str) -> tuple[str, str]:
         """
@@ -402,18 +403,6 @@ class ServiceClient:
 
         greeting_messages = response.json()["messages"]
         return greeting_messages
-
-    def get_user_email_verification_status(
-        self, email: str, access_token_required: bool
-    ) -> tuple[bool, str]:
-        """
-        Check if the user's email is verified.
-        """
-        response = self.httpx_client.post(
-            self.server_endpoints.get_user_verification_status_via_email.path,
-            params={"email": email, "access_token_required": access_token_required},
-        )
-        return response.json()
 
     def get_data_summary(self) -> {}:
         """
