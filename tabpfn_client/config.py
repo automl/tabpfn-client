@@ -40,8 +40,8 @@ def init(use_server=True):
         elif (
             isinstance(is_valid_token_set, tuple) and is_valid_token_set[1] is not None
         ):
-            print("Access token is valid but email is not verified...")
-            PromptAgent.reverify_email(user_auth_handler)
+            print("Your email is not verified. Please verify your email to continue...")
+            PromptAgent.reverify_email(is_valid_token_set[1], user_auth_handler)
         else:
             if not PromptAgent.prompt_terms_and_cond():
                 raise RuntimeError(

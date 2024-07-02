@@ -60,14 +60,7 @@ class UserAuthenticationClient(ServiceClientWrapper):
         self.set_token(access_token)
         return True, message
 
-    def get_user_email_verification_status(
-        self, email: str, access_token_required: bool = False
-    ) -> tuple[bool, str]:
-        return self.service_client.get_user_email_verification_status(
-            email, access_token_required
-        )
-
-    def try_reuse_existing_token(self) -> bool or (bool, str):
+    def try_reuse_existing_token(self) -> bool | tuple[bool, str]:
         if self.service_client.access_token is None:
             if not self.CACHED_TOKEN_FILE.exists():
                 return False
@@ -77,15 +70,11 @@ class UserAuthenticationClient(ServiceClientWrapper):
         else:
             access_token = self.service_client.access_token
 
-        is_valid = self.service_client.try_authenticate(access_token)
-        if not is_valid:
+        is_valid = self.service_client.is_auth_token_outdated(access_token)
+        if is_valid is False:
             self._reset_token()
             return False
-        elif (
-            isinstance(is_valid, tuple)
-            and not is_valid[0]
-            and is_valid[1] == self.service_client.Status.USER_NOT_VERIFIED
-        ):
+        elif is_valid is None:
             return False, access_token
 
         logger.debug(f"Reusing existing access token? {is_valid}")
@@ -108,6 +97,10 @@ class UserAuthenticationClient(ServiceClientWrapper):
 
     def send_reset_password_email(self, email: str) -> tuple[bool, str]:
         sent, message = self.service_client.send_reset_password_email(email)
+        return sent, message
+
+    def send_verification_email(self, access_token: str) -> tuple[bool, str]:
+        sent, message = self.service_client.send_verification_email(access_token)
         return sent, message
 
 

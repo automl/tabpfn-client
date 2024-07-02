@@ -36,10 +36,6 @@ class ServiceClient:
     It encapsulates all the API calls to the server.
     """
 
-    class Status(Enum):
-        OKAY = 0
-        USER_NOT_VERIFIED = 1
-
     def __init__(self):
         self.server_config = SERVER_CONFIG
         self.server_endpoints = SERVER_CONFIG["endpoints"]
@@ -225,7 +221,7 @@ class ServiceClient:
 
         return found_valid_connection
 
-    def try_authenticate(self, access_token) -> bool:
+    def is_auth_token_outdated(self, access_token) -> bool | None:
         """
         Check if the provided access token is valid and return True if successful.
         """
@@ -235,11 +231,11 @@ class ServiceClient:
             headers={"Authorization": f"Bearer {access_token}"},
         )
 
-        self._validate_response(response, "try_authenticate", only_version_check=True)
+        self._validate_response(response, "is_auth_token_outdated", only_version_check=True)
         if response.status_code == 200:
             is_authenticated = True
         elif response.status_code == 403:
-            is_authenticated = (False, self.Status.USER_NOT_VERIFIED)
+            is_authenticated = None
         return is_authenticated
 
     def validate_email(self, email: str) -> tuple[bool, str]:
@@ -378,6 +374,22 @@ class ServiceClient:
         response = self.httpx_client.post(
             self.server_endpoints.send_reset_password_email.path,
             params={"email": email},
+        )
+        if response.status_code == 200:
+            sent = True
+            message = response.json()["message"]
+        else:
+            sent = False
+            message = response.json()["detail"]
+        return sent, message
+
+    def send_verification_email(self, access_token: str) -> tuple[bool, str]:
+        """
+        Let the server send an email for verifying the email.
+        """
+        response = self.httpx_client.post(
+            self.server_endpoints.send_verification_email.path,
+            headers={"Authorization": f"Bearer {access_token}"},
         )
         if response.status_code == 200:
             sent = True
