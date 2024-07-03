@@ -231,7 +231,9 @@ class ServiceClient:
             headers={"Authorization": f"Bearer {access_token}"},
         )
 
-        self._validate_response(response, "is_auth_token_outdated", only_version_check=True)
+        self._validate_response(
+            response, "is_auth_token_outdated", only_version_check=True
+        )
         if response.status_code == 200:
             is_authenticated = True
         elif response.status_code == 403:

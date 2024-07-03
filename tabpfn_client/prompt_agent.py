@@ -209,7 +209,9 @@ class PromptAgent:
         print(cls.indent(prompt))
 
     @classmethod
-    def reverify_email(cls, access_token, user_auth_handler: "UserAuthenticationClient"):
+    def reverify_email(
+        cls, access_token, user_auth_handler: "UserAuthenticationClient"
+    ):
         prompt = "\n".join(
             [
                 "Please check your inbox for the verification email.",
