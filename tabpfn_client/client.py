@@ -6,7 +6,6 @@ import httpx
 import logging
 from importlib.metadata import version, PackageNotFoundError
 import numpy as np
-from enum import Enum
 from omegaconf import OmegaConf
 import json
 from typing import Literal
