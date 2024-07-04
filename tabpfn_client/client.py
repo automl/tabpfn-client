@@ -10,6 +10,7 @@ from omegaconf import OmegaConf
 import json
 from typing import Literal
 
+from sklearn.utils import check_consistent_length, check_array
 from tabpfn_client.tabpfn_common_utils import utils as common_utils
 
 
@@ -67,6 +68,34 @@ class ServiceClient:
     @property
     def is_initialized(self):
         return self.access_token is not None and self.access_token != ""
+    
+    def check_training_data(self, X, y):
+        """
+        Check the integrity of the training data.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            The training input samples.
+        y : array-like of shape (n_samples,) or (n_samples, n_outputs)
+            The target values.
+
+        Returns
+        -------
+        is_valid : bool
+            True if the data is valid.
+        message : str
+            The message returned from the server.
+        """
+
+        X = check_array(
+            X, accept_sparse="csr", dtype=np.float32, force_all_finite=False
+        )
+        y = check_array(y, ensure_2d=False, dtype=np.float32, force_all_finite=False)
+
+        check_consistent_length(X, y)
+
+        return X, y
 
     def upload_train_set(self, X, y) -> str:
         """
@@ -85,6 +114,10 @@ class ServiceClient:
             The unique ID of the train set in the server.
 
         """
+
+        #checking the integrity of the data
+        X, y = self.check_training_data(X, y)
+
         X = common_utils.serialize_to_csv_formatted_bytes(X)
         y = common_utils.serialize_to_csv_formatted_bytes(y)
 
