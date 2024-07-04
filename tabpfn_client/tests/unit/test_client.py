@@ -221,3 +221,12 @@ class TestServiceClient(unittest.TestCase):
         response.json.return_value = {"detail": "Some other error"}
         r = self.client._validate_response(response, "test", only_version_check=True)
         self.assertIsNone(r)
+
+    def test_input_data_check(self):
+        X, y = load_breast_cancer(return_X_y=True)
+
+        # Test for valid input
+        ServiceClient.check_training_data(X[:99], y[:99])
+        with self.assertRaises(ValueError) as cm:
+            ServiceClient.check_training_data(X[:99], y[:98])
+        self.assertEqual(str(cm.exception), "Found input variables with inconsistent numbers of samples: [99, 98]")

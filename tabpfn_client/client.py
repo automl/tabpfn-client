@@ -69,7 +69,8 @@ class ServiceClient:
     def is_initialized(self):
         return self.access_token is not None and self.access_token != ""
     
-    def check_training_data(self, X, y):
+    @staticmethod
+    def check_training_data(X, y):
         """
         Check the integrity of the training data.
 
@@ -94,7 +95,6 @@ class ServiceClient:
         y = check_array(y, ensure_2d=False, dtype=np.float32, force_all_finite=False)
 
         check_consistent_length(X, y)
-
         return X, y
 
     def upload_train_set(self, X, y) -> str:
