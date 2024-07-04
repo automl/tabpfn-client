@@ -35,8 +35,13 @@ def init(use_server=True):
 
         is_valid_token_set = user_auth_handler.try_reuse_existing_token()
 
-        if is_valid_token_set:
+        if isinstance(is_valid_token_set, bool) and is_valid_token_set:
             PromptAgent.prompt_reusing_existing_token()
+        elif (
+            isinstance(is_valid_token_set, tuple) and is_valid_token_set[1] is not None
+        ):
+            print("Your email is not verified. Please verify your email to continue...")
+            PromptAgent.reverify_email(is_valid_token_set[1], user_auth_handler)
         else:
             if not PromptAgent.prompt_terms_and_cond():
                 raise RuntimeError(

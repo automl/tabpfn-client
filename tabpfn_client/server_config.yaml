@@ -34,6 +34,11 @@ endpoints:
     methods: [ "POST" ]
     description: "User login"
 
+  send_verification_email:
+    path: "/auth/send_verification_email/"
+    methods: [ "POST" ]
+    description: "Send verifiaction email or for reverification"
+
   send_reset_password_email:
     path: "/auth/send_reset_password_email/"
     methods: [ "POST" ]
@@ -43,11 +48,6 @@ endpoints:
     path: "/retrieve_greeting_messages/"
     methods: [ "GET" ]
     description: "Retrieve new greeting messages"
-
-  add_user_information:
-    path: "/add_user_information/"
-    methods: [ "POST" ]
-    description: "Add additional user information to database"
 
   protected_root:
     path: "/protected/"

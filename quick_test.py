@@ -3,7 +3,7 @@ import logging
 from sklearn.datasets import load_breast_cancer, load_diabetes
 from sklearn.model_selection import train_test_split
 
-from tabpfn_client import UserDataClient, init
+from tabpfn_client import UserDataClient
 from tabpfn_client.estimator import TabPFNClassifier, TabPFNRegressor
 
 logging.basicConfig(level=logging.DEBUG)
@@ -21,7 +21,6 @@ if __name__ == "__main__":
         X, y, test_size=0.33, random_state=42
     )
 
-    init()
     tabpfn = TabPFNClassifier(model="latest_tabpfn_hosted", n_estimators=3)
     # print("checking estimator", check_estimator(tabpfn))
     tabpfn.fit(X_train[:99], y_train[:99])
