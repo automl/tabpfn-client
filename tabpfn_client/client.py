@@ -213,10 +213,10 @@ class ServiceClient:
             except Exception as e:
                 if isinstance(e, (ValueError, RuntimeError)):
                     raise e
-                raise RuntimeError(
-                    f"Fail to call {method_name} with error: {response.status_code}, reason: "
-                    f"{response.reason_phrase} and text: {response.text}"
-                )
+            raise RuntimeError(
+                f"Fail to call {method_name} with error: {response.status_code}, reason: "
+                f"{response.reason_phrase} and text: {response.text}"
+            )
 
     def try_connection(self) -> bool:
         """
