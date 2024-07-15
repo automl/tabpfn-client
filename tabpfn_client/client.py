@@ -170,11 +170,11 @@ class ServiceClient:
         try:
             load = response.json()
         except json.JSONDecodeError as e:
-            logging.error(f"Failed to parse JSON from response in {method_name}: {e}")
+            logging.info(f"Failed to parse JSON from response in {method_name}: {e}")
 
         # Check if the server requires a newer client version.
         if response.status_code == 426:
-            logger.error(
+            logger.info(
                 f"Fail to call {method_name}, response status: {response.status_code}"
             )
             raise RuntimeError(load.get("detail"))
@@ -194,9 +194,10 @@ class ServiceClient:
                 )
                 > 1
             ):
-                raise RuntimeError(
-                    f"Fail to call {method_name} with error: {reponse_split_up[1]}"
-                )
+                relevant_reponse_test = reponse_split_up[1].split("debug_error_string")[
+                    0
+                ]
+                raise RuntimeError(relevant_reponse_test)
             raise RuntimeError(
                 f"Fail to call {method_name} with error: {response.status_code} and reason: "
                 f"{response.reason_phrase}"

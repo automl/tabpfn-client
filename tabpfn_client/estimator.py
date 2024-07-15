@@ -182,9 +182,22 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
         self.add_fingerprint_features = add_fingerprint_features
         self.subsample_samples = subsample_samples
 
+    def _validate_targets_and_classes(self, y) -> np.ndarray:
+        from sklearn.utils import column_or_1d
+        from sklearn.utils.multiclass import check_classification_targets
+
+        y_ = column_or_1d(y, warn=True)
+        check_classification_targets(y)
+
+        # Get classes and encode before type conversion to guarantee correct class labels.
+        not_nan_mask = ~np.isnan(y)
+        self.classes_ = np.unique(y_[not_nan_mask])
+
     def fit(self, X, y):
         # assert init() is called
         init()
+
+        self._validate_targets_and_classes(y)
 
         if config.g_tabpfn_config.use_server:
             try:
@@ -203,7 +216,9 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
 
     def predict(self, X):
         probas = self.predict_proba(X)
-        return np.argmax(probas, axis=1)
+        y = np.argmax(probas, axis=1)
+        y = self.classes_.take(np.asarray(y, dtype=int))
+        return y
 
     def predict_proba(self, X):
         check_is_fitted(self)
