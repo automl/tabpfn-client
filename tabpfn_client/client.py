@@ -160,7 +160,9 @@ class ServiceClient:
         return result
 
     @staticmethod
-    def _validate_response(response, method_name, only_version_check=False):
+    def _validate_response(
+        response: httpx.Response, method_name, only_version_check=False
+    ):
         # If status code is 200, no errors occurred on the server side.
         if response.status_code == 200:
             return
@@ -170,11 +172,11 @@ class ServiceClient:
         try:
             load = response.json()
         except json.JSONDecodeError as e:
-            logging.error(f"Failed to parse JSON from response in {method_name}: {e}")
+            logging.info(f"Failed to parse JSON from response in {method_name}: {e}")
 
         # Check if the server requires a newer client version.
         if response.status_code == 426:
-            logger.error(
+            logger.info(
                 f"Fail to call {method_name}, response status: {response.status_code}"
             )
             raise RuntimeError(load.get("detail"))
@@ -186,20 +188,34 @@ class ServiceClient:
             logger.error(
                 f"Fail to call {method_name}, response status: {response.status_code}"
             )
-            if (
-                len(
-                    reponse_split_up := response.text.split(
-                        "The following exception has occurred:"
+            try:
+                if (
+                    len(
+                        reponse_split_up := response.text.split(
+                            "The following exception has occurred:"
+                        )
                     )
-                )
-                > 1
-            ):
-                raise RuntimeError(
-                    f"Fail to call {method_name} with error: {reponse_split_up[1]}"
-                )
+                    > 1
+                ):
+                    relevant_reponse_text = reponse_split_up[1].split(
+                        "debug_error_string"
+                    )[0]
+                    if "ValueError" in relevant_reponse_text:
+                        # Extract the ValueError message
+                        value_error_msg = relevant_reponse_text.split(
+                            "ValueError. Arguments: ("
+                        )[1].split(",)")[0]
+                        # Remove extra quotes and spaces
+                        value_error_msg = value_error_msg.strip("'")
+                        # Raise the ValueError with the extracted message
+                        raise ValueError(value_error_msg)
+                    raise RuntimeError(relevant_reponse_text)
+            except Exception as e:
+                if isinstance(e, (ValueError, RuntimeError)):
+                    raise e
             raise RuntimeError(
-                f"Fail to call {method_name} with error: {response.status_code} and reason: "
-                f"{response.reason_phrase}"
+                f"Fail to call {method_name} with error: {response.status_code}, reason: "
+                f"{response.reason_phrase} and text: {response.text}"
             )
 
     def try_connection(self) -> bool:
