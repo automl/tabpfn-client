@@ -95,6 +95,10 @@ class ServiceClient:
         y = check_array(y, ensure_2d=False, dtype=np.float32, force_all_finite=False)
 
         check_consistent_length(X, y)
+        # length and feature assertions
+        assert X.shape[0] <= 10000, "The number of samples should not be more than 10000."
+        assert X.shape[1] <= 500, "The number of features should not be more than 500."
+
         return X, y
 
     def upload_train_set(self, X, y) -> str:

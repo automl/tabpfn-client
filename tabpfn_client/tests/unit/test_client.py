@@ -230,3 +230,15 @@ class TestServiceClient(unittest.TestCase):
         with self.assertRaises(ValueError) as cm:
             ServiceClient.check_training_data(X[:99], y[:98])
         self.assertEqual(str(cm.exception), "Found input variables with inconsistent numbers of samples: [99, 98]")
+
+        # Test for oversized data
+        X = np.random.randn(10001,501)
+        y = np.random.randint(0,2,10001)
+
+        with self.assertRaises(AssertionError) as cm:
+            ServiceClient.check_training_data(X[:10000], y[:10000])
+        self.assertEqual(str(cm.exception), "The number of samples should not be more than 10000.")
+
+        with self.assertRaises(AssertionError) as cm:
+            ServiceClient.check_training_data(X[:, :500], y)
+        self.assertEqual(str(cm.exception), "The number of features should not be more than 500.")
