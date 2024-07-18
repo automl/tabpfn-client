@@ -237,8 +237,8 @@ class TestServiceClient(unittest.TestCase):
 
         with self.assertRaises(AssertionError) as cm:
             ServiceClient.check_training_data(X[:10000], y[:10000])
-        self.assertEqual(str(cm.exception), "The number of samples should not be more than 10000.")
+        self.assertEqual(str(cm.exception), "The number of features should not be more than 500.")
 
         with self.assertRaises(AssertionError) as cm:
             ServiceClient.check_training_data(X[:, :500], y)
-        self.assertEqual(str(cm.exception), "The number of features should not be more than 500.")
+        self.assertEqual(str(cm.exception), "The number of samples should not be more than 10000.")
