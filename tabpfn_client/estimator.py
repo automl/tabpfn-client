@@ -181,6 +181,7 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
         self.remove_outliers = remove_outliers
         self.add_fingerprint_features = add_fingerprint_features
         self.subsample_samples = subsample_samples
+        self.last_train_set_uid = None
 
     def _validate_targets_and_classes(self, y) -> np.ndarray:
         from sklearn.utils import column_or_1d
@@ -206,7 +207,7 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
                 ), "Only 'latest_tabpfn_hosted' model is supported at the moment for init(use_server=True)"
             except AssertionError as e:
                 print(e)
-            config.g_tabpfn_config.inference_handler.fit(X, y)
+            self.last_train_set_uid = config.g_tabpfn_config.inference_handler.fit(X, y)
             self.fitted_ = True
         else:
             raise NotImplementedError(
@@ -223,7 +224,10 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
     def predict_proba(self, X):
         check_is_fitted(self)
         return config.g_tabpfn_config.inference_handler.predict(
-            X, task="classification", config=self.get_params()
+            X,
+            task="classification",
+            train_set_uid=self.last_train_set_uid,
+            config=self.get_params(),
         )["probas"]
 
 
@@ -323,6 +327,7 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
         self.cancel_nan_borders = cancel_nan_borders
         self.super_bar_dist_averaging = super_bar_dist_averaging
         self.subsample_samples = subsample_samples
+        self.last_train_set_uid = None
 
     def fit(self, X, y):
         # assert init() is called
@@ -335,7 +340,7 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
                 ), "Only 'latest_tabpfn_hosted' model is supported at the moment for init(use_server=True)"
             except AssertionError as e:
                 print(e)
-            config.g_tabpfn_config.inference_handler.fit(X, y)
+            self.last_train_set_uid = config.g_tabpfn_config.inference_handler.fit(X, y)
             self.fitted_ = True
         else:
             raise NotImplementedError(
@@ -357,5 +362,8 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
     def predict_full(self, X):
         check_is_fitted(self)
         return config.g_tabpfn_config.inference_handler.predict(
-            X, task="regression", config=self.get_params()
+            X,
+            task="regression",
+            train_set_uid=self.last_train_set_uid,
+            config=self.get_params(),
         )
