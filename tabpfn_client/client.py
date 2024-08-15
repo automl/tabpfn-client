@@ -313,7 +313,7 @@ class ServiceClient:
 
         response = self.httpx_client.post(
             self.server_endpoints.register.path,
-            params={
+            json={
                 "email": email,
                 "password": password,
                 "password_confirm": password_confirm,
