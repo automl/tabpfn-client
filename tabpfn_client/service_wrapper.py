@@ -178,20 +178,25 @@ class InferenceClient(ServiceClientWrapper):
 
     def __init__(self, service_client=ServiceClient()):
         super().__init__(service_client)
-        self.last_train_set_uid = None
 
-    def fit(self, X, y) -> None:
+    def fit(self, X, y) -> str:
         if not self.service_client.is_initialized:
             raise RuntimeError(
                 "Dear TabPFN User, please initialize the client first by verifying your E-mail address sent to your registered E-mail account."
                 "Please Note: The email verification token expires in 30 minutes."
             )
 
-        self.last_train_set_uid = self.service_client.upload_train_set(X, y)
+        return self.service_client.upload_train_set(X, y)
 
-    def predict(self, X, task: Literal["classification", "regression"], config=None):
+    def predict(
+        self,
+        X,
+        task: Literal["classification", "regression"],
+        train_set_uid: str,
+        config=None,
+    ):
         return self.service_client.predict(
-            train_set_uid=self.last_train_set_uid,
+            train_set_uid=train_set_uid,
             x_test=X,
             tabpfn_config=config,
             task=task,
