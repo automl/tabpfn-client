@@ -69,6 +69,11 @@ endpoints:
     methods: [ "POST" ]
     description: "Predict"
 
+  caafe_feat_eng:
+    path: "/caafe/"
+    methods: [ "POST" ]
+    description: "Create new features using CAAFE"
+
   predict_proba:
     path: "/predict_proba/"
     methods: [ "POST" ]

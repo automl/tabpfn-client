@@ -12,14 +12,21 @@ class TabPFNConfig:
     user_auth_handler = None
     inference_handler = None
 
+class CAAFEConfig:
+    is_initialized = None
+    use_server = None
+    user_auth_handler = None
+    inference_handler = None
 
 g_tabpfn_config = TabPFNConfig()
+g_caafe_config = CAAFEConfig()
 
 
 def init(use_server=True):
     # initialize config
     use_server = use_server
     global g_tabpfn_config
+    global g_caafe_config
 
     if g_tabpfn_config.is_initialized:
         # Only do the following if the initialization has not been done yet
@@ -32,7 +39,7 @@ def init(use_server=True):
         # check connection to server
         if not user_auth_handler.is_accessible_connection():
             raise RuntimeError(
-                "TabPFN is inaccessible at the moment, please try again later."
+                "TabPFN and CAAFE are inaccessible at the moment, please try again later."
             )
 
         is_valid_token_set = user_auth_handler.try_reuse_existing_token()
@@ -48,7 +55,7 @@ def init(use_server=True):
             PromptAgent.prompt_welcome()
             if not PromptAgent.prompt_terms_and_cond():
                 raise RuntimeError(
-                    "You must agree to the terms and conditions to use TabPFN"
+                    "You must agree to the terms and conditions to use TabPFN and CAAFE."
                 )
 
             # prompt for login / register
