@@ -22,8 +22,6 @@ def init(use_server=True):
     global g_tabpfn_config
 
     if use_server:
-        PromptAgent.prompt_welcome()
-
         service_client = ServiceClient()
         user_auth_handler = UserAuthenticationClient(service_client)
 
@@ -43,6 +41,7 @@ def init(use_server=True):
             print("Your email is not verified. Please verify your email to continue...")
             PromptAgent.reverify_email(is_valid_token_set[1], user_auth_handler)
         else:
+            PromptAgent.prompt_welcome()
             if not PromptAgent.prompt_terms_and_cond():
                 raise RuntimeError(
                     "You must agree to the terms and conditions to use TabPFN"
