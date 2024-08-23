@@ -68,7 +68,7 @@ class ServiceClient:
     @property
     def is_initialized(self):
         return self.access_token is not None and self.access_token != ""
-    
+
     @staticmethod
     def check_training_data(X, y):
         """
@@ -96,8 +96,8 @@ class ServiceClient:
 
         check_consistent_length(X, y)
         # length and feature assertions
-        assert X.shape[0] <= 10000, "The number of samples should not be more than 10000."
-        assert X.shape[1] <= 500, "The number of features should not be more than 500."
+        assert X.shape[0] <= 10000, "The number of samples cannot be more than 10000."
+        assert X.shape[1] <= 500, "The number of features cannot be more than 500."
 
         return X, y
 
@@ -119,7 +119,7 @@ class ServiceClient:
 
         """
 
-        #checking the integrity of the data
+        # checking the integrity of the data
         X, y = self.check_training_data(X, y)
 
         X = common_utils.serialize_to_csv_formatted_bytes(X)
