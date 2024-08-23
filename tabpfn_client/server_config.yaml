@@ -69,7 +69,7 @@ endpoints:
     methods: [ "POST" ]
     description: "Predict"
 
-  caafe_feat_eng:
+  caafe_generate_features:
     path: "/caafe/"
     methods: [ "POST" ]
     description: "Create new features using CAAFE"

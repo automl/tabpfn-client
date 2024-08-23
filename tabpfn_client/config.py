@@ -58,12 +58,19 @@ def init(use_server=True):
             user_auth_handler.retrieve_greeting_messages()
         )
 
+        # set config tabpfn
         g_tabpfn_config.use_server = True
         g_tabpfn_config.user_auth_handler = user_auth_handler
         g_tabpfn_config.inference_handler = InferenceClient(service_client)
 
+        # set config caafe
+        g_caafe_config.use_server = True
+        g_caafe_config.user_auth_handler = user_auth_handler
+        g_caafe_config.inference_handler = InferenceClient(service_client)
+
     else:
         g_tabpfn_config.use_server = False
+        g_caafe_config.use_server = False
 
     g_tabpfn_config.is_initialized = True
 
