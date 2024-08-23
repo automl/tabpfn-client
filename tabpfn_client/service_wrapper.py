@@ -201,3 +201,9 @@ class InferenceClient(ServiceClientWrapper):
             tabpfn_config=config,
             task=task,
         )
+    
+    def generate_features(self, config=None):
+        return self.service_client.generate_features(
+            train_set_uid=self.last_train_set_uid,
+            caafe_config=config,
+        )

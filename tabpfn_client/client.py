@@ -182,6 +182,42 @@ class ServiceClient:
 
         return result
 
+    def generate_features(
+        self, train_set_uid: str, caafe_config: dict | None = None
+    ) -> str:
+        """
+        Generate features for the provided data (train set).
+
+        Parameters
+        ----------
+        train_set_uid : str
+            The unique ID of the train set in the server.
+        caafe_config : dict
+            The configuration for the CAAFE method.
+
+        Returns
+        -------
+        features : array-like of shape (n_samples, n_features)
+            The generated features.
+        """
+
+        params = {"train_set_uid": train_set_uid}
+
+        if caafe_config is not None:
+            params["caafe_config"] = json.dumps(
+                caafe_config, default=lambda x: x.to_dict()
+            )
+
+        response = self.httpx_client.get(
+            url=self.server_endpoints.caafe_generate_features.path,
+            params=params,
+        )
+
+        self._validate_response(response, "generate_features")
+
+        features = response.json()["features_code"]
+        return features
+
     @staticmethod
     def _validate_response(
         response: httpx.Response, method_name, only_version_check=False
