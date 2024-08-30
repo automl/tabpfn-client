@@ -44,9 +44,11 @@ class UserAuthenticationClient(ServiceClientWrapper):
         validation_link: str,
         additional_info: dict,
     ) -> tuple[bool, str]:
-        is_created, message = self.service_client.register(
+        is_created, message, access_token = self.service_client.register(
             email, password, password_confirm, validation_link, additional_info
         )
+        if access_token is not None:
+            self.set_token(access_token)
         return is_created, message
 
     def set_token_by_login(self, email: str, password: str) -> tuple[bool, str]:
@@ -58,7 +60,7 @@ class UserAuthenticationClient(ServiceClientWrapper):
         self.set_token(access_token)
         return True, message
 
-    def try_reuse_existing_token(self) -> bool:
+    def try_reuse_existing_token(self) -> bool | tuple[bool, str]:
         if self.service_client.access_token is None:
             if not self.CACHED_TOKEN_FILE.exists():
                 return False
@@ -68,10 +70,12 @@ class UserAuthenticationClient(ServiceClientWrapper):
         else:
             access_token = self.service_client.access_token
 
-        is_valid = self.service_client.try_authenticate(access_token)
-        if not is_valid:
+        is_valid = self.service_client.is_auth_token_outdated(access_token)
+        if is_valid is False:
             self._reset_token()
             return False
+        elif is_valid is None:
+            return False, access_token
 
         logger.debug(f"Reusing existing access token? {is_valid}")
         self.set_token(access_token)
@@ -93,6 +97,10 @@ class UserAuthenticationClient(ServiceClientWrapper):
 
     def send_reset_password_email(self, email: str) -> tuple[bool, str]:
         sent, message = self.service_client.send_reset_password_email(email)
+        return sent, message
+
+    def send_verification_email(self, access_token: str) -> tuple[bool, str]:
+        sent, message = self.service_client.send_verification_email(access_token)
         return sent, message
 
 
@@ -170,19 +178,25 @@ class InferenceClient(ServiceClientWrapper):
 
     def __init__(self, service_client=ServiceClient()):
         super().__init__(service_client)
-        self.last_train_set_uid = None
 
-    def fit(self, X, y) -> None:
+    def fit(self, X, y) -> str:
         if not self.service_client.is_initialized:
             raise RuntimeError(
-                "Either email is not verified or Service client is not initialized. Please Verify your email and try again!"
+                "Dear TabPFN User, please initialize the client first by verifying your E-mail address sent to your registered E-mail account."
+                "Please Note: The email verification token expires in 30 minutes."
             )
 
-        self.last_train_set_uid = self.service_client.upload_train_set(X, y)
+        return self.service_client.upload_train_set(X, y)
 
-    def predict(self, X, task: Literal["classification", "regression"], config=None):
+    def predict(
+        self,
+        X,
+        task: Literal["classification", "regression"],
+        train_set_uid: str,
+        config=None,
+    ):
         return self.service_client.predict(
-            train_set_uid=self.last_train_set_uid,
+            train_set_uid=train_set_uid,
             x_test=X,
             tabpfn_config=config,
             task=task,

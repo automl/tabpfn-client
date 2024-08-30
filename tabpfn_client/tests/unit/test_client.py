@@ -58,7 +58,7 @@ class TestServiceClient(unittest.TestCase):
     @with_mock_server()
     def test_register_user(self, mock_server):
         mock_server.router.post(mock_server.endpoints.register.path).respond(
-            200, json={"message": "dummy_message"}
+            200, json={"message": "dummy_message", "token": "DUMMY_TOKEN"}
         )
         self.assertTrue(
             self.client.register(
@@ -78,7 +78,7 @@ class TestServiceClient(unittest.TestCase):
     @with_mock_server()
     def test_register_user_with_invalid_email(self, mock_server):
         mock_server.router.post(mock_server.endpoints.register.path).respond(
-            401, json={"detail": "dummy_message"}
+            401, json={"detail": "dummy_message", "token": None}
         )
         self.assertFalse(
             self.client.register(
@@ -98,7 +98,7 @@ class TestServiceClient(unittest.TestCase):
     @with_mock_server()
     def test_register_user_with_invalid_validation_link(self, mock_server):
         mock_server.router.post(mock_server.endpoints.register.path).respond(
-            401, json={"detail": "dummy_message"}
+            401, json={"detail": "dummy_message", "token": None}
         )
         self.assertFalse(
             self.client.register(
@@ -118,7 +118,7 @@ class TestServiceClient(unittest.TestCase):
     @with_mock_server()
     def test_register_user_with_limit_reached(self, mock_server):
         mock_server.router.post(mock_server.endpoints.register.path).respond(
-            401, json={"detail": "dummy_message"}
+            401, json={"detail": "dummy_message", "token": "DUMMY_TOKEN"}
         )
         self.assertFalse(
             self.client.register(
@@ -138,12 +138,12 @@ class TestServiceClient(unittest.TestCase):
     @with_mock_server()
     def test_invalid_auth_token(self, mock_server):
         mock_server.router.get(mock_server.endpoints.protected_root.path).respond(401)
-        self.assertFalse(self.client.try_authenticate("fake_token"))
+        self.assertFalse(self.client.is_auth_token_outdated("fake_token"))
 
     @with_mock_server()
     def test_valid_auth_token(self, mock_server):
         mock_server.router.get(mock_server.endpoints.protected_root.path).respond(200)
-        self.assertTrue(self.client.try_authenticate("true_token"))
+        self.assertTrue(self.client.is_auth_token_outdated("true_token"))
 
     @with_mock_server()
     def test_send_reset_password_email(self, mock_server):
@@ -153,6 +153,16 @@ class TestServiceClient(unittest.TestCase):
         self.assertEqual(
             self.client.send_reset_password_email("test"),
             (True, "Password reset email sent!"),
+        )
+
+    @with_mock_server()
+    def test_send_verification_email(self, mock_server):
+        mock_server.router.post(
+            mock_server.endpoints.send_verification_email.path
+        ).respond(200, json={"message": "Verification Email sent!"})
+        self.assertEqual(
+            self.client.send_verification_email("test"),
+            (True, "Verification Email sent!"),
         )
 
     @with_mock_server()

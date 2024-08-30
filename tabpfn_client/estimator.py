@@ -3,6 +3,7 @@ import logging
 from dataclasses import dataclass, asdict
 
 import numpy as np
+from tabpfn_client import init
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
 from sklearn.utils.validation import check_is_fitted
 
@@ -180,13 +181,24 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
         self.remove_outliers = remove_outliers
         self.add_fingerprint_features = add_fingerprint_features
         self.subsample_samples = subsample_samples
+        self.last_train_set_uid = None
+
+    def _validate_targets_and_classes(self, y) -> np.ndarray:
+        from sklearn.utils import column_or_1d
+        from sklearn.utils.multiclass import check_classification_targets
+
+        y_ = column_or_1d(y, warn=True)
+        check_classification_targets(y)
+
+        # Get classes and encode before type conversion to guarantee correct class labels.
+        not_nan_mask = ~np.isnan(y)
+        self.classes_ = np.unique(y_[not_nan_mask])
 
     def fit(self, X, y):
         # assert init() is called
-        if not config.g_tabpfn_config.is_initialized:
-            raise RuntimeError(
-                "tabpfn_client.init() must be called before using TabPFNClassifier"
-            )
+        init()
+
+        self._validate_targets_and_classes(y)
 
         if config.g_tabpfn_config.use_server:
             try:
@@ -195,7 +207,7 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
                 ), "Only 'latest_tabpfn_hosted' model is supported at the moment for init(use_server=True)"
             except AssertionError as e:
                 print(e)
-            config.g_tabpfn_config.inference_handler.fit(X, y)
+            self.last_train_set_uid = config.g_tabpfn_config.inference_handler.fit(X, y)
             self.fitted_ = True
         else:
             raise NotImplementedError(
@@ -205,12 +217,17 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
 
     def predict(self, X):
         probas = self.predict_proba(X)
-        return np.argmax(probas, axis=1)
+        y = np.argmax(probas, axis=1)
+        y = self.classes_.take(np.asarray(y, dtype=int))
+        return y
 
     def predict_proba(self, X):
         check_is_fitted(self)
         return config.g_tabpfn_config.inference_handler.predict(
-            X, task="classification", config=self.get_params()
+            X,
+            task="classification",
+            train_set_uid=self.last_train_set_uid,
+            config=self.get_params(),
         )["probas"]
 
 
@@ -310,13 +327,11 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
         self.cancel_nan_borders = cancel_nan_borders
         self.super_bar_dist_averaging = super_bar_dist_averaging
         self.subsample_samples = subsample_samples
+        self.last_train_set_uid = None
 
     def fit(self, X, y):
         # assert init() is called
-        if not config.g_tabpfn_config.is_initialized:
-            raise RuntimeError(
-                "tabpfn_client.init() must be called before using TabPFNRegressor"
-            )
+        init()
 
         if config.g_tabpfn_config.use_server:
             try:
@@ -325,7 +340,7 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
                 ), "Only 'latest_tabpfn_hosted' model is supported at the moment for init(use_server=True)"
             except AssertionError as e:
                 print(e)
-            config.g_tabpfn_config.inference_handler.fit(X, y)
+            self.last_train_set_uid = config.g_tabpfn_config.inference_handler.fit(X, y)
             self.fitted_ = True
         else:
             raise NotImplementedError(
@@ -347,5 +362,8 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
     def predict_full(self, X):
         check_is_fitted(self)
         return config.g_tabpfn_config.inference_handler.predict(
-            X, task="regression", config=self.get_params()
+            X,
+            task="regression",
+            train_set_uid=self.last_train_set_uid,
+            config=self.get_params(),
         )
