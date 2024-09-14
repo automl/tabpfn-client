@@ -334,12 +334,6 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
         init()
 
         if config.g_tabpfn_config.use_server:
-            try:
-                assert (
-                    self.model == "latest_tabpfn_hosted"
-                ), "Only 'latest_tabpfn_hosted' model is supported at the moment for init(use_server=True)"
-            except AssertionError as e:
-                print(e)
             self.last_train_set_uid = config.g_tabpfn_config.inference_handler.fit(X, y)
             self.fitted_ = True
         else:
