@@ -232,9 +232,18 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
 
 
 class TabPFNRegressor(BaseEstimator, RegressorMixin):
+
+    _AVAILABLE_MODELS = [
+        "default",
+        "2noar4o2",
+        "5wof9ojf",
+        "09gpqh39",
+        "wyl4o83o",
+    ]
+
     def __init__(
         self,
-        model: str = "latest_tabpfn_hosted",
+        model_path: str = "default",
         n_estimators: int = 8,
         preprocess_transforms: Tuple[PreprocessorConfig, ...] = (
             PreprocessorConfig(
@@ -310,7 +319,7 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
                 If in 0 to 1, the value is viewed as a fraction of the training set size.
         """
 
-        self.model = model
+        self.model_path = self._model_name_to_path(model_path)
         self.n_estimators = n_estimators
         self.preprocess_transforms = preprocess_transforms
         self.feature_shift_decoder = feature_shift_decoder
@@ -361,3 +370,16 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
             train_set_uid=self.last_train_set_uid,
             config=self.get_params(),
         )
+    
+    @classmethod
+    def list_available_models(cls) -> list[str]:
+        return cls._AVAILABLE_MODELS
+
+    def _model_name_to_path(self, model_name: str) -> str:
+        base_path = "/home/venv/lib/python3.9/site-packages/tabpfn/model_cache/model_hans_regression"
+        if model_name == "default":
+            return f"{base_path}.ckpt"
+        elif model_name in self._AVAILABLE_MODELS:
+            return f"{base_path}_{model_name}.ckpt"
+        else:
+            raise ValueError(f"Invalid model name: {model_name}")

@@ -21,7 +21,11 @@ def init(use_server=True):
     use_server = use_server
     global g_tabpfn_config
 
-    if use_server:
+    if g_tabpfn_config.is_initialized:
+        # Only do the following if the initialization has not been done yet
+        return
+
+    if use_server:   
         service_client = ServiceClient()
         user_auth_handler = UserAuthenticationClient(service_client)
 
@@ -60,7 +64,8 @@ def init(use_server=True):
         g_tabpfn_config.inference_handler = InferenceClient(service_client)
 
     else:
-        g_tabpfn_config.use_server = False
+        raise RuntimeError("Local inference is not supported yet.")
+        # g_tabpfn_config.use_server = False
 
     g_tabpfn_config.is_initialized = True
 
