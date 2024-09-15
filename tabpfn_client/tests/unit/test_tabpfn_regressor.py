@@ -56,10 +56,6 @@ class TestTabPFNRegressorInit(unittest.TestCase):
             mock_server.endpoints.retrieve_greeting_messages.path
         ).respond(200, json={"messages": []})
 
-        mock_server.router.get(mock_server.endpoints.protected_root.path).respond(
-            200, json={"message": "Welcome to the protected zone, user!"}
-        )
-
         mock_predict_response = {
             "mean": [100, 200, 300],
             "median": [110, 210, 310],

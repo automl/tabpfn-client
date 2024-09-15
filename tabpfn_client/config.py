@@ -7,8 +7,8 @@ from tabpfn_client.prompt_agent import PromptAgent
 
 
 class TabPFNConfig:
-    is_initialized = None
-    use_server = None
+    is_initialized = False
+    use_server = False
     user_auth_handler = None
     inference_handler = None
 
