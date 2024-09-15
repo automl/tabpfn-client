@@ -232,7 +232,6 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
 
 
 class TabPFNRegressor(BaseEstimator, RegressorMixin):
-
     _AVAILABLE_MODELS = [
         "default",
         "2noar4o2",
@@ -370,7 +369,7 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
             train_set_uid=self.last_train_set_uid,
             config=self.get_params(),
         )
-    
+
     @classmethod
     def list_available_models(cls) -> list[str]:
         return cls._AVAILABLE_MODELS

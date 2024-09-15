@@ -25,7 +25,7 @@ def init(use_server=True):
         # Only do the following if the initialization has not been done yet
         return
 
-    if use_server:   
+    if use_server:
         service_client = ServiceClient()
         user_auth_handler = UserAuthenticationClient(service_client)
 
