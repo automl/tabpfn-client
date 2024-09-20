@@ -318,7 +318,10 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
                 If in 0 to 1, the value is viewed as a fraction of the training set size.
         """
 
-        self.model_path = self._model_name_to_path(model)
+        if model not in self._AVAILABLE_MODELS:
+            raise ValueError(f"Invalid model name: {model}")
+
+        self.model = model
         self.n_estimators = n_estimators
         self.preprocess_transforms = preprocess_transforms
         self.feature_shift_decoder = feature_shift_decoder
@@ -363,11 +366,17 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
 
     def predict_full(self, X):
         check_is_fitted(self)
+
+        estimator_param = self.get_params()
+        if 'model' in estimator_param:
+            # replace model by model_path since in TabPFN defines model as model_path
+            estimator_param["model_path"] = self._model_name_to_path(estimator_param.pop('model'))
+
         return config.g_tabpfn_config.inference_handler.predict(
             X,
             task="regression",
             train_set_uid=self.last_train_set_uid,
-            config=self.get_params(),
+            config=estimator_param,
         )
 
     @classmethod

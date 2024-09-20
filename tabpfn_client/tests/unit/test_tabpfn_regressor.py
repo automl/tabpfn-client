@@ -83,6 +83,17 @@ class TestTabPFNRegressorInit(unittest.TestCase):
             "check that n_estimators is passed to the server",
         )
 
+    def test_valid_model_config(self):
+        # Test with valid model configuration
+        model_name = TabPFNRegressor.list_available_models()[0]
+        valid_config = TabPFNRegressor(model=model_name)
+        self.assertEqual(valid_config.model, model_name)
+
+    def test_invalid_model_config(self):
+        # Test with invalid model configuration
+        with self.assertRaises(ValueError):
+            TabPFNRegressor(model="invalid_model_name")
+
     @with_mock_server()
     def test_reuse_saved_access_token(self, mock_server):
         # mock connection and authentication
