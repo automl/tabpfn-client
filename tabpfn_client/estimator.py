@@ -242,7 +242,7 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
 
     def __init__(
         self,
-        model_path: str = "default",
+        model: str = "default",
         n_estimators: int = 8,
         preprocess_transforms: Tuple[PreprocessorConfig, ...] = (
             PreprocessorConfig(
@@ -318,7 +318,7 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
                 If in 0 to 1, the value is viewed as a fraction of the training set size.
         """
 
-        self.model_path = self._model_name_to_path(model_path)
+        self.model_path = self._model_name_to_path(model)
         self.n_estimators = n_estimators
         self.preprocess_transforms = preprocess_transforms
         self.feature_shift_decoder = feature_shift_decoder
