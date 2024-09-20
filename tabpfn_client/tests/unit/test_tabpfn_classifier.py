@@ -58,10 +58,6 @@ class TestTabPFNClassifierInit(unittest.TestCase):
             mock_server.endpoints.retrieve_greeting_messages.path
         ).respond(200, json={"messages": []})
 
-        mock_server.router.get(mock_server.endpoints.protected_root.path).respond(
-            200, json={"message": "Welcome to the protected zone, user!"}
-        )
-
         mock_predict_response = [[1, 0.0], [0.9, 0.1], [0.01, 0.99]]
         predict_route = mock_server.router.post(mock_server.endpoints.predict.path)
         predict_route.respond(200, json={"classification": mock_predict_response})

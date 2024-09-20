@@ -7,8 +7,8 @@ from tabpfn_client.prompt_agent import PromptAgent
 
 
 class TabPFNConfig:
-    is_initialized = None
-    use_server = None
+    is_initialized = False
+    use_server = False
     user_auth_handler = None
     inference_handler = None
 
@@ -20,6 +20,10 @@ def init(use_server=True):
     # initialize config
     use_server = use_server
     global g_tabpfn_config
+
+    if g_tabpfn_config.is_initialized:
+        # Only do the following if the initialization has not been done yet
+        return
 
     if use_server:
         service_client = ServiceClient()
@@ -60,7 +64,8 @@ def init(use_server=True):
         g_tabpfn_config.inference_handler = InferenceClient(service_client)
 
     else:
-        g_tabpfn_config.use_server = False
+        raise RuntimeError("Local inference is not supported yet.")
+        # g_tabpfn_config.use_server = False
 
     g_tabpfn_config.is_initialized = True
 
