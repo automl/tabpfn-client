@@ -368,9 +368,11 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
         check_is_fitted(self)
 
         estimator_param = self.get_params()
-        if 'model' in estimator_param:
+        if "model" in estimator_param:
             # replace model by model_path since in TabPFN defines model as model_path
-            estimator_param["model_path"] = self._model_name_to_path(estimator_param.pop('model'))
+            estimator_param["model_path"] = self._model_name_to_path(
+                estimator_param.pop("model")
+            )
 
         return config.g_tabpfn_config.inference_handler.predict(
             X,
