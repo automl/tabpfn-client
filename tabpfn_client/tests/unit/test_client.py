@@ -231,31 +231,3 @@ class TestServiceClient(unittest.TestCase):
         response.json.return_value = {"detail": "Some other error"}
         r = self.client._validate_response(response, "test", only_version_check=True)
         self.assertIsNone(r)
-
-    def test_input_data_check(self):
-        X, y = load_breast_cancer(return_X_y=True)
-
-        # Test for valid input
-        ServiceClient.check_training_data(X[:99], y[:99])
-        with self.assertRaises(ValueError) as cm:
-            ServiceClient.check_training_data(X[:99], y[:98])
-        self.assertEqual(
-            str(cm.exception),
-            "Found input variables with inconsistent numbers of samples: [99, 98]",
-        )
-
-        # Test for oversized data
-        X = np.random.randn(10001, 501)
-        y = np.random.randint(0, 2, 10001)
-
-        with self.assertRaises(AssertionError) as cm:
-            ServiceClient.check_training_data(X[:10000], y[:10000])
-        self.assertEqual(
-            str(cm.exception), "The number of features cannot be more than 500."
-        )
-
-        with self.assertRaises(AssertionError) as cm:
-            ServiceClient.check_training_data(X[:, :500], y)
-        self.assertEqual(
-            str(cm.exception), "The number of samples cannot be more than 10000."
-        )

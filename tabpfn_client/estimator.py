@@ -6,10 +6,14 @@ import numpy as np
 from tabpfn_client import init
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
 from sklearn.utils.validation import check_is_fitted
+from sklearn.utils import check_consistent_length
 
 from tabpfn_client import config
 
 logger = logging.getLogger(__name__)
+
+MAX_ROWS = 10000
+MAX_COLS = 500
 
 
 @dataclass(eq=True, frozen=True)
@@ -194,10 +198,16 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
         not_nan_mask = ~np.isnan(y)
         self.classes_ = np.unique(y_[not_nan_mask])
 
+    @staticmethod
+    def _validate_data_size(X: np.ndarray, y: np.ndarray | None):
+        if X.shape[0] != y.shape[0]:
+            raise ValueError("X and y must have the same number of samples")
+
     def fit(self, X, y):
         # assert init() is called
         init()
 
+        validate_data_size(X, y)
         self._validate_targets_and_classes(y)
 
         if config.g_tabpfn_config.use_server:
@@ -207,6 +217,7 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
                 ), "Only 'latest_tabpfn_hosted' model is supported at the moment for init(use_server=True)"
             except AssertionError as e:
                 print(e)
+
             self.last_train_set_uid = config.g_tabpfn_config.inference_handler.fit(X, y)
             self.fitted_ = True
         else:
@@ -223,6 +234,8 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
 
     def predict_proba(self, X):
         check_is_fitted(self)
+        validate_data_size(X)
+
         return config.g_tabpfn_config.inference_handler.predict(
             X,
             task="classification",
@@ -344,6 +357,8 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
         # assert init() is called
         init()
 
+        validate_data_size(X, y)
+
         if config.g_tabpfn_config.use_server:
             self.last_train_set_uid = config.g_tabpfn_config.inference_handler.fit(X, y)
             self.fitted_ = True
@@ -366,6 +381,7 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
 
     def predict_full(self, X):
         check_is_fitted(self)
+        validate_data_size(X)
 
         estimator_param = self.get_params()
         if "model" in estimator_param:
@@ -393,3 +409,23 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
             return f"{base_path}_{model_name}.ckpt"
         else:
             raise ValueError(f"Invalid model name: {model_name}")
+
+
+def validate_data_size(X: np.ndarray, y: np.ndarray | None = None):
+    """
+    Check the integrity of the training data.
+    - check if the number of rows between X and y is consistent
+        if y is not None (ValueError)
+    - check if the number of rows is less than MAX_ROWS (ValueError)
+    - check if the number of columns is less than MAX_COLS (ValueError)
+    """
+
+    # check if the number of samples is consistent (ValueError)
+    if y is not None:
+        check_consistent_length(X, y)
+
+    # length and feature assertions
+    if X.shape[0] > MAX_ROWS:
+        raise ValueError(f"The number of rows cannot be more than {MAX_ROWS}.")
+    if X.shape[1] > MAX_COLS:
+        raise ValueError(f"The number of columns cannot be more than {MAX_COLS}.")

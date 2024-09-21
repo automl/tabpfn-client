@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 import shutil
 
 import numpy as np
@@ -14,6 +14,7 @@ from tabpfn_client.service_wrapper import UserAuthenticationClient
 from tabpfn_client.client import ServiceClient
 from tabpfn_client.tests.mock_tabpfn_server import with_mock_server
 from tabpfn_client.constants import CACHE_DIR
+from tabpfn_client import config
 
 
 class TestTabPFNClassifierInit(unittest.TestCase):
@@ -160,3 +161,64 @@ class TestTabPFNClassifierInit(unittest.TestCase):
 
         self.assertRaises(RuntimeError, init, use_server=True)
         self.assertTrue(mock_prompt_for_terms_and_cond.called)
+
+
+class TestTabPFNClassifierInference(unittest.TestCase):
+    def setUp(self):
+        # skip init
+        config.g_tabpfn_config.is_initialized = True
+
+    def tearDown(self):
+        # undo setUp
+        config.reset()
+
+    def test_data_size_check_on_train_with_inconsistent_number_of_samples_raise_error(
+        self,
+    ):
+        X = np.random.rand(10, 5)
+        y = np.random.randint(0, 2, 11)
+        tabpfn = TabPFNClassifier()
+
+        with self.assertRaises(ValueError):
+            tabpfn.fit(X, y)
+
+    def test_data_size_check_on_train_with_oversized_data_raise_error(self):
+        X = np.random.randn(10001, 501)
+        y = np.random.randint(0, 2, 10001)
+
+        tabpfn = TabPFNClassifier()
+
+        # test oversized columns
+        with self.assertRaises(ValueError):
+            tabpfn.fit(X[:10], y[:10])
+
+        # test oversized rows
+        with self.assertRaises(ValueError):
+            tabpfn.fit(X[:, :10], y)
+
+    def test_data_size_check_on_predict_with_oversized_data_raise_error(self):
+        test_X = np.random.randn(10001, 5)
+        tabpfn = TabPFNClassifier()
+
+        # skip fitting
+        tabpfn.fitted_ = True
+
+        # test oversized rows
+        with self.assertRaises(ValueError):
+            tabpfn.predict(test_X)
+
+    def test_data_check_on_predict_with_valid_data_pass(self):
+        test_X = np.random.randn(10, 5)
+        tabpfn = TabPFNClassifier()
+
+        # skip fitting
+        tabpfn.fitted_ = True
+        tabpfn.classes_ = np.array([0, 1])
+
+        # mock prediction
+        config.g_tabpfn_config.inference_handler = MagicMock()
+        config.g_tabpfn_config.inference_handler.predict = MagicMock(
+            return_value={"probas": np.random.rand(10, 2)}
+        )
+
+        tabpfn.predict(test_X)
