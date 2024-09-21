@@ -1,0 +1,4 @@
+### additional requirements to run tests on CI/CD
+
+scikit-learn
+respx
