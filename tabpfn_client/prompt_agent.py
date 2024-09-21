@@ -203,7 +203,9 @@ class PromptAgent:
     @classmethod
     def prompt_reusing_existing_token(cls):
         prompt = "\n".join(
-            ["Found existing access token, reusing it for authentication."]
+            [
+                "Welcome Back! Found existing access token, reusing it for authentication."
+            ]
         )
 
         print(cls.indent(prompt))

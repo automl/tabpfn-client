@@ -56,10 +56,6 @@ class TestTabPFNRegressorInit(unittest.TestCase):
             mock_server.endpoints.retrieve_greeting_messages.path
         ).respond(200, json={"messages": []})
 
-        mock_server.router.get(mock_server.endpoints.protected_root.path).respond(
-            200, json={"message": "Welcome to the protected zone, user!"}
-        )
-
         mock_predict_response = {
             "mean": [100, 200, 300],
             "median": [110, 210, 310],
@@ -86,6 +82,17 @@ class TestTabPFNRegressorInit(unittest.TestCase):
             str(predict_route.calls.last.request.url),
             "check that n_estimators is passed to the server",
         )
+
+    def test_valid_model_config(self):
+        # Test with valid model configuration
+        model_name = TabPFNRegressor.list_available_models()[0]
+        valid_config = TabPFNRegressor(model=model_name)
+        self.assertEqual(valid_config.model, model_name)
+
+    def test_invalid_model_config(self):
+        # Test with invalid model configuration
+        with self.assertRaises(ValueError):
+            TabPFNRegressor(model="invalid_model_name")
 
     @with_mock_server()
     def test_reuse_saved_access_token(self, mock_server):

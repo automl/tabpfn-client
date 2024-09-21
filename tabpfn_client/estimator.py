@@ -232,9 +232,17 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
 
 
 class TabPFNRegressor(BaseEstimator, RegressorMixin):
+    _AVAILABLE_MODELS = [
+        "default",
+        "2noar4o2",
+        "5wof9ojf",
+        "09gpqh39",
+        "wyl4o83o",
+    ]
+
     def __init__(
         self,
-        model: str = "latest_tabpfn_hosted",
+        model: str = "default",
         n_estimators: int = 8,
         preprocess_transforms: Tuple[PreprocessorConfig, ...] = (
             PreprocessorConfig(
@@ -310,6 +318,9 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
                 If in 0 to 1, the value is viewed as a fraction of the training set size.
         """
 
+        if model not in self._AVAILABLE_MODELS:
+            raise ValueError(f"Invalid model name: {model}")
+
         self.model = model
         self.n_estimators = n_estimators
         self.preprocess_transforms = preprocess_transforms
@@ -334,12 +345,6 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
         init()
 
         if config.g_tabpfn_config.use_server:
-            try:
-                assert (
-                    self.model == "latest_tabpfn_hosted"
-                ), "Only 'latest_tabpfn_hosted' model is supported at the moment for init(use_server=True)"
-            except AssertionError as e:
-                print(e)
             self.last_train_set_uid = config.g_tabpfn_config.inference_handler.fit(X, y)
             self.fitted_ = True
         else:
@@ -361,9 +366,30 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
 
     def predict_full(self, X):
         check_is_fitted(self)
+
+        estimator_param = self.get_params()
+        if "model" in estimator_param:
+            # replace model by model_path since in TabPFN defines model as model_path
+            estimator_param["model_path"] = self._model_name_to_path(
+                estimator_param.pop("model")
+            )
+
         return config.g_tabpfn_config.inference_handler.predict(
             X,
             task="regression",
             train_set_uid=self.last_train_set_uid,
-            config=self.get_params(),
+            config=estimator_param,
         )
+
+    @classmethod
+    def list_available_models(cls) -> list[str]:
+        return cls._AVAILABLE_MODELS
+
+    def _model_name_to_path(self, model_name: str) -> str:
+        base_path = "/home/venv/lib/python3.9/site-packages/tabpfn/model_cache/model_hans_regression"
+        if model_name == "default":
+            return f"{base_path}.ckpt"
+        elif model_name in self._AVAILABLE_MODELS:
+            return f"{base_path}_{model_name}.ckpt"
+        else:
+            raise ValueError(f"Invalid model name: {model_name}")

@@ -1,14 +1,8 @@
-# PLEASE READ: Alpha Client for the Updated TabPFN
+# The client for the (all new) TabPFN
 
-Password for registration / validation link: tabpfn-2023
+This is an alpha family and friends service, so please do not expect this to never be down or run into errors. It worked fine in the settings that we tried, though. 
 
-This is an alpha family and friends service, so please do not expect this to never be down or run into errors.
-We did test it though and can say that it seems to work fine in the settings that we tried.
-
-PLEASE DO NOT SHARE THIS REPOSITORY at this point outside of the NeurIPS Tabular Representation workshop.
-
-What model is behind the API? For now, this version is the light version to save compute on our side, not the TabPFN (Fast) or TabPFN (Best-Q) which we presented at the Neurips Workshop. We will change this once we see our server is working stably. It is a new TabPFN which we allow to handle up to 10K instances with up to 500 features.
-This TabPFN is not ensembled, we will put out improved and ensembled models soon.
+What model is behind the API? It is a new TabPFN which we allow to handle up to 10K data points with up to 500 features. You can control all pre-processing, the amount of ensembling etc.
 
 ### We would really appreciate your feedback! If you encounter bugs or suggestions for improvement please create an issue or email me (samuelgabrielmuller (at) gmail com).
 

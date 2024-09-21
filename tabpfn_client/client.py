@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import traceback
+import re
 from pathlib import Path
 import httpx
 import logging
@@ -15,6 +16,27 @@ from tabpfn_client.tabpfn_common_utils import utils as common_utils
 
 
 logger = logging.getLogger(__name__)
+
+# avoid logging of httpx and httpcore on client side
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("httpcore.http11").setLevel(logging.WARNING)
+
+
+class SensitiveDataFilter(logging.Filter):
+    def filter(self, record):
+        if "password" in record.getMessage():
+            original_query = str(record.args[1])
+            filtered_query = re.sub(
+                r"(password|password_confirm)=[^&]*", r"\1=[FILTERED]", original_query
+            )
+            record.args = (record.args[0], filtered_query, *record.args[2:])
+        return True
+
+
+# Apply the custom filter to the httpx logger
+httpx_logger = logging.getLogger("httpx")
+httpx_logger.setLevel(logging.WARNING)
+httpx_logger.addFilter(SensitiveDataFilter())
 
 SERVER_CONFIG_FILE = Path(__file__).parent.resolve() / "server_config.yaml"
 SERVER_CONFIG = OmegaConf.load(SERVER_CONFIG_FILE)
