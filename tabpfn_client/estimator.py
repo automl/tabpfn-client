@@ -6,7 +6,6 @@ import numpy as np
 from tabpfn_client import init
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
 from sklearn.utils.validation import check_is_fitted
-from sklearn.utils import check_consistent_length
 
 from tabpfn_client import config
 
@@ -422,7 +421,8 @@ def validate_data_size(X: np.ndarray, y: np.ndarray | None = None):
 
     # check if the number of samples is consistent (ValueError)
     if y is not None:
-        check_consistent_length(X, y)
+        if X.shape[0] != y.shape[0]:
+            raise ValueError("X and y must have the same number of samples")
 
     # length and feature assertions
     if X.shape[0] > MAX_ROWS:
