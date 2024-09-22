@@ -1,0 +1,6 @@
+### additional requirements for development
+
+
+# lint and format checking
+pre-commit
+ruff == 0.3.3
