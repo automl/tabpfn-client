@@ -90,7 +90,7 @@ class ServiceClient:
     def is_initialized(self):
         return self.access_token is not None and self.access_token != ""
 
-    def upload_train_set(self, X, y) -> str:
+    def upload_train_set(self, X, y, data_description: str = None) -> str:
         """
         Upload a train set to server and return the train set UID if successful.
 
@@ -100,6 +100,8 @@ class ServiceClient:
             The training input samples.
         y : array-like of shape (n_samples,) or (n_samples, n_outputs)
             The target values.
+        data_description : str
+            The description of the data to be used for feature generation.
 
         Returns
         -------
