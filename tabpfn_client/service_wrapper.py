@@ -172,13 +172,15 @@ class InferenceClient(ServiceClientWrapper):
         super().__init__(service_client)
         self.last_train_set_uid = None
 
-    def fit(self, X, y) -> None:
+    def fit(self, X, y, data_description=None) -> None:
         if not self.service_client.is_initialized:
             raise RuntimeError(
                 "Either email is not verified or Service client is not initialized. Please Verify your email and try again!"
             )
 
-        self.last_train_set_uid = self.service_client.upload_train_set(X, y)
+        self.last_train_set_uid = self.service_client.upload_train_set(
+            X, y, data_description
+        )
 
     def predict(self, X, task: Literal["classification", "regression"], config=None):
         return self.service_client.predict(
@@ -187,7 +189,7 @@ class InferenceClient(ServiceClientWrapper):
             tabpfn_config=config,
             task=task,
         )
-    
+
     def generate_features(self, config=None):
         return self.service_client.generate_features(
             train_set_uid=self.last_train_set_uid,
