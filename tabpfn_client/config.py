@@ -12,11 +12,13 @@ class TabPFNConfig:
     user_auth_handler = None
     inference_handler = None
 
+
 class CAAFEConfig:
     is_initialized = None
     use_server = None
     user_auth_handler = None
     inference_handler = None
+
 
 g_tabpfn_config = TabPFNConfig()
 g_caafe_config = CAAFEConfig()

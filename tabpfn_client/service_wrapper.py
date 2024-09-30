@@ -189,7 +189,7 @@ class InferenceClient(ServiceClientWrapper):
         self.last_train_set_uid = self.service_client.upload_train_set(
             X, y, data_description
         )
-        
+
         return self.last_train_set_uid
 
     def predict(
