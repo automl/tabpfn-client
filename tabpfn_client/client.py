@@ -193,6 +193,8 @@ class ServiceClient:
         # Read response.
         load = None
         try:
+            # This if clause is necessary for streaming responses (e.g. download) to
+            # prevent httpx.ResponseNotRead error.
             if not response.is_closed:
                 response.read()
             load = response.json()
