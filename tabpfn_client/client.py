@@ -193,6 +193,10 @@ class ServiceClient:
         # Read response.
         load = None
         try:
+            # This if clause is necessary for streaming responses (e.g. download) to
+            # prevent httpx.ResponseNotRead error.
+            if not response.is_closed:
+                response.read()
             load = response.json()
         except json.JSONDecodeError as e:
             logging.info(f"Failed to parse JSON from response in {method_name}: {e}")
@@ -487,7 +491,12 @@ class ServiceClient:
 
         full_url = self.base_url + self.server_endpoints.download_all_data.path
         with httpx.stream(
-            "GET", full_url, headers={"Authorization": f"Bearer {self.access_token}"}
+            "GET",
+            full_url,
+            headers={
+                "Authorization": f"Bearer {self.access_token}",
+                "client-version": get_client_version(),
+            },
         ) as response:
             self._validate_response(response, "download_all_data")
 
