@@ -117,7 +117,7 @@ class PreprocessorConfig:
 class TabPFNClassifier(BaseEstimator, ClassifierMixin):
     def __init__(
         self,
-        model="latest_tabpfn_hosted",
+        model="default",
         n_estimators: int = 4,
         preprocess_transforms: Tuple[PreprocessorConfig, ...] = (
             PreprocessorConfig(
@@ -212,8 +212,8 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
         if config.g_tabpfn_config.use_server:
             try:
                 assert (
-                    self.model == "latest_tabpfn_hosted"
-                ), "Only 'latest_tabpfn_hosted' model is supported at the moment for init(use_server=True)"
+                    self.model == "default"
+                ), "Only 'default' model is supported at the moment for init(use_server=True)"
             except AssertionError as e:
                 print(e)
 
@@ -235,11 +235,16 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
         check_is_fitted(self)
         validate_data_size(X)
 
+        estimator_param = self.get_params()
+        if "model" in estimator_param:
+            # TabPFNClassifier doesn't support different models at the moment.
+            estimator_param.pop("model")
+
         return config.g_tabpfn_config.inference_handler.predict(
             X,
             task="classification",
             train_set_uid=self.last_train_set_uid,
-            config=self.get_params(),
+            config=estimator_param,
         )["probas"]
 
 
