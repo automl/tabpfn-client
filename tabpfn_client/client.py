@@ -259,7 +259,7 @@ class ServiceClient:
 
         return found_valid_connection
 
-    def is_auth_token_outdated(self, access_token) -> bool | None:
+    def is_auth_token_outdated(self, access_token) -> tuple(bool | None, str):
         """
         Check if the provided access token is valid and return True if successful.
         """
@@ -272,11 +272,13 @@ class ServiceClient:
         self._validate_response(
             response, "is_auth_token_outdated", only_version_check=True
         )
+        email = ""
         if response.status_code == 200:
             is_authenticated = True
         elif response.status_code == 403:
             is_authenticated = None
-        return is_authenticated
+            email = response.headers["email"]
+        return is_authenticated, email
 
     def validate_email(self, email: str) -> tuple[bool, str]:
         """
@@ -356,6 +358,37 @@ class ServiceClient:
         access_token = response.json()["token"] if is_created else None
         return is_created, message, access_token
 
+    def verify_email(self, email: str, token: str) -> tuple[bool, str]:
+        """
+        Verify the email with the provided token.
+
+        Parameters
+        ----------
+        email : str
+        token : str
+
+        Returns
+        -------
+        is_verified : bool
+            True if the email is verified successfully.
+        message : str
+            The message returned from the server.
+        """
+
+        response = self.httpx_client.get(
+            self.server_endpoints.verify_email.path,
+            params={"email": email, "token": token},
+        )
+        self._validate_response(response, "verify_email", only_version_check=True)
+        if response.status_code == 200:
+            is_verified = True
+            message = response.json()["message"]
+        else:
+            is_verified = False
+            message = response.json()["detail"]
+
+        return is_verified, message
+
     def login(self, email: str, password: str) -> tuple[str, str]:
         """
         Login with the provided credentials and return the access token if successful.
@@ -386,7 +419,7 @@ class ServiceClient:
         else:
             message = response.json()["detail"]
 
-        return access_token, message
+        return access_token, message, response.status_code
 
     def get_password_policy(self) -> {}:
         """

@@ -49,16 +49,16 @@ class UserAuthenticationClient(ServiceClientWrapper):
         )
         if access_token is not None:
             self.set_token(access_token)
-        return is_created, message
+        return is_created, message, access_token
 
-    def set_token_by_login(self, email: str, password: str) -> tuple[bool, str]:
-        access_token, message = self.service_client.login(email, password)
+    def set_token_by_login(self, email: str, password: str) -> tuple[bool, str, int]:
+        access_token, message, status_code = self.service_client.login(email, password)
 
         if access_token is None:
-            return False, message
+            return False, message, status_code
 
         self.set_token(access_token)
-        return True, message
+        return True, message, status_code
 
     def try_reuse_existing_token(self) -> bool | tuple[bool, str]:
         if self.service_client.access_token is None:
@@ -70,12 +70,12 @@ class UserAuthenticationClient(ServiceClientWrapper):
         else:
             access_token = self.service_client.access_token
 
-        is_valid = self.service_client.is_auth_token_outdated(access_token)
+        is_valid, email = self.service_client.is_auth_token_outdated(access_token)
         if is_valid is False:
             self._reset_token()
             return False
         elif is_valid is None:
-            return False, access_token
+            return False, access_token, email
 
         logger.debug(f"Reusing existing access token? {is_valid}")
         self.set_token(access_token)
@@ -102,6 +102,10 @@ class UserAuthenticationClient(ServiceClientWrapper):
     def send_verification_email(self, access_token: str) -> tuple[bool, str]:
         sent, message = self.service_client.send_verification_email(access_token)
         return sent, message
+
+    def verify_email(self, email:str, token: str) -> tuple[bool, str]:
+        verified, message = self.service_client.verify_email(email, token)
+        return verified, message
 
 
 class UserDataClient(ServiceClientWrapper):

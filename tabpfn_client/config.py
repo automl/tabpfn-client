@@ -43,7 +43,8 @@ def init(use_server=True):
             isinstance(is_valid_token_set, tuple) and is_valid_token_set[1] is not None
         ):
             print("Your email is not verified. Please verify your email to continue...")
-            PromptAgent.reverify_email(is_valid_token_set[1], user_auth_handler)
+            PromptAgent.reverify_email(is_valid_token_set[1], is_valid_token_set[2],  user_auth_handler)
+            user_auth_handler.set_token(is_valid_token_set[1])
         else:
             PromptAgent.prompt_welcome()
             if not PromptAgent.prompt_terms_and_cond():

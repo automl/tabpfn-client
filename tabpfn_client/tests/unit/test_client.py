@@ -143,7 +143,7 @@ class TestServiceClient(unittest.TestCase):
     @with_mock_server()
     def test_valid_auth_token(self, mock_server):
         mock_server.router.get(mock_server.endpoints.protected_root.path).respond(200)
-        self.assertTrue(self.client.is_auth_token_outdated("true_token"))
+        self.assertTrue(self.client.is_auth_token_outdated("true_token")[0])
 
     @with_mock_server()
     def test_send_reset_password_email(self, mock_server):
