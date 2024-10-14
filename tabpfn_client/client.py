@@ -10,8 +10,12 @@ import numpy as np
 from omegaconf import OmegaConf
 import json
 from typing import Literal
+from cityhash import CityHash128
+import os
+from collections import OrderedDict
 
 from tabpfn_client.tabpfn_common_utils import utils as common_utils
+from tabpfn_client.constants import CACHE_DIR
 
 
 logger = logging.getLogger(__name__)
@@ -30,6 +34,76 @@ class SensitiveDataFilter(logging.Filter):
             )
             record.args = (record.args[0], filtered_query, *record.args[2:])
         return True
+
+
+class DatasetCacheManager:
+    """
+    Manages a cache of the last 50 uploaded datasets, tracking dataset hashes and their UIDs.
+    """
+
+    def __init__(self):
+        self.file_path = CACHE_DIR / "dataset_cache"
+        self.cache = self.load_cache()
+        self._last_train_X = None
+        self._last_train_y = None
+
+    def load_cache(self):
+        """
+        Loads the cache from disk if it exists, otherwise initializes an empty cache.
+        """
+        if os.path.exists(self.file_path):
+            with open(self.file_path, "r") as file:
+                data = json.load(file)
+                return OrderedDict(data)
+        return OrderedDict()
+
+    def get_dataset_uid(self, hash):
+        """
+        Retrieves the dataset UID corresponding to the given hash, returns None if dataset not in cache.
+        """
+        if hash in self.cache:
+            self.cache.move_to_end(hash)
+            return self.cache[hash]
+        else:
+            return None
+
+    def add_dataset(self, hash, dataset_uid):
+        """
+        Adds a new dataset to the cache, removing the oldest item if the cache exceeds 50 entries.
+        Assumes the dataset is not already in the cache.
+        """
+        self.cache[hash] = dataset_uid
+        if len(self.cache) > 50:
+            self.cache.popitem(last=False)
+        self.save_cache()
+
+    def save_cache(self):
+        """
+        Saves the current cache to disk.
+        """
+        with open(self.file_path, "w") as file:
+            json.dump(self.cache, file)
+
+    def delete_dataset_by_uid(self, dataset_uid):
+        """
+        Deletes an entry from the cache based on the dataset UID.
+        """
+        hash_to_delete = None
+        for hash, uid in self.cache.items():
+            if uid == dataset_uid:
+                hash_to_delete = hash
+                break
+
+        if hash_to_delete:
+            del self.cache[hash_to_delete]
+            self.save_cache()
+
+    def temporary_save_train_set(self, X, y):
+        self._last_train_X = X
+        self._last_train_y = y
+
+    def get_temporary_saved_train_set(self):
+        return self._last_train_X, self._last_train_y
 
 
 # Apply the custom filter to the httpx logger
@@ -71,6 +145,7 @@ class ServiceClient:
         )
 
         self._access_token = None
+        self._cache_manager = DatasetCacheManager()
 
     @property
     def access_token(self):
@@ -107,9 +182,16 @@ class ServiceClient:
             The unique ID of the train set in the server.
 
         """
-
+        # Save until prediction for retrying train set upload for the case that anything went wrong with cache.
+        self._cache_manager.temporary_save_train_set(X, y)
         X = common_utils.serialize_to_csv_formatted_bytes(X)
         y = common_utils.serialize_to_csv_formatted_bytes(y)
+
+        # Get hash for dataset. Include access token for the case that one user uses different accounts.
+        hash = CityHash128(X + y + str.encode(self._access_token))
+        cached_dataset_uid = self._cache_manager.get_dataset_uid(hash)
+        if cached_dataset_uid is not None:
+            return cached_dataset_uid
 
         response = self.httpx_client.post(
             url=self.server_endpoints.upload_train_set.path,
@@ -121,6 +203,7 @@ class ServiceClient:
         self._validate_response(response, "upload_train_set")
 
         train_set_uid = response.json()["train_set_uid"]
+        self._cache_manager.add_dataset(hash, train_set_uid)
         return train_set_uid
 
     def predict(
@@ -148,20 +231,49 @@ class ServiceClient:
 
         x_test = common_utils.serialize_to_csv_formatted_bytes(x_test)
 
-        params = {"train_set_uid": train_set_uid, "task": task}
+        # Get hash for dataset. Include train_set_uid for the case that the same test set was previously used
+        # with different train set. Include access token for the case that one user uses different accounts.
+        hash = CityHash128(
+            x_test + str.encode(train_set_uid) + str.encode(self._access_token)
+        )
+        cached_dataset_uid = self._cache_manager.get_dataset_uid(hash)
 
+        params = {"train_set_uid": train_set_uid, "task": task}
         if tabpfn_config is not None:
             params["tabpfn_config"] = json.dumps(
                 tabpfn_config, default=lambda x: x.to_dict()
             )
+        cached_prediction_successful = False
+        if cached_dataset_uid is not None:
+            params["test_set_uid"]: cached_dataset_uid
+            response = self.httpx_client.post(
+                url=self.server_endpoints.predict.path, params=params
+            )
+            load = None
+            try:
+                load = response.json()
+            except json.JSONDecodeError as e:
+                logging.info(f"Failed to parse JSON from response in predict: {e}")
+            detail = load.get("detail")
+            cached_prediction_successful = not (
+                response.status_code == 400
+                and "Invalid train or test set uid" in detail
+            )
+            if not cached_prediction_successful:
+                # Upload train set again
+                X_train, y_train = self._cache_manager.get_temporary_saved_train_set()
+                self.upload_train_set(X_train, y_train)
+                params.pop("test_set_uid")
 
-        response = self.httpx_client.post(
-            url=self.server_endpoints.predict.path,
-            params=params,
-            files=common_utils.to_httpx_post_file_format(
-                [("x_file", "x_test_filename", x_test)]
-            ),
-        )
+        if cached_dataset_uid is None or not cached_prediction_successful:
+            # Upload test set and do/retry prediction
+            response = self.httpx_client.post(
+                url=self.server_endpoints.predict.path,
+                params=params,
+                files=common_utils.to_httpx_post_file_format(
+                    [("x_file", "x_test_filename", x_test)]
+                ),
+            )
 
         self._validate_response(response, "predict")
 
@@ -318,7 +430,7 @@ class ServiceClient:
         password_confirm: str,
         validation_link: str,
         additional_info: dict,
-    ) -> tuple[bool, str]:
+    ):
         """
         Register a new user with the provided credentials.
 
