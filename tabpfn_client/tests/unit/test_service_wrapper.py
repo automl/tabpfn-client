@@ -44,7 +44,7 @@ class TestUserAuthClient(unittest.TestCase):
             401, json={"detail": "Incorrect email or password"}
         )
         self.assertEqual(
-            (False, "Incorrect email or password"),
+            (False, "Incorrect email or password", 401),
             UserAuthenticationClient(ServiceClient()).set_token_by_login(
                 "dummy_email", "dummy_password"
             ),
@@ -84,7 +84,7 @@ class TestUserAuthClient(unittest.TestCase):
             401, json={"detail": "Password mismatch"}
         )
         self.assertEqual(
-            (False, "Password mismatch"),
+            (False, "Password mismatch", None),
             UserAuthenticationClient(ServiceClient()).set_token_by_registration(
                 "dummy_email",
                 "dummy_password",
