@@ -57,17 +57,17 @@ class DatasetCacheManager:
                 return OrderedDict(data)
         return OrderedDict()
 
-    def get_dataset_uid(self, hash):
+    def get_dataset_uid(self, hash: str):
         """
         Retrieves the dataset UID corresponding to the given hash, returns None if dataset not in cache.
         """
-        if hash in self.cache:
+        if str(hash) in self.cache:
             self.cache.move_to_end(hash)
             return self.cache[hash]
         else:
             return None
 
-    def add_dataset(self, hash, dataset_uid):
+    def add_dataset(self, hash: str, dataset_uid: str):
         """
         Adds a new dataset to the cache, removing the oldest item if the cache exceeds 50 entries.
         Assumes the dataset is not already in the cache.
@@ -84,7 +84,7 @@ class DatasetCacheManager:
         with open(self.file_path, "w") as file:
             json.dump(self.cache, file)
 
-    def delete_dataset_by_uid(self, dataset_uid):
+    def delete_dataset_by_uid(self, dataset_uid: str):
         """
         Deletes an entry from the cache based on the dataset UID.
         """
@@ -188,7 +188,7 @@ class ServiceClient:
         y = common_utils.serialize_to_csv_formatted_bytes(y)
 
         # Get hash for dataset. Include access token for the case that one user uses different accounts.
-        hash = CityHash128(X + y + str.encode(self._access_token))
+        hash = str(CityHash128(X + y + str.encode(self._access_token)))
         cached_dataset_uid = self._cache_manager.get_dataset_uid(hash)
         if cached_dataset_uid is not None:
             return cached_dataset_uid
@@ -233,8 +233,10 @@ class ServiceClient:
 
         # Get hash for dataset. Include train_set_uid for the case that the same test set was previously used
         # with different train set. Include access token for the case that one user uses different accounts.
-        hash = CityHash128(
-            x_test + str.encode(train_set_uid) + str.encode(self._access_token)
+        hash = str(
+            CityHash128(
+                x_test + str.encode(train_set_uid) + str.encode(self._access_token)
+            )
         )
         cached_dataset_uid = self._cache_manager.get_dataset_uid(hash)
 
@@ -245,7 +247,7 @@ class ServiceClient:
             )
         cached_prediction_successful = False
         if cached_dataset_uid is not None:
-            params["test_set_uid"]: cached_dataset_uid
+            params["test_set_uid"] = cached_dataset_uid
             response = self.httpx_client.post(
                 url=self.server_endpoints.predict.path, params=params
             )
@@ -261,8 +263,9 @@ class ServiceClient:
             )
             if not cached_prediction_successful:
                 # Upload train set again
+                self._cache_manager.delete_dataset_by_uid(train_set_uid)
                 X_train, y_train = self._cache_manager.get_temporary_saved_train_set()
-                self.upload_train_set(X_train, y_train)
+                params["train_set_uid"] = self.upload_train_set(X_train, y_train)
                 params.pop("test_set_uid")
 
         if cached_dataset_uid is None or not cached_prediction_successful:
@@ -274,13 +277,40 @@ class ServiceClient:
                     [("x_file", "x_test_filename", x_test)]
                 ),
             )
+            load = None
+            try:
+                load = response.json()
+            except json.JSONDecodeError as e:
+                logging.info(f"Failed to parse JSON from response in predict: {e}")
+            detail = load.get("detail")
+            cached_prediction_successful = not (
+                response.status_code == 400
+                and "Invalid train or test set uid" in detail
+            )
+            if not cached_prediction_successful:
+                # Upload train set again
+                self._cache_manager.delete_dataset_by_uid(train_set_uid)
+                X_train, y_train = self._cache_manager.get_temporary_saved_train_set()
+                params["train_set_uid"] = self.upload_train_set(X_train, y_train)
+                # Upload test set and do/retry prediction
+                response = self.httpx_client.post(
+                    url=self.server_endpoints.predict.path,
+                    params=params,
+                    files=common_utils.to_httpx_post_file_format(
+                        [("x_file", "x_test_filename", x_test)]
+                    ),
+                )
 
         self._validate_response(response, "predict")
 
         # The response from the predict API always returns a dictionary with the task as the key.
         # This is just s.t. we do not confuse the tasks, as they both use the same API endpoint.
         # That is why below we use the task as the key to access the response.
-        result = response.json()[task]
+        response = response.json()
+        result = response[task]
+        test_set_uid = response["test_set_uid"]
+        if cached_dataset_uid is None or not cached_prediction_successful:
+            self._cache_manager.add_dataset(hash, test_set_uid)
 
         # The results contain different things for the different tasks
         # - classification: probas_array
