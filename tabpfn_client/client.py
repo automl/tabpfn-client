@@ -9,7 +9,7 @@ from importlib.metadata import version, PackageNotFoundError
 import numpy as np
 from omegaconf import OmegaConf
 import json
-from typing import Literal
+from typing import Literal, Optional
 from cityhash import CityHash128
 import os
 from collections import OrderedDict
@@ -46,6 +46,7 @@ class DatasetCacheManager:
         self.cache = self.load_cache()
         self._last_train_X = None
         self._last_train_y = None
+        self.cache_limit = 50
 
     def load_cache(self):
         """
@@ -73,7 +74,7 @@ class DatasetCacheManager:
         Assumes the dataset is not already in the cache.
         """
         self.cache[hash] = dataset_uid
-        if len(self.cache) > 50:
+        if len(self.cache) > self.cache_limit:
             self.cache.popitem(last=False)
         self.save_cache()
 
@@ -84,7 +85,7 @@ class DatasetCacheManager:
         with open(self.file_path, "w") as file:
             json.dump(self.cache, file)
 
-    def delete_dataset_by_uid(self, dataset_uid: str):
+    def delete_dataset_by_uid(self, dataset_uid: str) -> Optional[str]:
         """
         Deletes an entry from the cache based on the dataset UID.
         """
@@ -97,6 +98,8 @@ class DatasetCacheManager:
         if hash_to_delete:
             del self.cache[hash_to_delete]
             self.save_cache()
+            return hash_to_delete
+        return None
 
     def temporary_save_train_set(self, X, y):
         self._last_train_X = X
@@ -184,26 +187,31 @@ class ServiceClient:
         """
         # Save until prediction for retrying train set upload for the case that anything went wrong with cache.
         self._cache_manager.temporary_save_train_set(X, y)
-        X = common_utils.serialize_to_csv_formatted_bytes(X)
-        y = common_utils.serialize_to_csv_formatted_bytes(y)
+        X_serialized = common_utils.serialize_to_csv_formatted_bytes(X)
+        y_serialized = common_utils.serialize_to_csv_formatted_bytes(y)
 
         # Get hash for dataset. Include access token for the case that one user uses different accounts.
-        hash = str(CityHash128(X + y + str.encode(self._access_token)))
-        cached_dataset_uid = self._cache_manager.get_dataset_uid(hash)
-        if cached_dataset_uid is not None:
+        dataset_hash = str(
+            CityHash128(X_serialized + y_serialized + str.encode(self._access_token))
+        )
+        cached_dataset_uid = self._cache_manager.get_dataset_uid(dataset_hash)
+        if cached_dataset_uid:
             return cached_dataset_uid
 
         response = self.httpx_client.post(
             url=self.server_endpoints.upload_train_set.path,
             files=common_utils.to_httpx_post_file_format(
-                [("x_file", "x_train_filename", X), ("y_file", "y_train_filename", y)]
+                [
+                    ("x_file", "x_train_filename", X_serialized),
+                    ("y_file", "y_train_filename", y_serialized),
+                ]
             ),
         )
 
         self._validate_response(response, "upload_train_set")
 
         train_set_uid = response.json()["train_set_uid"]
-        self._cache_manager.add_dataset(hash, train_set_uid)
+        self._cache_manager.add_dataset(dataset_hash, train_set_uid)
         return train_set_uid
 
     def predict(
@@ -229,79 +237,57 @@ class ServiceClient:
             The predicted class labels.
         """
 
-        x_test = common_utils.serialize_to_csv_formatted_bytes(x_test)
+        x_test_serialized = common_utils.serialize_to_csv_formatted_bytes(x_test)
 
         # Get hash for dataset. Include train_set_uid for the case that the same test set was previously used
-        # with different train set. Include access token for the case that one user uses different accounts.
-        hash = str(
+        # with different train set. Include access token for the case that a user uses different accounts.
+        dataset_hash = str(
             CityHash128(
-                x_test + str.encode(train_set_uid) + str.encode(self._access_token)
+                x_test_serialized
+                + str.encode(train_set_uid)
+                + str.encode(self._access_token)
             )
         )
-        cached_dataset_uid = self._cache_manager.get_dataset_uid(hash)
+        cached_test_set_uid = self._cache_manager.get_dataset_uid(dataset_hash)
 
         params = {"train_set_uid": train_set_uid, "task": task}
         if tabpfn_config is not None:
             params["tabpfn_config"] = json.dumps(
                 tabpfn_config, default=lambda x: x.to_dict()
             )
-        cached_prediction_successful = False
-        if cached_dataset_uid is not None:
-            params["test_set_uid"] = cached_dataset_uid
-            response = self.httpx_client.post(
-                url=self.server_endpoints.predict.path, params=params
-            )
-            load = None
-            try:
-                load = response.json()
-            except json.JSONDecodeError as e:
-                logging.info(f"Failed to parse JSON from response in predict: {e}")
-            detail = load.get("detail")
-            cached_prediction_successful = not (
-                response.status_code == 400
-                and "Invalid train or test set uid" in detail
-            )
-            if not cached_prediction_successful:
-                # Upload train set again
-                self._cache_manager.delete_dataset_by_uid(train_set_uid)
-                X_train, y_train = self._cache_manager.get_temporary_saved_train_set()
-                params["train_set_uid"] = self.upload_train_set(X_train, y_train)
-                params.pop("test_set_uid")
 
-        if cached_dataset_uid is None or not cached_prediction_successful:
-            # Upload test set and do/retry prediction
-            response = self.httpx_client.post(
-                url=self.server_endpoints.predict.path,
-                params=params,
-                files=common_utils.to_httpx_post_file_format(
-                    [("x_file", "x_test_filename", x_test)]
-                ),
-            )
-            load = None
+        # Send prediction request. Loop two times, such that if anything cached is not correct
+        # anymore, there is a second iteration where the datasets are uploaded.
+        max_attempts = 2
+        for attempt in range(max_attempts):
             try:
-                load = response.json()
-            except json.JSONDecodeError as e:
-                logging.info(f"Failed to parse JSON from response in predict: {e}")
-            detail = load.get("detail")
-            cached_prediction_successful = not (
-                response.status_code == 400
-                and "Invalid train or test set uid" in detail
-            )
-            if not cached_prediction_successful:
-                # Upload train set again
-                self._cache_manager.delete_dataset_by_uid(train_set_uid)
-                X_train, y_train = self._cache_manager.get_temporary_saved_train_set()
-                params["train_set_uid"] = self.upload_train_set(X_train, y_train)
-                # Upload test set and do/retry prediction
-                response = self.httpx_client.post(
-                    url=self.server_endpoints.predict.path,
-                    params=params,
-                    files=common_utils.to_httpx_post_file_format(
-                        [("x_file", "x_test_filename", x_test)]
-                    ),
+                response = self._make_prediction_request(
+                    train_set_uid, cached_test_set_uid, x_test_serialized, params
                 )
+                self._validate_response(response, "predict")
+                break  # Successful response, exit the retry loop
+            except RuntimeError as e:
+                error_message = str(e)
+                if (
+                    "Invalid train or test set uid" in error_message
+                    and attempt < max_attempts - 1
+                ):
+                    # Retry by re-uploading the train set
+                    old_train_set_hash = self._cache_manager.delete_dataset_by_uid(
+                        train_set_uid
+                    )
+                    X_train, y_train = (
+                        self._cache_manager.get_temporary_saved_train_set()
+                    )
+                    train_set_uid = self.upload_train_set(X_train, y_train)
+                    self._cache_manager.add_dataset(old_train_set_hash, train_set_uid)
+                    params["train_set_uid"] = train_set_uid
+                    cached_test_set_uid = None
+                else:
+                    raise  # Re-raise the exception if it's not recoverable
 
-        self._validate_response(response, "predict")
+        else:
+            raise RuntimeError("Failed to get prediction after retries.")
 
         # The response from the predict API always returns a dictionary with the task as the key.
         # This is just s.t. we do not confuse the tasks, as they both use the same API endpoint.
@@ -309,8 +295,8 @@ class ServiceClient:
         response = response.json()
         result = response[task]
         test_set_uid = response["test_set_uid"]
-        if cached_dataset_uid is None or not cached_prediction_successful:
-            self._cache_manager.add_dataset(hash, test_set_uid)
+        if cached_test_set_uid is None:
+            self._cache_manager.add_dataset(dataset_hash, test_set_uid)
 
         # The results contain different things for the different tasks
         # - classification: probas_array
@@ -323,6 +309,27 @@ class ServiceClient:
             result[k] = np.array(result[k])
 
         return result
+
+    def _make_prediction_request(
+        self, train_set_uid, test_set_uid, x_test_serialized, params
+    ):
+        """
+        Helper function to make the prediction request to the server.
+        """
+        if test_set_uid:
+            params["test_set_uid"] = test_set_uid
+            response = self.httpx_client.post(
+                url=self.server_endpoints.predict.path, params=params
+            )
+        else:
+            response = self.httpx_client.post(
+                url=self.server_endpoints.predict.path,
+                params=params,
+                files=common_utils.to_httpx_post_file_format(
+                    [("x_file", "x_test_filename", x_test_serialized)]
+                ),
+            )
+        return response
 
     @staticmethod
     def _validate_response(
