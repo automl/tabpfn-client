@@ -52,7 +52,7 @@ class TestTabPFNClassifierInit(unittest.TestCase):
         # mock server connection
         mock_server.router.get(mock_server.endpoints.root.path).respond(200)
         mock_server.router.post(mock_server.endpoints.upload_train_set.path).respond(
-            200, json={"train_set_uid": 5}
+            200, json={"train_set_uid": "5"}
         )
 
         mock_server.router.get(
@@ -61,7 +61,9 @@ class TestTabPFNClassifierInit(unittest.TestCase):
 
         mock_predict_response = [[1, 0.0], [0.9, 0.1], [0.01, 0.99]]
         predict_route = mock_server.router.post(mock_server.endpoints.predict.path)
-        predict_route.respond(200, json={"classification": mock_predict_response})
+        predict_route.respond(
+            200, json={"classification": mock_predict_response, "test_set_uid": "6"}
+        )
 
         init(use_server=True)
 
