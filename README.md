@@ -1,10 +1,10 @@
 # The client for the (all new) TabPFN
 
-This is an alpha family and friends service, so please do not expect this to never be down or run into errors. It worked fine in the settings that we tried, though. 
+This is an alpha family and friends service, so please do not expect this to never be down or run into errors. It worked fine in the settings that we tried, though.
 
 What model is behind the API? It is a new TabPFN which we allow to handle up to 10K data points with up to 500 features. You can control all pre-processing, the amount of ensembling etc.
 
-### We would really appreciate your feedback! If you encounter bugs or suggestions for improvement please create an issue or email me (samuelgabrielmuller (at) gmail com).
+### We would really appreciate your feedback! Please join our discord community here https://discord.gg/VJRuU3bSxt or email us at hello@priorlabs.ai
 
 
 # How To
