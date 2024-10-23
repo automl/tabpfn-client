@@ -176,11 +176,11 @@ class TestServiceClient(unittest.TestCase):
 
     @with_mock_server()
     def test_predict_with_valid_train_set_and_test_set(self, mock_server):
-        dummy_json = {"train_set_uid": 5}
+        dummy_json = {"train_set_uid": "5"}
         mock_server.router.post(mock_server.endpoints.upload_train_set.path).respond(
             200, json=dummy_json
         )
-
+        self.client.authorize("dummy_token")
         self.client.upload_train_set(self.X_train, self.y_train)
 
         dummy_result = {"classification": [1, 2, 3]}

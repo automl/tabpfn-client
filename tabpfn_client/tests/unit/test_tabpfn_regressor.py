@@ -52,7 +52,7 @@ class TestTabPFNRegressorInit(unittest.TestCase):
         # mock server connection
         mock_server.router.get(mock_server.endpoints.root.path).respond(200)
         mock_server.router.post(mock_server.endpoints.upload_train_set.path).respond(
-            200, json={"train_set_uid": 5}
+            200, json={"train_set_uid": "5"}
         )
         mock_server.router.get(
             mock_server.endpoints.retrieve_greeting_messages.path
@@ -64,7 +64,9 @@ class TestTabPFNRegressorInit(unittest.TestCase):
             "mode": [120, 220, 320],
         }
         predict_route = mock_server.router.post(mock_server.endpoints.predict.path)
-        predict_route.respond(200, json={"regression": mock_predict_response})
+        predict_route.respond(
+            200, json={"regression": mock_predict_response, "test_set_uid": "6"}
+        )
 
         init(use_server=True)
 

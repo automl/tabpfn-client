@@ -41,7 +41,7 @@ class TestTabPFNClassifier(unittest.TestCase):
 
         # mock fitting
         mock_server.router.post(mock_server.endpoints.upload_train_set.path).respond(
-            200, json={"train_set_uid": 5}
+            200, json={"train_set_uid": "5"}
         )
         tabpfn.fit(self.X_train, self.y_train)
 
@@ -51,7 +51,8 @@ class TestTabPFNClassifier(unittest.TestCase):
             json={
                 "classification": np.random.rand(
                     len(self.X_test), len(np.unique(self.y_train))
-                ).tolist()
+                ).tolist(),
+                "test_set_uid": "6",
             },
         )
         pred = tabpfn.predict(self.X_test)
