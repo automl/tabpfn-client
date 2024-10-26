@@ -82,6 +82,7 @@ class DatasetCacheManager:
         """
         Saves the current cache to disk.
         """
+        os.makedirs(os.path.dirname(self.file_path), exist_ok=True)
         with open(self.file_path, "w") as file:
             json.dump(self.cache, file)
 
