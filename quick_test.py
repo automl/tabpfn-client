@@ -27,7 +27,7 @@ if __name__ == "__main__":
     print("predicting")
     print(tabpfn.predict(X_test))
     print("predicting_proba")
-    # print(tabpfn.predict_proba(X_test))
+    print(tabpfn.predict_proba(X_test))
 
     print(UserDataClient().get_data_summary())
 

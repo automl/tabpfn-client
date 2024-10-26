@@ -21,7 +21,7 @@ class TestServiceClient(unittest.TestCase):
 
         self.client = ServiceClient()
         self.client._cache_manager.file_path = CACHE_DIR / "test_dataset_cache"
-        self.client._cache_manager.load_cache()
+        self.client._cache_manager.cache = self.client._cache_manager.load_cache()
 
     def tearDown(self):
         try:
