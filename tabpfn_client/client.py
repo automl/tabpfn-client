@@ -263,7 +263,7 @@ class ServiceClient:
         for attempt in range(max_attempts):
             try:
                 response = self._make_prediction_request(
-                    train_set_uid, cached_test_set_uid, x_test_serialized, params
+                    cached_test_set_uid, x_test_serialized, params
                 )
                 self._validate_response(response, "predict")
                 break  # Successful response, exit the retry loop
@@ -311,9 +311,7 @@ class ServiceClient:
 
         return result
 
-    def _make_prediction_request(
-        self, train_set_uid, test_set_uid, x_test_serialized, params
-    ):
+    def _make_prediction_request(self, test_set_uid, x_test_serialized, params):
         """
         Helper function to make the prediction request to the server.
         """
