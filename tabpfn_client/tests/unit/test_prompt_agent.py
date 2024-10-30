@@ -15,7 +15,7 @@ class TestPromptAgent(unittest.TestCase):
     @patch("getpass.getpass", side_effect=["Password123!", "Password123!"])
     @patch(
         "builtins.input",
-        side_effect=["1", "user@example.com", "test", "test", "test", "y"],
+        side_effect=["1", "user@example.com", "test", "test", "test", "y", "test"],
     )
     def test_prompt_and_set_token_registration(
         self, mock_input, mock_getpass, mock_server
@@ -30,8 +30,10 @@ class TestPromptAgent(unittest.TestCase):
         mock_auth_client.set_token_by_registration.return_value = (
             True,
             "Registration successful",
+            "dummy_token",
         )
         mock_auth_client.validate_email.return_value = (True, "")
+        mock_auth_client.verify_email.return_value = (True, "Verification successful")
         PromptAgent.prompt_and_set_token(user_auth_handler=mock_auth_client)
         mock_auth_client.set_token_by_registration.assert_called_once()
 
@@ -39,7 +41,11 @@ class TestPromptAgent(unittest.TestCase):
     @patch("builtins.input", side_effect=["2", "user@example.com"])
     def test_prompt_and_set_token_login(self, mock_input, mock_getpass):
         mock_auth_client = MagicMock()
-        mock_auth_client.set_token_by_login.return_value = (True, "Login successful")
+        mock_auth_client.set_token_by_login.return_value = (
+            True,
+            "Login successful",
+            200,
+        )
         PromptAgent.prompt_and_set_token(user_auth_handler=mock_auth_client)
         mock_auth_client.set_token_by_login.assert_called_once()
 

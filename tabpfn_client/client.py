@@ -279,6 +279,7 @@ class ServiceClient:
         if response.status_code == 200:
             is_authenticated = True
         elif response.status_code == 403:
+            # 403 means user is not verified
             is_authenticated = None
         return is_authenticated
 
@@ -360,6 +361,36 @@ class ServiceClient:
         access_token = response.json()["token"] if is_created else None
         return is_created, message, access_token
 
+    def verify_email(self, token: str) -> tuple[bool, str]:
+        """
+        Verify the email with the provided token.
+
+        Parameters
+        ----------
+        token : str
+
+        Returns
+        -------
+        is_verified : bool
+            True if the email is verified successfully.
+        message : str
+            The message returned from the server.
+        """
+
+        response = self.httpx_client.get(
+            self.server_endpoints.verify_email.path,
+            params={"token": token},
+        )
+        self._validate_response(response, "verify_email", only_version_check=True)
+        if response.status_code == 200:
+            is_verified = True
+            message = response.json()["message"]
+        else:
+            is_verified = False
+            message = response.json()["detail"]
+
+        return is_verified, message
+
     def login(self, email: str, password: str) -> tuple[str, str]:
         """
         Login with the provided credentials and return the access token if successful.
@@ -389,8 +420,9 @@ class ServiceClient:
             message = ""
         else:
             message = response.json()["detail"]
-
-        return access_token, message
+        # status code signifies the success of the login, issues with password, and email verification
+        # 200 : success, 401 : wrong password, 403 : email not verified yet
+        return access_token, message, response.status_code
 
     def get_password_policy(self) -> {}:
         """
