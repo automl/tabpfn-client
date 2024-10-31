@@ -38,6 +38,20 @@ tabpfn.predict(X_test)
 # or you can also use tabpfn.predict_proba(X_test)
 ```
 
+To login using your access token, skipping the interactive flow, use:
+
+```python
+from tabpfn_client import config
+
+# Retrieve Token
+with open(config.g_tabpfn_config.user_auth_handler.CACHED_TOKEN_FILE, 'r') as file:
+    token = file.read()
+print(f"TOKEN: {token}")
+
+# Set Token
+user_auth = config.g_tabpfn_config.user_auth_handler.set_token(token)
+```
+
 # Development
 
 To encourage better coding practices, `ruff` has been added to the pre-commit hooks. This will ensure that the code is formatted properly before being committed. To enable pre-commit (if you haven't), run the following command:
