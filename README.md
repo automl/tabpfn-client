@@ -55,7 +55,6 @@ from tabpfn_client import config
 # Set Token
 service_client = config.ServiceClient()
 config.g_tabpfn_config.user_auth_handler = config.UserAuthenticationClient(service_client=service_client)
-token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiZGIyMTA2NDQtYTdjOC00ZGQ3LTlkZWUtYjk4ZjQyY2YxZjExIiwiZXhwIjoxNzYxODk3NzY4fQ.2y0kE8jn-Bw-_9EBzg8OwqXhPM6AkgUIgoKLH_-EIZM"
 user_auth = config.g_tabpfn_config.user_auth_handler.set_token(token)
 ```
 
