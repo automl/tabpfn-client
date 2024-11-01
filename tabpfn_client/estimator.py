@@ -114,7 +114,46 @@ class PreprocessorConfig:
         }
 
 
-class TabPFNClassifier(BaseEstimator, ClassifierMixin):
+class TabPFNModelSelection:
+    """Base class for TabPFN model selection and path handling."""
+
+    _AVAILABLE_MODELS: list[str] = []
+    _BASE_PATH = "/home/venv/lib/python3.9/site-packages/tabpfn/model_cache/model_hans"
+    _VALID_TASKS = {"classification", "regression"}
+
+    @classmethod
+    def list_available_models(cls) -> list[str]:
+        return cls._AVAILABLE_MODELS
+
+    @classmethod
+    def _validate_model_name(cls, model_name: str) -> None:
+        if model_name != "default" and model_name not in cls._AVAILABLE_MODELS:
+            raise ValueError(
+                f"Invalid model name: {model_name}. "
+                f"Available models are: {cls.list_available_models()}"
+            )
+
+    @classmethod
+    def model_name_to_path(
+        cls, task: Literal["classification", "regression"], model_name: str
+    ) -> str:
+        cls._validate_model_name(model_name)
+
+        if model_name == "default":
+            return f"{cls._BASE_PATH}_{task}.ckpt"
+        return f"{cls._BASE_PATH}_{task}_{model_name}.ckpt"
+
+
+class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
+    _AVAILABLE_MODELS = [
+        "default",
+        "gn2p4bpt",
+        "llderlii",
+        "od3j1g5m",
+        "vutqq28w",
+        "znskzxi4",
+    ]
+
     def __init__(
         self,
         model="default",
@@ -210,13 +249,6 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
         self._validate_targets_and_classes(y)
 
         if config.g_tabpfn_config.use_server:
-            try:
-                assert (
-                    self.model == "default"
-                ), "Only 'default' model is supported at the moment for init(use_server=True)"
-            except AssertionError as e:
-                print(e)
-
             self.last_train_set_uid = config.g_tabpfn_config.inference_handler.fit(X, y)
             self.fitted_ = True
         else:
@@ -237,8 +269,10 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
 
         estimator_param = self.get_params()
         if "model" in estimator_param:
-            # TabPFNClassifier doesn't support different models at the moment.
-            estimator_param.pop("model")
+            # replace model by model_path since in TabPFN defines model as model_path
+            estimator_param["model_path"] = self.model_name_to_path(
+                "classification", estimator_param.pop("model")
+            )
 
         return config.g_tabpfn_config.inference_handler.predict(
             X,
@@ -248,7 +282,7 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin):
         )["probas"]
 
 
-class TabPFNRegressor(BaseEstimator, RegressorMixin):
+class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
     _AVAILABLE_MODELS = [
         "default",
         "2noar4o2",
@@ -390,8 +424,8 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
         estimator_param = self.get_params()
         if "model" in estimator_param:
             # replace model by model_path since in TabPFN defines model as model_path
-            estimator_param["model_path"] = self._model_name_to_path(
-                estimator_param.pop("model")
+            estimator_param["model_path"] = self.model_name_to_path(
+                "regression", estimator_param.pop("model")
             )
 
         return config.g_tabpfn_config.inference_handler.predict(
@@ -400,19 +434,6 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin):
             train_set_uid=self.last_train_set_uid,
             config=estimator_param,
         )
-
-    @classmethod
-    def list_available_models(cls) -> list[str]:
-        return cls._AVAILABLE_MODELS
-
-    def _model_name_to_path(self, model_name: str) -> str:
-        base_path = "/home/venv/lib/python3.9/site-packages/tabpfn/model_cache/model_hans_regression"
-        if model_name == "default":
-            return f"{base_path}.ckpt"
-        elif model_name in self._AVAILABLE_MODELS:
-            return f"{base_path}_{model_name}.ckpt"
-        else:
-            raise ValueError(f"Invalid model name: {model_name}")
 
 
 def validate_data_size(X: np.ndarray, y: np.ndarray | None = None):
