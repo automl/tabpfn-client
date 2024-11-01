@@ -134,7 +134,7 @@ class TabPFNModelSelection:
             )
 
     @classmethod
-    def model_name_to_path(
+    def _model_name_to_path(
         cls, task: Literal["classification", "regression"], model_name: str
     ) -> str:
         cls._validate_model_name(model_name)
@@ -270,7 +270,7 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
         estimator_param = self.get_params()
         if "model" in estimator_param:
             # replace model by model_path since in TabPFN defines model as model_path
-            estimator_param["model_path"] = self.model_name_to_path(
+            estimator_param["model_path"] = self._model_name_to_path(
                 "classification", estimator_param.pop("model")
             )
 
@@ -424,7 +424,7 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
         estimator_param = self.get_params()
         if "model" in estimator_param:
             # replace model by model_path since in TabPFN defines model as model_path
-            estimator_param["model_path"] = self.model_name_to_path(
+            estimator_param["model_path"] = self._model_name_to_path(
                 "regression", estimator_param.pop("model")
             )
 

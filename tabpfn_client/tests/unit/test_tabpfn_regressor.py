@@ -268,20 +268,20 @@ class TestTabPFNModelSelection(unittest.TestCase):
         # Test default model path
         expected_default_path = f"{base_path}_regression.ckpt"
         self.assertEqual(
-            TabPFNRegressor.model_name_to_path("regression", "default"),
+            TabPFNRegressor._model_name_to_path("regression", "default"),
             expected_default_path,
         )
 
         # Test specific model path
         expected_specific_path = f"{base_path}_regression_2noar4o2.ckpt"
         self.assertEqual(
-            TabPFNRegressor.model_name_to_path("regression", "2noar4o2"),
+            TabPFNRegressor._model_name_to_path("regression", "2noar4o2"),
             expected_specific_path,
         )
 
     def test_model_name_to_path_with_invalid_model_raises_error(self):
         with self.assertRaises(ValueError):
-            TabPFNRegressor.model_name_to_path("regression", "invalid_model")
+            TabPFNRegressor._model_name_to_path("regression", "invalid_model")
 
     def test_predict_uses_correct_model_path(self):
         # Setup

@@ -260,20 +260,20 @@ class TestTabPFNModelSelection(unittest.TestCase):
         # Test default model path
         expected_default_path = f"{base_path}_classification.ckpt"
         self.assertEqual(
-            TabPFNClassifier.model_name_to_path("classification", "default"),
+            TabPFNClassifier._model_name_to_path("classification", "default"),
             expected_default_path,
         )
 
         # Test specific model path
         expected_specific_path = f"{base_path}_classification_gn2p4bpt.ckpt"
         self.assertEqual(
-            TabPFNClassifier.model_name_to_path("classification", "gn2p4bpt"),
+            TabPFNClassifier._model_name_to_path("classification", "gn2p4bpt"),
             expected_specific_path,
         )
 
     def test_model_name_to_path_with_invalid_model_raises_error(self):
         with self.assertRaises(ValueError):
-            TabPFNClassifier.model_name_to_path("classification", "invalid_model")
+            TabPFNClassifier._model_name_to_path("classification", "invalid_model")
 
     def test_predict_proba_uses_correct_model_path(self):
         # Setup
