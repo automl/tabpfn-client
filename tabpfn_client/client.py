@@ -62,7 +62,7 @@ class ServiceClient:
         self.server_endpoints = SERVER_CONFIG["endpoints"]
         self.base_url = f"{self.server_config.protocol}://{self.server_config.host}:{self.server_config.port}"
         self.httpx_timeout_s = (
-            30  # temporary workaround for slow computation on server side
+            4 * 5 * 60 + 15  # temporary workaround for slow computation on server side
         )
         self.httpx_client = httpx.Client(
             base_url=self.base_url,

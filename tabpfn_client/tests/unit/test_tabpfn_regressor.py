@@ -237,3 +237,72 @@ class TestTabPFNRegressorInference(unittest.TestCase):
         )
 
         tabpfn.predict(test_X)
+
+
+class TestTabPFNModelSelection(unittest.TestCase):
+    def setUp(self):
+        # skip init
+        config.g_tabpfn_config.is_initialized = True
+        config.g_tabpfn_config.use_server = True
+
+    def tearDown(self):
+        # undo setUp
+        config.reset()
+
+    def test_list_available_models_returns_expected_models(self):
+        expected_models = ["default", "2noar4o2", "5wof9ojf", "09gpqh39", "wyl4o83o"]
+        self.assertEqual(TabPFNRegressor.list_available_models(), expected_models)
+
+    def test_validate_model_name_with_valid_model_passes(self):
+        # Should not raise any exception
+        TabPFNRegressor._validate_model_name("default")
+        TabPFNRegressor._validate_model_name("2noar4o2")
+
+    def test_validate_model_name_with_invalid_model_raises_error(self):
+        with self.assertRaises(ValueError):
+            TabPFNRegressor._validate_model_name("invalid_model")
+
+    def test_model_name_to_path_returns_expected_path(self):
+        base_path = TabPFNRegressor._BASE_PATH
+
+        # Test default model path
+        expected_default_path = f"{base_path}_regression.ckpt"
+        self.assertEqual(
+            TabPFNRegressor._model_name_to_path("regression", "default"),
+            expected_default_path,
+        )
+
+        # Test specific model path
+        expected_specific_path = f"{base_path}_regression_2noar4o2.ckpt"
+        self.assertEqual(
+            TabPFNRegressor._model_name_to_path("regression", "2noar4o2"),
+            expected_specific_path,
+        )
+
+    def test_model_name_to_path_with_invalid_model_raises_error(self):
+        with self.assertRaises(ValueError):
+            TabPFNRegressor._model_name_to_path("regression", "invalid_model")
+
+    def test_predict_uses_correct_model_path(self):
+        # Setup
+        X = np.random.rand(10, 5)
+        y = np.random.rand(10)
+
+        tabpfn = TabPFNRegressor(model="2noar4o2")
+
+        # Mock the inference handler
+        config.g_tabpfn_config.inference_handler = MagicMock()
+        config.g_tabpfn_config.inference_handler.fit = MagicMock()
+        config.g_tabpfn_config.inference_handler.predict = MagicMock(
+            return_value={"mean": np.random.rand(10)}
+        )
+
+        # Fit and predict
+        tabpfn.fit(X, y)
+        tabpfn.predict(X)
+
+        # Verify the model path was correctly passed to predict
+        predict_kwargs = config.g_tabpfn_config.inference_handler.predict.call_args[1]
+        expected_model_path = f"{TabPFNRegressor._BASE_PATH}_regression_2noar4o2.ckpt"
+
+        self.assertEqual(predict_kwargs["config"]["model_path"], expected_model_path)
