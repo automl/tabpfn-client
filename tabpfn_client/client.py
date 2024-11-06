@@ -36,7 +36,7 @@ class SensitiveDataFilter(logging.Filter):
         return True
 
 
-class DatasetCacheManager:
+class DatasetUIDCacheManager:
     """
     Manages a cache of the last 50 uploaded datasets, tracking dataset hashes and their UIDs.
     """
@@ -58,22 +58,31 @@ class DatasetCacheManager:
                 return OrderedDict(data)
         return OrderedDict()
 
-    def get_dataset_uid(self, hash: str):
-        """
-        Retrieves the dataset UID corresponding to the given hash, returns None if dataset not in cache.
-        """
-        if str(hash) in self.cache:
-            self.cache.move_to_end(hash)
-            return self.cache[hash]
-        else:
-            return None
+    def _compute_hash(self, *args):
+        combined_bytes = b"".join(
+            item if isinstance(item, bytes) else str.encode(item) for item in args
+        )
+        return str(CityHash128(combined_bytes))
 
-    def add_dataset(self, hash: str, dataset_uid: str):
+    def get_dataset_uid(self, *args):
+        """
+        Generates hash by all received arguments and returns cached dataset uid if in cache, otherwise None.
+        """
+        dataset_hash = self._compute_hash(*args)
+        if str(dataset_hash) in self.cache:
+            self.cache.move_to_end(dataset_hash)
+            return self.cache[dataset_hash], dataset_hash
+        else:
+            return None, dataset_hash
+
+    def add_dataset_uid(self, hash: str, dataset_uid: str):
         """
         Adds a new dataset to the cache, removing the oldest item if the cache exceeds 50 entries.
         Assumes the dataset is not already in the cache.
         """
         self.cache[hash] = dataset_uid
+        # Move to end for the case that hash already was stored in the cache
+        self.cache.move_to_end(hash)
         if len(self.cache) > self.cache_limit:
             self.cache.popitem(last=False)
         self.save_cache()
@@ -86,7 +95,7 @@ class DatasetCacheManager:
         with open(self.file_path, "w") as file:
             json.dump(self.cache, file)
 
-    def delete_dataset_by_uid(self, dataset_uid: str) -> Optional[str]:
+    def delete_uid(self, dataset_uid: str) -> Optional[str]:
         """
         Deletes an entry from the cache based on the dataset UID.
         """
@@ -149,7 +158,7 @@ class ServiceClient:
         )
 
         self._access_token = None
-        self._cache_manager = DatasetCacheManager()
+        self.dataset_uid_cache_manager = DatasetUIDCacheManager()
 
     @property
     def access_token(self):
@@ -187,15 +196,16 @@ class ServiceClient:
 
         """
         # Save until prediction for retrying train set upload for the case that anything went wrong with cache.
-        self._cache_manager.temporary_save_train_set(X, y)
+        self.dataset_uid_cache_manager.temporary_save_train_set(X, y)
         X_serialized = common_utils.serialize_to_csv_formatted_bytes(X)
         y_serialized = common_utils.serialize_to_csv_formatted_bytes(y)
 
         # Get hash for dataset. Include access token for the case that one user uses different accounts.
-        dataset_hash = str(
-            CityHash128(X_serialized + y_serialized + str.encode(self._access_token))
+        cached_dataset_uid, dataset_hash = (
+            self.dataset_uid_cache_manager.get_dataset_uid(
+                X_serialized, y_serialized, self._access_token
+            )
         )
-        cached_dataset_uid = self._cache_manager.get_dataset_uid(dataset_hash)
         if cached_dataset_uid:
             return cached_dataset_uid
 
@@ -212,7 +222,7 @@ class ServiceClient:
         self._validate_response(response, "upload_train_set")
 
         train_set_uid = response.json()["train_set_uid"]
-        self._cache_manager.add_dataset(dataset_hash, train_set_uid)
+        self.dataset_uid_cache_manager.add_dataset_uid(dataset_hash, train_set_uid)
         return train_set_uid
 
     def predict(
@@ -240,16 +250,13 @@ class ServiceClient:
 
         x_test_serialized = common_utils.serialize_to_csv_formatted_bytes(x_test)
 
-        # Get hash for dataset. Include train_set_uid for the case that the same test set was previously used
+        # In the arguments for hashing, include train_set_uid for the case that the same test set was previously used
         # with different train set. Include access token for the case that a user uses different accounts.
-        dataset_hash = str(
-            CityHash128(
-                x_test_serialized
-                + str.encode(train_set_uid)
-                + str.encode(self._access_token)
+        cached_test_set_uid, dataset_hash = (
+            self.dataset_uid_cache_manager.get_dataset_uid(
+                x_test_serialized, train_set_uid, self._access_token
             )
         )
-        cached_test_set_uid = self._cache_manager.get_dataset_uid(dataset_hash)
 
         params = {"train_set_uid": train_set_uid, "task": task}
         if tabpfn_config is not None:
@@ -274,21 +281,20 @@ class ServiceClient:
                     and attempt < max_attempts - 1
                 ):
                     # Retry by re-uploading the train set
-                    old_train_set_hash = self._cache_manager.delete_dataset_by_uid(
-                        train_set_uid
-                    )
+                    self.dataset_uid_cache_manager.delete_uid(train_set_uid)
                     X_train, y_train = (
-                        self._cache_manager.get_temporary_saved_train_set()
+                        self.dataset_uid_cache_manager.get_temporary_saved_train_set()
                     )
                     train_set_uid = self.upload_train_set(X_train, y_train)
-                    self._cache_manager.add_dataset(old_train_set_hash, train_set_uid)
                     params["train_set_uid"] = train_set_uid
                     cached_test_set_uid = None
                 else:
                     raise  # Re-raise the exception if it's not recoverable
 
         else:
-            raise RuntimeError("Failed to get prediction after retries.")
+            raise RuntimeError(
+                f"Failed to get prediction after {max_attempts} attempts."
+            )
 
         # The response from the predict API always returns a dictionary with the task as the key.
         # This is just s.t. we do not confuse the tasks, as they both use the same API endpoint.
@@ -297,7 +303,7 @@ class ServiceClient:
         result = response[task]
         test_set_uid = response["test_set_uid"]
         if cached_test_set_uid is None:
-            self._cache_manager.add_dataset(dataset_hash, test_set_uid)
+            self.dataset_uid_cache_manager.add_dataset_uid(dataset_hash, test_set_uid)
 
         # The results contain different things for the different tasks
         # - classification: probas_array

@@ -20,8 +20,12 @@ class TestServiceClient(unittest.TestCase):
         )
 
         self.client = ServiceClient()
-        self.client._cache_manager.file_path = CACHE_DIR / "test_dataset_cache"
-        self.client._cache_manager.cache = self.client._cache_manager.load_cache()
+        self.client.dataset_uid_cache_manager.file_path = (
+            CACHE_DIR / "test_dataset_cache"
+        )
+        self.client.dataset_uid_cache_manager.cache = (
+            self.client.dataset_uid_cache_manager.load_cache()
+        )
 
     def tearDown(self):
         try:
@@ -419,7 +423,7 @@ class TestServiceClient(unittest.TestCase):
         and deleting dataset UIDs based on hashes.
         """
         # Create a fresh cache manager
-        cache_manager = self.client._cache_manager
+        cache_manager = self.client.dataset_uid_cache_manager
 
         # Mock dataset hashes and UIDs
         dataset_hash_1 = "hash1"
@@ -428,8 +432,8 @@ class TestServiceClient(unittest.TestCase):
         dataset_uid_2 = "uid2"
 
         # Add datasets to cache
-        cache_manager.add_dataset(dataset_hash_1, dataset_uid_1)
-        cache_manager.add_dataset(dataset_hash_2, dataset_uid_2)
+        cache_manager.add_dataset_uid(dataset_hash_1, dataset_uid_1)
+        cache_manager.add_dataset_uid(dataset_hash_2, dataset_uid_2)
 
         # Retrieve datasets from cache
         retrieved_uid_1 = cache_manager.get_dataset_uid(dataset_hash_1)
@@ -439,7 +443,7 @@ class TestServiceClient(unittest.TestCase):
         self.assertEqual(retrieved_uid_2, dataset_uid_2)
 
         # Delete a dataset by UID
-        deleted_hash = cache_manager.delete_dataset_by_uid(dataset_uid_1)
+        deleted_hash = cache_manager.delete_uid(dataset_uid_1)
         self.assertEqual(deleted_hash, dataset_hash_1)
 
         # Ensure the deleted dataset is no longer in the cache
@@ -449,12 +453,12 @@ class TestServiceClient(unittest.TestCase):
         """
         Test that the cache does not exceed its limit and evicts the oldest entries.
         """
-        cache_manager = self.client._cache_manager
+        cache_manager = self.client.dataset_uid_cache_manager
         cache_manager.cache_limit = 3  # Set a small limit for testing
 
         # Add more datasets than the cache limit
         for i in range(5):
-            cache_manager.add_dataset(f"hash{i}", f"uid{i}")
+            cache_manager.add_dataset_uid(f"hash{i}", f"uid{i}")
 
         # The cache should only contain the last 3 added datasets
         expected_hashes = ["hash2", "hash3", "hash4"]
