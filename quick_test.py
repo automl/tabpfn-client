@@ -21,7 +21,7 @@ if __name__ == "__main__":
         X, y, test_size=0.33, random_state=42
     )
 
-    tabpfn = TabPFNClassifier(model="latest_tabpfn_hosted", n_estimators=3)
+    tabpfn = TabPFNClassifier(n_estimators=3)
     # print("checking estimator", check_estimator(tabpfn))
     tabpfn.fit(X_train[:99], y_train[:99])
     print("predicting")
@@ -36,7 +36,7 @@ if __name__ == "__main__":
         X, y, test_size=0.33, random_state=42
     )
 
-    tabpfn = TabPFNRegressor(model="latest_tabpfn_hosted", n_estimators=3)
+    tabpfn = TabPFNRegressor(n_estimators=3)
     # print("checking estimator", check_estimator(tabpfn))
     tabpfn.fit(X_train[:99], y_train[:99])
     print("predicting reg")
