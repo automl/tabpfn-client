@@ -397,7 +397,11 @@ class TestServiceClient(unittest.TestCase):
 
             # Attempt prediction, which should fail and trigger retry
             pred = self.client.predict(
-                train_set_uid=train_set_uid, x_test=self.X_test, task="classification"
+                train_set_uid=train_set_uid,
+                x_test=self.X_test,
+                task="classification",
+                X_train=self.X_train,
+                y_train=self.y_train,
             )
 
             # The predictions should be as expected
@@ -426,19 +430,22 @@ class TestServiceClient(unittest.TestCase):
         cache_manager = self.client.dataset_uid_cache_manager
 
         # Mock dataset hashes and UIDs
-        dataset_hash_1 = "hash1"
+        dataset_1 = "data1"
         dataset_uid_1 = "uid1"
-        dataset_hash_2 = "hash2"
+        dataset_2 = "data2"
         dataset_uid_2 = "uid2"
+
+        # Get hash by trying to get dataset_uid from cache
+        _, dataset_hash_1 = cache_manager.get_dataset_uid(dataset_1)
+        _, dataset_hash_2 = cache_manager.get_dataset_uid(dataset_2)
 
         # Add datasets to cache
         cache_manager.add_dataset_uid(dataset_hash_1, dataset_uid_1)
         cache_manager.add_dataset_uid(dataset_hash_2, dataset_uid_2)
 
         # Retrieve datasets from cache
-        retrieved_uid_1 = cache_manager.get_dataset_uid(dataset_hash_1)
-        retrieved_uid_2 = cache_manager.get_dataset_uid(dataset_hash_2)
-
+        retrieved_uid_1, _ = cache_manager.get_dataset_uid(dataset_1)
+        retrieved_uid_2, _ = cache_manager.get_dataset_uid(dataset_2)
         self.assertEqual(retrieved_uid_1, dataset_uid_1)
         self.assertEqual(retrieved_uid_2, dataset_uid_2)
 
@@ -447,7 +454,7 @@ class TestServiceClient(unittest.TestCase):
         self.assertEqual(deleted_hash, dataset_hash_1)
 
         # Ensure the deleted dataset is no longer in the cache
-        self.assertIsNone(cache_manager.get_dataset_uid(dataset_hash_1))
+        self.assertIsNone(cache_manager.get_dataset_uid(dataset_1)[0])
 
     def test_cache_limit(self):
         """

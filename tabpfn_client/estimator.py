@@ -252,8 +252,8 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
 
         if config.g_tabpfn_config.use_server:
             self.last_train_set_uid = config.g_tabpfn_config.inference_handler.fit(X, y)
-            self._last_train_X = X
-            self._last_train_y = y
+            self.last_train_X = X
+            self.last_train_y = y
             self.fitted_ = True
         else:
             raise NotImplementedError(
@@ -283,8 +283,8 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
             task="classification",
             train_set_uid=self.last_train_set_uid,
             config=estimator_param,
-            X_train=self._last_train_X,
-            y_train=self._last_train_y,
+            X_train=self.last_train_X,
+            y_train=self.last_train_y,
         )["probas"]
 
 
@@ -407,8 +407,8 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
 
         if config.g_tabpfn_config.use_server:
             self.last_train_set_uid = config.g_tabpfn_config.inference_handler.fit(X, y)
-            self._last_train_X = X
-            self._last_train_y = y
+            self.last_train_X = X
+            self.last_train_y = y
             self.fitted_ = True
         else:
             raise NotImplementedError(
@@ -443,8 +443,8 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
             task="regression",
             train_set_uid=self.last_train_set_uid,
             config=estimator_param,
-            X_train=self._last_train_X,
-            y_train=self._last_train_y,
+            X_train=self.last_train_X,
+            y_train=self.last_train_y,
         )
 
 
