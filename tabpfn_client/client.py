@@ -44,8 +44,6 @@ class DatasetUIDCacheManager:
     def __init__(self):
         self.file_path = CACHE_DIR / "dataset_cache"
         self.cache = self.load_cache()
-        self._last_train_X = None
-        self._last_train_y = None
         self.cache_limit = 50
 
     def load_cache(self):
@@ -110,13 +108,6 @@ class DatasetUIDCacheManager:
             self.save_cache()
             return hash_to_delete
         return None
-
-    def temporary_save_train_set(self, X, y):
-        self._last_train_X = X
-        self._last_train_y = y
-
-    def get_temporary_saved_train_set(self):
-        return self._last_train_X, self._last_train_y
 
 
 # Apply the custom filter to the httpx logger
@@ -196,7 +187,6 @@ class ServiceClient:
 
         """
         # Save until prediction for retrying train set upload for the case that anything went wrong with cache.
-        self.dataset_uid_cache_manager.temporary_save_train_set(X, y)
         X_serialized = common_utils.serialize_to_csv_formatted_bytes(X)
         y_serialized = common_utils.serialize_to_csv_formatted_bytes(y)
 
@@ -231,6 +221,8 @@ class ServiceClient:
         x_test,
         task: Literal["classification", "regression"],
         tabpfn_config: dict | None = None,
+        X_train=None,
+        y_train=None,
     ) -> dict[str, np.ndarray]:
         """
         Predict the class labels for the provided data (test set).
@@ -282,9 +274,10 @@ class ServiceClient:
                 ):
                     # Retry by re-uploading the train set
                     self.dataset_uid_cache_manager.delete_uid(train_set_uid)
-                    X_train, y_train = (
-                        self.dataset_uid_cache_manager.get_temporary_saved_train_set()
-                    )
+                    if X_train is None or y_train is None:
+                        raise RuntimeError(
+                            "Train set data is required to re-upload but was not provided."
+                        )
                     train_set_uid = self.upload_train_set(X_train, y_train)
                     params["train_set_uid"] = train_set_uid
                     cached_test_set_uid = None

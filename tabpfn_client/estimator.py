@@ -224,6 +224,8 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
         self.add_fingerprint_features = add_fingerprint_features
         self.subsample_samples = subsample_samples
         self.last_train_set_uid = None
+        self.last_train_X = None
+        self.last_train_y = None
 
     def _validate_targets_and_classes(self, y) -> np.ndarray:
         from sklearn.utils import column_or_1d
@@ -250,6 +252,8 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
 
         if config.g_tabpfn_config.use_server:
             self.last_train_set_uid = config.g_tabpfn_config.inference_handler.fit(X, y)
+            self._last_train_X = X
+            self._last_train_y = y
             self.fitted_ = True
         else:
             raise NotImplementedError(
@@ -279,6 +283,8 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
             task="classification",
             train_set_uid=self.last_train_set_uid,
             config=estimator_param,
+            X_train=self._last_train_X,
+            y_train=self._last_train_y,
         )["probas"]
 
 
@@ -390,6 +396,8 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
         self.super_bar_dist_averaging = super_bar_dist_averaging
         self.subsample_samples = subsample_samples
         self.last_train_set_uid = None
+        self.last_train_X = None
+        self.last_train_y = None
 
     def fit(self, X, y):
         # assert init() is called
@@ -399,6 +407,8 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
 
         if config.g_tabpfn_config.use_server:
             self.last_train_set_uid = config.g_tabpfn_config.inference_handler.fit(X, y)
+            self._last_train_X = X
+            self._last_train_y = y
             self.fitted_ = True
         else:
             raise NotImplementedError(
@@ -433,6 +443,8 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
             task="regression",
             train_set_uid=self.last_train_set_uid,
             config=estimator_param,
+            X_train=self._last_train_X,
+            y_train=self._last_train_y,
         )
 
 
