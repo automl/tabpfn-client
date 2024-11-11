@@ -194,10 +194,14 @@ class InferenceClient(ServiceClientWrapper):
         task: Literal["classification", "regression"],
         train_set_uid: str,
         config=None,
+        X_train=None,
+        y_train=None,
     ):
         return self.service_client.predict(
             train_set_uid=train_set_uid,
             x_test=X,
             tabpfn_config=config,
             task=task,
+            X_train=X_train,
+            y_train=y_train,
         )

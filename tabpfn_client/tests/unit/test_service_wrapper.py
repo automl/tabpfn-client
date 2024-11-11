@@ -15,6 +15,9 @@ class TestUserAuthClient(unittest.TestCase):
     They do not guarantee if the response from the server is correct.
     """
 
+    def setUp(self):
+        ServiceClient().reset_authorization()
+
     def tearDown(self):
         ServiceClient().delete_instance()
 
