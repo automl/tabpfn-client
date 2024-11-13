@@ -27,7 +27,14 @@ pip install tabpfn-client
 Import and login
 ```python
 from tabpfn_client import init, TabPFNClassifier
-init()
+
+- To create a new account, simply call the init() or complete the registration process during tabpfn.fit(). 
+
+- Once registered, you will get the information about where your access token is stored, which you can also get by get_token() if it exists.
+
+- Have a valid access token? Directly login using:
+init(access_token="valid_access_token")
+
 ```
 
 Now you can use our model just like any other sklearn estimator
@@ -44,18 +51,14 @@ To login using your access token, skipping the interactive flow, use:
 from tabpfn_client import config
 
 # Retrieve Token
-with open(config.g_tabpfn_config.user_auth_handler.CACHED_TOKEN_FILE, 'r') as file:
-    token = file.read()
-print(f"TOKEN: {token}")
+get_token()
 ```
 
 ```python
 from tabpfn_client import config
 
 # Set Token
-service_client = config.ServiceClient()
-config.g_tabpfn_config.user_auth_handler = config.UserAuthenticationClient(service_client=service_client)
-user_auth = config.g_tabpfn_config.user_auth_handler.set_token(token)
+init(access_token="valid_access_token")
 ```
 
 # Development

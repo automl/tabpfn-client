@@ -4,6 +4,7 @@ from tabpfn_client.service_wrapper import UserAuthenticationClient, InferenceCli
 from tabpfn_client.client import ServiceClient
 from tabpfn_client.constants import CACHE_DIR
 from tabpfn_client.prompt_agent import PromptAgent
+from tabpfn_client import constants
 
 
 class TabPFNConfig:
@@ -16,7 +17,7 @@ class TabPFNConfig:
 g_tabpfn_config = TabPFNConfig()
 
 
-def init(use_server=True):
+def init(use_server=True, access_token=None):
     # initialize config
     use_server = use_server
     global g_tabpfn_config
@@ -34,6 +35,9 @@ def init(use_server=True):
             raise RuntimeError(
                 "TabPFN is inaccessible at the moment, please try again later."
             )
+
+        if access_token is not None:
+            user_auth_handler.set_token(access_token)
 
         is_valid_token_set = user_auth_handler.try_reuse_existing_token()
 
@@ -81,3 +85,16 @@ def reset():
 
     # remove cache dir
     shutil.rmtree(CACHE_DIR, ignore_errors=True)
+
+
+def get_token():
+    if constants.CACHE_DIR.exists():
+        with open(constants.CACHE_DIR / "config", "r") as file:
+            token = file.read()
+            print(f"Access Token on Disk: {token}\n")
+    else:
+        print(
+            "No access token found on disk. Please set your access token using the `init` function."
+        )
+
+    PromptAgent.prompt_access_token_information()
