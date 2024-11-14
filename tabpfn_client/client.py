@@ -169,7 +169,7 @@ class ServiceClient:
     def is_initialized(self):
         return self.access_token is not None and self.access_token != ""
 
-    def upload_train_set(self, X, y) -> str:
+    def fit(self, X, y) -> str:
         """
         Upload a train set to server and return the train set UID if successful.
 
@@ -200,7 +200,7 @@ class ServiceClient:
             return cached_dataset_uid
 
         response = self.httpx_client.post(
-            url=self.server_endpoints.upload_train_set.path,
+            url=self.server_endpoints.fit.path,
             files=common_utils.to_httpx_post_file_format(
                 [
                     ("x_file", "x_train_filename", X_serialized),
@@ -209,7 +209,7 @@ class ServiceClient:
             ),
         )
 
-        self._validate_response(response, "upload_train_set")
+        self._validate_response(response, "fit")
 
         train_set_uid = response.json()["train_set_uid"]
         self.dataset_uid_cache_manager.add_dataset_uid(dataset_hash, train_set_uid)

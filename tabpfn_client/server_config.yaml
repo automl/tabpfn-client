@@ -64,6 +64,11 @@ endpoints:
     methods: [ "POST" ]
     description: "Upload train set"
 
+  fit:
+    path: "/fit/"
+    methods: [ "POST" ]
+    description: "Fit"
+
   predict:
     path: "/predict/"
     methods: [ "POST" ]
