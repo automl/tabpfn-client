@@ -1,7 +1,7 @@
 ## testing
 protocol: "http"
 host: "localhost"
-port: "8080"
+port: "10032"
 
 # production
 # protocol: "https"

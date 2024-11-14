@@ -116,7 +116,11 @@ class ServiceClient:
         response = self.httpx_client.post(
             url=self.server_endpoints.upload_train_set.path,
             files=common_utils.to_httpx_post_file_format(
-                [("x_file", "x_train_filename", X), ("y_file", "y_train_filename", y)]
+                [
+                    ("x_file", "x_train_filename", X),
+                    ("y_file", "y_train_filename", y),
+                    ("desc", None, data_description),
+                ]
             ),
         )
 
@@ -185,7 +189,11 @@ class ServiceClient:
         return result
 
     def generate_features(
-        self, train_set_uid: str, caafe_config: dict | None = None
+        self,
+        train_set_uid: str,
+        caafe_config: dict | None = None,
+        task: str = "classification",
+        timeout: int = 300,
     ) -> str:
         """
         Generate features for the provided data (train set).
@@ -203,21 +211,23 @@ class ServiceClient:
             The generated features.
         """
 
-        params = {"train_set_uid": train_set_uid}
+        params = {"train_set_uid": train_set_uid, "task": task}
 
         if caafe_config is not None:
             params["caafe_config"] = json.dumps(
                 caafe_config, default=lambda x: x.to_dict()
             )
 
-        response = self.httpx_client.get(
+        print(params)
+        response = self.httpx_client.post(
             url=self.server_endpoints.caafe_generate_features.path,
             params=params,
+            timeout=timeout,
         )
 
         self._validate_response(response, "generate_features")
 
-        features = response.json()["features_code"]
+        features = response.json()["feature_code"]
         return features
 
     @staticmethod

@@ -34,6 +34,10 @@ def init(use_server=True):
         # Only do the following if the initialization has not been done yet
         return
 
+    if g_caafe_config.is_initialized:
+        # Only do the following if the initialization has not been done yet
+        return
+
     if use_server:
         service_client = ServiceClient()
         user_auth_handler = UserAuthenticationClient(service_client)
@@ -83,16 +87,22 @@ def init(use_server=True):
         g_caafe_config.use_server = False
 
     g_tabpfn_config.is_initialized = True
+    g_caafe_config.is_initialized = True
 
 
 def reset():
     # reset config
     global g_tabpfn_config
     g_tabpfn_config = TabPFNConfig()
+    global g_caafe_config
+    g_caafe_config = CAAFEConfig()
 
     # reset user auth handler
     if g_tabpfn_config.use_server:
         g_tabpfn_config.user_auth_handler.reset_cache()
+
+    if g_caafe_config.use_server:
+        g_caafe_config.user_auth_handler.reset_cache()
 
     # remove cache dir
     shutil.rmtree(CACHE_DIR, ignore_errors=True)

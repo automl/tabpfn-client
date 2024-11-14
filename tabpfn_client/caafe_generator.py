@@ -20,6 +20,8 @@ class CAAFE:
         self.data_description = None
         self.params = params
 
+        config.init()
+
     def fit(self, X, y, data_description):
         assert data_description is not None, "Data description needs to be provided"
         self.data_description = data_description
@@ -34,7 +36,10 @@ class CAAFE:
                 ), "Only 'latest_tabpfn_hosted' model is supported at the moment for init(use_server=True)"
             except AssertionError as e:
                 print(e)
-            config.g_caafe_config.inference_handler.fit(X, y, self.data_description)
+            uid = config.g_caafe_config.inference_handler.fit(
+                X, y, self.data_description
+            )
+            print(f"uid: {uid}")
             self.fitted_ = True
         else:
             raise NotImplementedError(
@@ -45,6 +50,6 @@ class CAAFE:
     def generate_features(self):
         if not self.fitted_:
             raise RuntimeError("Model has not been fitted yet")
-        return config.g_tabpfn_config.inference_handler.generate_features(
+        return config.g_caafe_config.inference_handler.generate_features(
             config=self.params
         )
