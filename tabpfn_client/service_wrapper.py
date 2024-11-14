@@ -211,7 +211,7 @@ class InferenceClient(ServiceClientWrapper, Singleton):
 
     @classmethod
     def fit(cls, X, y) -> str:
-        return ServiceClient.upload_train_set(X, y)
+        return ServiceClient.fit(X, y)
 
     @classmethod
     def predict(

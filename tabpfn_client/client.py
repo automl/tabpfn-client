@@ -178,8 +178,26 @@ class ServiceClient(Singleton):
         cls._access_token = None
         cls.httpx_client.headers.pop("Authorization", None)
 
+    @property
+    def access_token(self):
+        return self._access_token
+
+    def authorize(self, access_token: str):
+        self._access_token = access_token
+        self.httpx_client.headers.update(
+            {"Authorization": f"Bearer {self.access_token}"}
+        )
+
+    def reset_authorization(self):
+        self._access_token = None
+        self.httpx_client.headers.pop("Authorization", None)
+
+    @property
+    def is_initialized(self):
+        return self.access_token is not None and self.access_token != ""
+
     @classmethod
-    def upload_train_set(cls, X, y) -> str:
+    def fit(cls, X, y) -> str:
         """
         Upload a train set to server and return the train set UID if successful.
 
@@ -210,7 +228,7 @@ class ServiceClient(Singleton):
             return cached_dataset_uid
 
         response = cls.httpx_client.post(
-            url=cls.server_endpoints.upload_train_set.path,
+            url=cls.server_endpoints.fit.path,
             files=common_utils.to_httpx_post_file_format(
                 [
                     ("x_file", "x_train_filename", X_serialized),
@@ -219,7 +237,7 @@ class ServiceClient(Singleton):
             ),
         )
 
-        cls._validate_response(response, "upload_train_set")
+        cls._validate_response(response, "fit")
 
         train_set_uid = response.json()["train_set_uid"]
         cls.dataset_uid_cache_manager.add_dataset_uid(dataset_hash, train_set_uid)
