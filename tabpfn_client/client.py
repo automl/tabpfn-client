@@ -278,7 +278,7 @@ class ServiceClient:
                         raise RuntimeError(
                             "Train set data is required to re-upload but was not provided."
                         )
-                    train_set_uid = self.upload_train_set(X_train, y_train)
+                    train_set_uid = self.fit(X_train, y_train)
                     params["train_set_uid"] = train_set_uid
                     cached_test_set_uid = None
                 else:
