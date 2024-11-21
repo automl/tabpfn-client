@@ -100,18 +100,22 @@ class PromptAgent:
                         )
                     )
             additional_info = cls.prompt_add_user_information()
-            is_created, message = user_auth_handler.set_token_by_registration(
-                email, password, password_confirm, validation_link, additional_info
+            is_created, message, access_token = (
+                user_auth_handler.set_token_by_registration(
+                    email, password, password_confirm, validation_link, additional_info
+                )
             )
             if not is_created:
                 raise RuntimeError("User registration failed: " + str(message) + "\n")
 
             print(
                 cls.indent(
-                    "Account created successfully! To start using TabPFN please click on the link in the verification email we sent you."
+                    "Account created successfully! To start using TabPFN please enter the verification code we sent you by mail."
                 )
                 + "\n"
             )
+            # verify token from email
+            cls._verify_user_email(user_auth_handler)
 
         # Login
         elif choice == "2":
@@ -120,12 +124,17 @@ class PromptAgent:
                 email = input(cls.indent("Please enter your email: "))
                 password = getpass.getpass(cls.indent("Please enter your password: "))
 
-                successful, message = user_auth_handler.set_token_by_login(
+                successful, message, status_code = user_auth_handler.set_token_by_login(
                     email, password
                 )
                 if successful:
                     break
-                print(cls.indent("Login failed: " + message) + "\n")
+                print(cls.indent("Login failed: " + str(message)) + "\n")
+                if status_code == 403:
+                    # 403 implies that the email is not verified
+                    cls._verify_user_email(user_auth_handler)
+                    user_auth_handler.set_token_by_login(email, password)
+                    break
 
                 prompt = "\n".join(
                     [
@@ -239,6 +248,9 @@ class PromptAgent:
                     )
                     + "\n"
                 )
+        # verify token from email
+        cls._verify_user_email(user_auth_handler)
+        user_auth_handler.set_token(access_token)
         return
 
     @classmethod
@@ -282,3 +294,20 @@ class PromptAgent:
                 break
 
         return choice.lower()
+
+    @classmethod
+    def _verify_user_email(cls, user_auth_handler: "UserAuthenticationClient"):
+        verified = False
+        while not verified:
+            token = input(
+                cls.indent(
+                    "Please enter the correct verification code sent to your email: "
+                )
+            )
+            verified, message = user_auth_handler.verify_email(token)
+            if not verified:
+                print("\n" + cls.indent(str(message) + "Please try again!") + "\n")
+            else:
+                print(cls.indent("Email verified successfully!") + "\n")
+                break
+        return
