@@ -37,24 +37,17 @@ tabpfn.predict(X_test)
 # or you can also use tabpfn.predict_proba(X_test)
 ```
 
-To login using your access token, skipping the interactive flow, use:
+You can now retrieve your access token
 
 ```python
-from tabpfn_client import config
-
-# Retrieve Token
-with open(config.g_tabpfn_config.user_auth_handler.CACHED_TOKEN_FILE, 'r') as file:
-    token = file.read()
-print(f"TOKEN: {token}")
+import tabpfn_client
+token = tabpfn_client.get_access_token()
 ```
 
-```python
-from tabpfn_client import config
+and login (on another machine) using your access token, skipping the interactive flow, use:
 
-# Set Token
-service_client = config.ServiceClient()
-config.g_tabpfn_config.user_auth_handler = config.UserAuthenticationClient(service_client=service_client)
-user_auth = config.g_tabpfn_config.user_auth_handler.set_token(token)
+```python
+tabpfn_client.set_access_token(token)
 ```
 
 # Development
@@ -72,4 +65,15 @@ Additionally, it is recommended that developers install the ruff extension in th
 if [ -d "dist" ]; then rm -rf dist/*; fi
 python3 -m pip install --upgrade build; python3 -m build
 python3 -m twine upload --repository pypi dist/*
+```
+
+
+### Access/Delete Personal Information
+
+You can use our `UserDataClient` to access and delete personal information.
+
+```python
+from tabpfn_client import UserDataClient
+
+print(UserDataClient.get_data_summary())
 ```
