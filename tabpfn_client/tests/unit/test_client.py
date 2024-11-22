@@ -20,12 +20,11 @@ class TestServiceClient(unittest.TestCase):
             X, y, test_size=0.33, random_state=42
         )
 
-        self.client = ServiceClient()
-        self.client.dataset_uid_cache_manager.file_path = (
+        ServiceClient.dataset_uid_cache_manager.file_path = (
             CACHE_DIR / "test_dataset_cache"
         )
-        self.client.dataset_uid_cache_manager.cache = (
-            self.client.dataset_uid_cache_manager.load_cache()
+        ServiceClient.dataset_uid_cache_manager.cache = (
+            ServiceClient.dataset_uid_cache_manager.load_cache()
         )
 
     def tearDown(self):
@@ -37,12 +36,12 @@ class TestServiceClient(unittest.TestCase):
     @with_mock_server()
     def test_try_connection(self, mock_server):
         mock_server.router.get(mock_server.endpoints.root.path).respond(200)
-        self.assertTrue(self.client.try_connection())
+        self.assertTrue(ServiceClient.try_connection())
 
     @with_mock_server()
     def test_try_connection_with_invalid_server(self, mock_server):
         mock_server.router.get(mock_server.endpoints.root.path).respond(404)
-        self.assertFalse(self.client.try_connection())
+        self.assertFalse(ServiceClient.try_connection())
 
     @with_mock_server()
     def test_try_connection_with_outdated_client_raises_runtime_error(
@@ -52,7 +51,7 @@ class TestServiceClient(unittest.TestCase):
             426, json={"detail": "Client version too old. ..."}
         )
         with self.assertRaises(RuntimeError) as cm:
-            self.client.try_connection()
+            ServiceClient.try_connection()
         self.assertTrue(str(cm.exception).startswith("Client version too old."))
 
     @with_mock_server()
@@ -60,15 +59,17 @@ class TestServiceClient(unittest.TestCase):
         mock_server.router.post(mock_server.endpoints.validate_email.path).respond(
             200, json={"message": "dummy_message"}
         )
-        self.assertTrue(self.client.validate_email("dummy_email")[0])
+        self.assertTrue(ServiceClient.validate_email("dummy_email")[0])
 
     @with_mock_server()
     def test_validate_email_invalid(self, mock_server):
         mock_server.router.post(mock_server.endpoints.validate_email.path).respond(
             401, json={"detail": "dummy_message"}
         )
-        self.assertFalse(self.client.validate_email("dummy_email")[0])
-        self.assertEqual("dummy_message", self.client.validate_email("dummy_email")[1])
+        self.assertFalse(ServiceClient.validate_email("dummy_email")[0])
+        self.assertEqual(
+            "dummy_message", ServiceClient.validate_email("dummy_email")[1]
+        )
 
     @with_mock_server()
     def test_register_user(self, mock_server):
@@ -76,7 +77,7 @@ class TestServiceClient(unittest.TestCase):
             200, json={"message": "dummy_message", "token": "DUMMY_TOKEN"}
         )
         self.assertTrue(
-            self.client.register(
+            ServiceClient.register(
                 "dummy_email",
                 "dummy_password",
                 "dummy_password",
@@ -96,7 +97,7 @@ class TestServiceClient(unittest.TestCase):
             401, json={"detail": "dummy_message", "token": None}
         )
         self.assertFalse(
-            self.client.register(
+            ServiceClient.register(
                 "dummy_email",
                 "dummy_password",
                 "dummy_password",
@@ -116,7 +117,7 @@ class TestServiceClient(unittest.TestCase):
             401, json={"detail": "dummy_message", "token": None}
         )
         self.assertFalse(
-            self.client.register(
+            ServiceClient.register(
                 "dummy_email",
                 "dummy_password",
                 "dummy_password",
@@ -136,7 +137,7 @@ class TestServiceClient(unittest.TestCase):
             401, json={"detail": "dummy_message", "token": "DUMMY_TOKEN"}
         )
         self.assertFalse(
-            self.client.register(
+            ServiceClient.register(
                 "dummy_email",
                 "dummy_password",
                 "dummy_password",
@@ -153,12 +154,12 @@ class TestServiceClient(unittest.TestCase):
     @with_mock_server()
     def test_invalid_auth_token(self, mock_server):
         mock_server.router.get(mock_server.endpoints.protected_root.path).respond(401)
-        self.assertFalse(self.client.is_auth_token_outdated("fake_token"))
+        self.assertFalse(ServiceClient.is_auth_token_outdated("fake_token"))
 
     @with_mock_server()
     def test_valid_auth_token(self, mock_server):
         mock_server.router.get(mock_server.endpoints.protected_root.path).respond(200)
-        self.assertTrue(self.client.is_auth_token_outdated("true_token"))
+        self.assertTrue(ServiceClient.is_auth_token_outdated("true_token"))
 
     @with_mock_server()
     def test_send_reset_password_email(self, mock_server):
@@ -166,7 +167,7 @@ class TestServiceClient(unittest.TestCase):
             mock_server.endpoints.send_reset_password_email.path
         ).respond(200, json={"message": "Password reset email sent!"})
         self.assertEqual(
-            self.client.send_reset_password_email("test"),
+            ServiceClient.send_reset_password_email("test"),
             (True, "Password reset email sent!"),
         )
 
@@ -176,7 +177,7 @@ class TestServiceClient(unittest.TestCase):
             mock_server.endpoints.send_verification_email.path
         ).respond(200, json={"message": "Verification Email sent!"})
         self.assertEqual(
-            self.client.send_verification_email("test"),
+            ServiceClient.send_verification_email("test"),
             (True, "Verification Email sent!"),
         )
 
@@ -186,7 +187,7 @@ class TestServiceClient(unittest.TestCase):
             mock_server.endpoints.retrieve_greeting_messages.path
         ).respond(200, json={"messages": ["message_1", "message_2"]})
         self.assertEqual(
-            self.client.retrieve_greeting_messages(), ["message_1", "message_2"]
+            ServiceClient.retrieve_greeting_messages(), ["message_1", "message_2"]
         )
 
     @with_mock_server()
@@ -195,8 +196,8 @@ class TestServiceClient(unittest.TestCase):
         mock_server.router.post(mock_server.endpoints.upload_train_set.path).respond(
             200, json=dummy_json
         )
-        self.client.authorize("dummy_token")
-        self.client.upload_train_set(self.X_train, self.y_train)
+        ServiceClient.authorize("dummy_token")
+        ServiceClient.upload_train_set(self.X_train, self.y_train)
 
         dummy_result = {"test_set_uid": "dummy_uid", "classification": [1, 2, 3]}
         mock_server.router.post(mock_server.endpoints.predict.path).respond(
@@ -205,7 +206,7 @@ class TestServiceClient(unittest.TestCase):
             headers={"Content-Type": "text/event-stream"},
         )
 
-        pred = self.client.predict(
+        pred = ServiceClient.predict(
             train_set_uid=dummy_json["train_set_uid"],
             x_test=self.X_test,
             task="classification",
@@ -215,7 +216,7 @@ class TestServiceClient(unittest.TestCase):
     def test_validate_response_no_error(self):
         response = Mock()
         response.status_code = 200
-        r = self.client._validate_response(response, "test")
+        r = ServiceClient._validate_response(response, "test")
         self.assertIsNone(r)
 
     def test_validate_response(self):
@@ -224,14 +225,14 @@ class TestServiceClient(unittest.TestCase):
         response.status_code = 426
         response.json.return_value = {"detail": "Client version too old."}
         with self.assertRaises(RuntimeError) as cm:
-            self.client._validate_response(response, "test")
+            ServiceClient._validate_response(response, "test")
         self.assertEqual(str(cm.exception), "Client version too old.")
 
         # Test for "Some other error" which is translated to a generic failure message
         response.status_code = 400
         response.json.return_value = {"detail": "Some other error"}
         with self.assertRaises(RuntimeError) as cm:
-            self.client._validate_response(response, "test")
+            ServiceClient._validate_response(response, "test")
         self.assertTrue(str(cm.exception).startswith("Fail to call test"))
 
     def test_validate_response_only_version_check(self):
@@ -239,14 +240,14 @@ class TestServiceClient(unittest.TestCase):
         response.status_code = 426
         response.json.return_value = {"detail": "Client version too old."}
         with self.assertRaises(RuntimeError) as cm:
-            self.client._validate_response(response, "test", only_version_check=True)
+            ServiceClient._validate_response(response, "test", only_version_check=True)
         self.assertEqual(str(cm.exception), "Client version too old.")
 
         # Errors that have nothing to do with client version should be skipped.
         response = Mock()
         response.status_code = 400
         response.json.return_value = {"detail": "Some other error"}
-        r = self.client._validate_response(response, "test", only_version_check=True)
+        r = ServiceClient._validate_response(response, "test", only_version_check=True)
         self.assertIsNone(r)
 
     @with_mock_server()
@@ -255,11 +256,11 @@ class TestServiceClient(unittest.TestCase):
         Test that uploading the same training set multiple times uses the cache and
         only calls the upload_train_set endpoint once.
         """
-        self.client.authorize("dummy_access_token")
+        ServiceClient.authorize("dummy_access_token")
 
         # Mock the upload_train_set endpoint to return a fixed train_set_uid
         with patch.object(
-            self.client.httpx_client, "post", wraps=self.client.httpx_client.post
+            ServiceClient.httpx_client, "post", wraps=ServiceClient.httpx_client.post
         ) as mock_post:
             # Set up the mock response
             mock_response = Mock()
@@ -268,10 +269,10 @@ class TestServiceClient(unittest.TestCase):
             mock_post.return_value = mock_response
 
             # First upload
-            train_set_uid1 = self.client.upload_train_set(self.X_train, self.y_train)
+            train_set_uid1 = ServiceClient.upload_train_set(self.X_train, self.y_train)
 
             # Second upload with the same data
-            train_set_uid2 = self.client.upload_train_set(self.X_train, self.y_train)
+            train_set_uid2 = ServiceClient.upload_train_set(self.X_train, self.y_train)
 
             # The train_set_uid should be the same due to caching
             self.assertEqual(train_set_uid1, train_set_uid2)
@@ -284,24 +285,24 @@ class TestServiceClient(unittest.TestCase):
         Test that making predictions with the same test set uses the cache and
         avoids re-uploading the test set.
         """
-        self.client.authorize("dummy_access_token")
+        ServiceClient.authorize("dummy_access_token")
 
         # Mock the upload_train_set and predict endpoints
         with (
             patch.object(
-                self.client.httpx_client, "post", wraps=self.client.httpx_client.post
+                ServiceClient.httpx_client, "post", wraps=ServiceClient.httpx_client.post
             ) as mock_post,
             patch.object(
-                self.client.httpx_client,
+                ServiceClient.httpx_client,
                 "stream",
-                wraps=self.client.httpx_client.stream,
+                wraps=ServiceClient.httpx_client.stream,
             ) as mock_stream,
         ):
             # Mock responses
             def side_effect(*args, **kwargs):
                 if (
                     kwargs.get("url")
-                    == self.client.server_endpoints.upload_train_set.path
+                    == ServiceClient.server_endpoints.upload_train_set.path
                 ):
                     response = Mock()
                     response.status_code = 200
@@ -309,7 +310,7 @@ class TestServiceClient(unittest.TestCase):
                         "train_set_uid": "dummy_train_set_uid"
                     }
                     return response
-                elif kwargs.get("url") == self.client.server_endpoints.predict.path:
+                elif kwargs.get("url") == ServiceClient.server_endpoints.predict.path:
                     response = Mock()
                     response.status_code = 200
                     response.headers = {"Content-Type": "text/event-stream"}
@@ -330,15 +331,15 @@ class TestServiceClient(unittest.TestCase):
             mock_stream.side_effect = side_effect
 
             # Upload train set
-            train_set_uid = self.client.upload_train_set(self.X_train, self.y_train)
+            train_set_uid = ServiceClient.upload_train_set(self.X_train, self.y_train)
 
             # First prediction
-            pred1 = self.client.predict(
+            pred1 = ServiceClient.predict(
                 train_set_uid=train_set_uid, x_test=self.X_test, task="classification"
             )
 
             # Second prediction with the same test set
-            pred2 = self.client.predict(
+            pred2 = ServiceClient.predict(
                 train_set_uid=train_set_uid, x_test=self.X_test, task="classification"
             )
 
@@ -361,24 +362,24 @@ class TestServiceClient(unittest.TestCase):
         Test that when the cached UIDs are invalid, the client re-uploads the datasets
         and retries the prediction.
         """
-        self.client.authorize("dummy_access_token")
+        ServiceClient.authorize("dummy_access_token")
 
         # Mock the upload_train_set and predict endpoints
         with (
             patch.object(
-                self.client.httpx_client, "post", wraps=self.client.httpx_client.post
+                ServiceClient.httpx_client, "post", wraps=ServiceClient.httpx_client.post
             ) as mock_post,
             patch.object(
-                self.client.httpx_client,
+                ServiceClient.httpx_client,
                 "stream",
-                wraps=self.client.httpx_client.stream,
+                wraps=ServiceClient.httpx_client.stream,
             ) as mock_stream,
         ):
             # Mock responses with side effects to simulate invalid cached UIDs
             def side_effect(*args, **kwargs):
                 if (
                     kwargs.get("url")
-                    == self.client.server_endpoints.upload_train_set.path
+                    == ServiceClient.server_endpoints.upload_train_set.path
                 ):
                     response = Mock()
                     response.status_code = 200
@@ -386,7 +387,7 @@ class TestServiceClient(unittest.TestCase):
                         "train_set_uid": "dummy_train_set_uid"
                     }
                     return response
-                elif kwargs.get("url") == self.client.server_endpoints.predict.path:
+                elif kwargs.get("url") == ServiceClient.server_endpoints.predict.path:
                     # Simulate invalid UID on first call, success on second
                     if side_effect.call_count == 2:
                         response = Mock()
@@ -425,10 +426,10 @@ class TestServiceClient(unittest.TestCase):
             mock_stream.side_effect = side_effect_counter
 
             # Upload train set
-            train_set_uid = self.client.upload_train_set(self.X_train, self.y_train)
+            train_set_uid = ServiceClient.upload_train_set(self.X_train, self.y_train)
 
             # Attempt prediction, which should fail and trigger retry
-            pred = self.client.predict(
+            pred = ServiceClient.predict(
                 train_set_uid=train_set_uid,
                 x_test=self.X_test,
                 task="classification",
@@ -449,7 +450,7 @@ class TestServiceClient(unittest.TestCase):
                 call
                 for call in mock_post.call_args_list
                 if call.kwargs.get("url")
-                == self.client.server_endpoints.upload_train_set.path
+                == ServiceClient.server_endpoints.upload_train_set.path
             ]
             self.assertEqual(len(upload_calls), 2)
 
@@ -459,7 +460,7 @@ class TestServiceClient(unittest.TestCase):
         and deleting dataset UIDs based on hashes.
         """
         # Create a fresh cache manager
-        cache_manager = self.client.dataset_uid_cache_manager
+        cache_manager = ServiceClient.dataset_uid_cache_manager
 
         # Mock dataset hashes and UIDs
         dataset_1 = "data1"
@@ -492,7 +493,7 @@ class TestServiceClient(unittest.TestCase):
         """
         Test that the cache does not exceed its limit and evicts the oldest entries.
         """
-        cache_manager = self.client.dataset_uid_cache_manager
+        cache_manager = ServiceClient.dataset_uid_cache_manager
         cache_manager.cache_limit = 3  # Set a small limit for testing
 
         # Add more datasets than the cache limit

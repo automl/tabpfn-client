@@ -20,7 +20,7 @@ from tqdm import tqdm
 
 from tabpfn_client.tabpfn_common_utils import utils as common_utils
 from tabpfn_client.constants import CACHE_DIR
-
+from tabpfn_client.tabpfn_common_utils.utils import Singleton
 
 logger = logging.getLogger(__name__)
 
@@ -141,48 +141,45 @@ def get_client_version() -> str:
         return "5.5.5"
 
 
-@common_utils.singleton
-class ServiceClient:
+class ServiceClient(Singleton):
     """
     Singleton class for handling communication with the server.
     It encapsulates all the API calls to the server.
     """
 
-    def __init__(self):
-        self.server_config = SERVER_CONFIG
-        self.server_endpoints = SERVER_CONFIG["endpoints"]
-        self.base_url = f"{self.server_config.protocol}://{self.server_config.host}:{self.server_config.port}"
-        self.httpx_timeout_s = (
-            4 * 5 * 60 + 15  # temporary workaround for slow computation on server side
+    server_config = SERVER_CONFIG
+    server_endpoints = SERVER_CONFIG["endpoints"]
+    base_url = f"{server_config.protocol}://{server_config.host}:{server_config.port}"
+    httpx_timeout_s = (
+        4 * 5 * 60 + 15  # temporary workaround for slow computation on server side
+    )
+    httpx_client = httpx.Client(
+        base_url=base_url,
+        timeout=httpx_timeout_s,
+        headers={"client-version": get_client_version()},
+    )
+
+    _access_token = None
+    dataset_uid_cache_manager = DatasetUIDCacheManager()
+
+    @classmethod
+    def get_access_token(cls):
+        return cls._access_token
+
+    @classmethod
+    def authorize(cls, access_token: str):
+        cls._access_token = access_token
+        cls.httpx_client.headers.update(
+            {"Authorization": f"Bearer {cls.get_access_token()}"}
         )
-        self.httpx_client = httpx.Client(
-            base_url=self.base_url,
-            timeout=self.httpx_timeout_s,
-            headers={"client-version": get_client_version()},
-        )
 
-        self._access_token = None
-        self.dataset_uid_cache_manager = DatasetUIDCacheManager()
+    @classmethod
+    def reset_authorization(cls):
+        cls._access_token = None
+        cls.httpx_client.headers.pop("Authorization", None)
 
-    @property
-    def access_token(self):
-        return self._access_token
-
-    def authorize(self, access_token: str):
-        self._access_token = access_token
-        self.httpx_client.headers.update(
-            {"Authorization": f"Bearer {self.access_token}"}
-        )
-
-    def reset_authorization(self):
-        self._access_token = None
-        self.httpx_client.headers.pop("Authorization", None)
-
-    @property
-    def is_initialized(self):
-        return self.access_token is not None and self.access_token != ""
-
-    def upload_train_set(self, X, y) -> str:
+    @classmethod
+    def upload_train_set(cls, X, y) -> str:
         """
         Upload a train set to server and return the train set UID if successful.
 
@@ -205,15 +202,15 @@ class ServiceClient:
 
         # Get hash for dataset. Include access token for the case that one user uses different accounts.
         cached_dataset_uid, dataset_hash = (
-            self.dataset_uid_cache_manager.get_dataset_uid(
-                X_serialized, y_serialized, self._access_token
+            cls.dataset_uid_cache_manager.get_dataset_uid(
+                X_serialized, y_serialized, cls._access_token
             )
         )
         if cached_dataset_uid:
             return cached_dataset_uid
 
-        response = self.httpx_client.post(
-            url=self.server_endpoints.upload_train_set.path,
+        response = cls.httpx_client.post(
+            url=cls.server_endpoints.upload_train_set.path,
             files=common_utils.to_httpx_post_file_format(
                 [
                     ("x_file", "x_train_filename", X_serialized),
@@ -222,14 +219,15 @@ class ServiceClient:
             ),
         )
 
-        self._validate_response(response, "upload_train_set")
+        cls._validate_response(response, "upload_train_set")
 
         train_set_uid = response.json()["train_set_uid"]
-        self.dataset_uid_cache_manager.add_dataset_uid(dataset_hash, train_set_uid)
+        cls.dataset_uid_cache_manager.add_dataset_uid(dataset_hash, train_set_uid)
         return train_set_uid
 
+    @classmethod
     def predict(
-        self,
+        cls,
         train_set_uid: str,
         x_test,
         task: Literal["classification", "regression"],
@@ -258,8 +256,8 @@ class ServiceClient:
         # In the arguments for hashing, include train_set_uid for the case that the same test set was previously used
         # with different train set. Include access token for the case that a user uses different accounts.
         cached_test_set_uid, dataset_hash = (
-            self.dataset_uid_cache_manager.get_dataset_uid(
-                x_test_serialized, train_set_uid, self._access_token
+            cls.dataset_uid_cache_manager.get_dataset_uid(
+                x_test_serialized, train_set_uid, cls._access_token
             )
         )
 
@@ -275,10 +273,10 @@ class ServiceClient:
         max_attempts = 2
         for attempt in range(max_attempts):
             try:
-                with self._make_prediction_request(
+                with cls._make_prediction_request(
                     cached_test_set_uid, x_test_serialized, params
                 ) as response:
-                    self._validate_response(response, "predict")
+                    cls._validate_response(response, "predict")
                     # Handle updates from server
                     client = sseclient.SSEClient(response.iter_bytes())
 
@@ -328,12 +326,12 @@ class ServiceClient:
                     and attempt < max_attempts - 1
                 ):
                     # Retry by re-uploading the train set
-                    self.dataset_uid_cache_manager.delete_uid(train_set_uid)
+                    cls.dataset_uid_cache_manager.delete_uid(train_set_uid)
                     if X_train is None or y_train is None:
                         raise RuntimeError(
                             "Train set data is required to re-upload but was not provided."
                         )
-                    train_set_uid = self.upload_train_set(X_train, y_train)
+                    train_set_uid = cls.upload_train_set(X_train, y_train)
                     params["train_set_uid"] = train_set_uid
                     cached_test_set_uid = None
                 else:
@@ -350,7 +348,7 @@ class ServiceClient:
         result = results[task]
         test_set_uid = results["test_set_uid"]
         if cached_test_set_uid is None:
-            self.dataset_uid_cache_manager.add_dataset_uid(dataset_hash, test_set_uid)
+            cls.dataset_uid_cache_manager.add_dataset_uid(dataset_hash, test_set_uid)
 
         # The results contain different things for the different tasks
         # - classification: probas_array
@@ -364,20 +362,21 @@ class ServiceClient:
 
         return result
 
-    def _make_prediction_request(self, test_set_uid, x_test_serialized, params):
+    @classmethod
+    def _make_prediction_request(cls, test_set_uid, x_test_serialized, params):
         """
         Helper function to make the prediction request to the server.
         """
         if test_set_uid:
             params = params.copy()
             params["test_set_uid"] = test_set_uid
-            response = self.httpx_client.stream(
-                method="post", url=self.server_endpoints.predict.path, params=params
+            response = cls.httpx_client.stream(
+                method="post", url=cls.server_endpoints.predict.path, params=params
             )
         else:
-            response = self.httpx_client.stream(
+            response = cls.httpx_client.stream(
                 method="post",
-                url=self.server_endpoints.predict.path,
+                url=cls.server_endpoints.predict.path,
                 params=params,
                 files=common_utils.to_httpx_post_file_format(
                     [("x_file", "x_test_filename", x_test_serialized)]
@@ -448,14 +447,15 @@ class ServiceClient:
                 f"{response.reason_phrase} and text: {response.text}"
             )
 
-    def try_connection(self) -> bool:
+    @classmethod
+    def try_connection(cls) -> bool:
         """
         Check if server is reachable and accepts the connection.
         """
         found_valid_connection = False
         try:
-            response = self.httpx_client.get(self.server_endpoints.root.path)
-            self._validate_response(response, "try_connection", only_version_check=True)
+            response = cls.httpx_client.get(cls.server_endpoints.root.path)
+            cls._validate_response(response, "try_connection", only_version_check=True)
             if response.status_code == 200:
                 found_valid_connection = True
 
@@ -466,17 +466,18 @@ class ServiceClient:
 
         return found_valid_connection
 
-    def is_auth_token_outdated(self, access_token) -> bool | None:
+    @classmethod
+    def is_auth_token_outdated(cls, access_token) -> bool | None:
         """
         Check if the provided access token is valid and return True if successful.
         """
         is_authenticated = False
-        response = self.httpx_client.get(
-            self.server_endpoints.protected_root.path,
+        response = cls.httpx_client.get(
+            cls.server_endpoints.protected_root.path,
             headers={"Authorization": f"Bearer {access_token}"},
         )
 
-        self._validate_response(
+        cls._validate_response(
             response, "is_auth_token_outdated", only_version_check=True
         )
         if response.status_code == 200:
@@ -485,7 +486,8 @@ class ServiceClient:
             is_authenticated = None
         return is_authenticated
 
-    def validate_email(self, email: str) -> tuple[bool, str]:
+    @classmethod
+    def validate_email(cls, email: str) -> tuple[bool, str]:
         """
         Send entered email to server that checks if it is valid and not already in use.
 
@@ -500,11 +502,11 @@ class ServiceClient:
         message : str
             The message returned from the server.
         """
-        response = self.httpx_client.post(
-            self.server_endpoints.validate_email.path, params={"email": email}
+        response = cls.httpx_client.post(
+            cls.server_endpoints.validate_email.path, params={"email": email}
         )
 
-        self._validate_response(response, "validate_email", only_version_check=True)
+        cls._validate_response(response, "validate_email", only_version_check=True)
         if response.status_code == 200:
             is_valid = True
             message = ""
@@ -514,8 +516,9 @@ class ServiceClient:
 
         return is_valid, message
 
+    @classmethod
     def register(
-        self,
+        cls,
         email: str,
         password: str,
         password_confirm: str,
@@ -541,8 +544,8 @@ class ServiceClient:
             The message returned from the server.
         """
 
-        response = self.httpx_client.post(
-            self.server_endpoints.register.path,
+        response = cls.httpx_client.post(
+            cls.server_endpoints.register.path,
             json={
                 "email": email,
                 "password": password,
@@ -552,7 +555,7 @@ class ServiceClient:
             },
         )
 
-        self._validate_response(response, "register", only_version_check=True)
+        cls._validate_response(response, "register", only_version_check=True)
         if response.status_code == 200:
             is_created = True
             message = response.json()["message"]
@@ -563,7 +566,8 @@ class ServiceClient:
         access_token = response.json()["token"] if is_created else None
         return is_created, message, access_token
 
-    def login(self, email: str, password: str) -> tuple[str, str]:
+    @classmethod
+    def login(cls, email: str, password: str) -> tuple[str, str]:
         """
         Login with the provided credentials and return the access token if successful.
 
@@ -581,12 +585,12 @@ class ServiceClient:
         """
 
         access_token = None
-        response = self.httpx_client.post(
-            self.server_endpoints.login.path,
+        response = cls.httpx_client.post(
+            cls.server_endpoints.login.path,
             data=common_utils.to_oauth_request_form(email, password),
         )
 
-        self._validate_response(response, "login", only_version_check=True)
+        cls._validate_response(response, "login", only_version_check=True)
         if response.status_code == 200:
             access_token = response.json()["access_token"]
             message = ""
@@ -595,7 +599,8 @@ class ServiceClient:
 
         return access_token, message
 
-    def get_password_policy(self) -> {}:
+    @classmethod
+    def get_password_policy(cls) -> dict:
         """
         Get the password policy from the server.
 
@@ -605,21 +610,20 @@ class ServiceClient:
             The password policy returned from the server.
         """
 
-        response = self.httpx_client.get(
-            self.server_endpoints.password_policy.path,
+        response = cls.httpx_client.get(
+            cls.server_endpoints.password_policy.path,
         )
-        self._validate_response(
-            response, "get_password_policy", only_version_check=True
-        )
+        cls._validate_response(response, "get_password_policy", only_version_check=True)
 
         return response.json()["requirements"]
 
-    def send_reset_password_email(self, email: str) -> tuple[bool, str]:
+    @classmethod
+    def send_reset_password_email(cls, email: str) -> tuple[bool, str]:
         """
         Let the server send an email for resetting the password.
         """
-        response = self.httpx_client.post(
-            self.server_endpoints.send_reset_password_email.path,
+        response = cls.httpx_client.post(
+            cls.server_endpoints.send_reset_password_email.path,
             params={"email": email},
         )
         if response.status_code == 200:
@@ -630,12 +634,13 @@ class ServiceClient:
             message = response.json()["detail"]
         return sent, message
 
-    def send_verification_email(self, access_token: str) -> tuple[bool, str]:
+    @classmethod
+    def send_verification_email(cls, access_token: str) -> tuple[bool, str]:
         """
         Let the server send an email for verifying the email.
         """
-        response = self.httpx_client.post(
-            self.server_endpoints.send_verification_email.path,
+        response = cls.httpx_client.post(
+            cls.server_endpoints.send_verification_email.path,
             headers={"Authorization": f"Bearer {access_token}"},
         )
         if response.status_code == 200:
@@ -646,15 +651,16 @@ class ServiceClient:
             message = response.json()["detail"]
         return sent, message
 
-    def retrieve_greeting_messages(self) -> list[str]:
+    @classmethod
+    def retrieve_greeting_messages(cls) -> list[str]:
         """
         Retrieve greeting messages that are new for the user.
         """
-        response = self.httpx_client.get(
-            self.server_endpoints.retrieve_greeting_messages.path
+        response = cls.httpx_client.get(
+            cls.server_endpoints.retrieve_greeting_messages.path
         )
 
-        self._validate_response(
+        cls._validate_response(
             response, "retrieve_greeting_messages", only_version_check=True
         )
         if response.status_code != 200:
@@ -663,23 +669,25 @@ class ServiceClient:
         greeting_messages = response.json()["messages"]
         return greeting_messages
 
-    def get_data_summary(self) -> {}:
+    @classmethod
+    def get_data_summary(cls) -> dict:
         """
         Get the data summary of the user from the server.
 
         Returns
         -------
-        data_summary : {}
+        data_summary : dict
             The data summary returned from the server.
         """
-        response = self.httpx_client.get(
-            self.server_endpoints.get_data_summary.path,
+        response = cls.httpx_client.get(
+            cls.server_endpoints.get_data_summary.path,
         )
-        self._validate_response(response, "get_data_summary")
+        cls._validate_response(response, "get_data_summary")
 
         return response.json()
 
-    def download_all_data(self, save_dir: Path) -> Path | None:
+    @classmethod
+    def download_all_data(cls, save_dir: Path) -> Path | None:
         """
         Download all data uploaded by the user from the server.
 
@@ -692,16 +700,16 @@ class ServiceClient:
 
         save_path = None
 
-        full_url = self.base_url + self.server_endpoints.download_all_data.path
+        full_url = cls.base_url + cls.server_endpoints.download_all_data.path
         with httpx.stream(
             "GET",
             full_url,
             headers={
-                "Authorization": f"Bearer {self.access_token}",
+                "Authorization": f"Bearer {cls.get_access_token()}",
                 "client-version": get_client_version(),
             },
         ) as response:
-            self._validate_response(response, "download_all_data")
+            cls._validate_response(response, "download_all_data")
 
             filename = response.headers["Content-Disposition"].split("filename=")[1]
             save_path = Path(save_dir) / filename
@@ -711,7 +719,8 @@ class ServiceClient:
 
         return save_path
 
-    def delete_dataset(self, dataset_uid: str) -> [str]:
+    @classmethod
+    def delete_dataset(cls, dataset_uid: str) -> list[str]:
         """
         Delete the dataset with the provided UID from the server.
         Note that deleting a train set with lead to deleting all associated test sets.
@@ -727,16 +736,17 @@ class ServiceClient:
             The list of deleted dataset UIDs.
 
         """
-        response = self.httpx_client.delete(
-            self.server_endpoints.delete_dataset.path,
+        response = cls.httpx_client.delete(
+            cls.server_endpoints.delete_dataset.path,
             params={"dataset_uid": dataset_uid},
         )
 
-        self._validate_response(response, "delete_dataset")
+        cls._validate_response(response, "delete_dataset")
 
         return response.json()["deleted_dataset_uids"]
 
-    def delete_all_datasets(self) -> [str]:
+    @classmethod
+    def delete_all_datasets(cls) -> [str]:
         """
         Delete all datasets uploaded by the user from the server.
 
@@ -745,18 +755,19 @@ class ServiceClient:
         deleted_dataset_uids : [str]
             The list of deleted dataset UIDs.
         """
-        response = self.httpx_client.delete(
-            self.server_endpoints.delete_all_datasets.path,
+        response = cls.httpx_client.delete(
+            cls.server_endpoints.delete_all_datasets.path,
         )
 
-        self._validate_response(response, "delete_all_datasets")
+        cls._validate_response(response, "delete_all_datasets")
 
         return response.json()["deleted_dataset_uids"]
 
-    def delete_user_account(self, confirm_pass: str) -> None:
-        response = self.httpx_client.delete(
-            self.server_endpoints.delete_user_account.path,
+    @classmethod
+    def delete_user_account(cls, confirm_pass: str) -> None:
+        response = cls.httpx_client.delete(
+            cls.server_endpoints.delete_user_account.path,
             params={"confirm_password": confirm_pass},
         )
 
-        self._validate_response(response, "delete_user_account")
+        cls._validate_response(response, "delete_user_account")

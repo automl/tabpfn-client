@@ -3,11 +3,12 @@ import logging
 from dataclasses import dataclass, asdict
 
 import numpy as np
-from tabpfn_client import init
+from tabpfn_client.config import init
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
 from sklearn.utils.validation import check_is_fitted
 
-from tabpfn_client import config
+from tabpfn_client.config import Config
+from tabpfn_client.service_wrapper import InferenceClient
 
 logger = logging.getLogger(__name__)
 
@@ -250,8 +251,8 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
         validate_data_size(X, y)
         self._validate_targets_and_classes(y)
 
-        if config.g_tabpfn_config.use_server:
-            self.last_train_set_uid = config.g_tabpfn_config.inference_handler.fit(X, y)
+        if Config.use_server:
+            self.last_train_set_uid = InferenceClient.fit(X, y)
             self.last_train_X = X
             self.last_train_y = y
             self.fitted_ = True
@@ -278,7 +279,7 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
                 "classification", estimator_param.pop("model")
             )
 
-        return config.g_tabpfn_config.inference_handler.predict(
+        return InferenceClient.predict(
             X,
             task="classification",
             train_set_uid=self.last_train_set_uid,
@@ -405,8 +406,8 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
 
         validate_data_size(X, y)
 
-        if config.g_tabpfn_config.use_server:
-            self.last_train_set_uid = config.g_tabpfn_config.inference_handler.fit(X, y)
+        if Config.use_server:
+            self.last_train_set_uid = InferenceClient.fit(X, y)
             self.last_train_X = X
             self.last_train_y = y
             self.fitted_ = True
@@ -438,7 +439,7 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
                 "regression", estimator_param.pop("model")
             )
 
-        return config.g_tabpfn_config.inference_handler.predict(
+        return InferenceClient.predict(
             X,
             task="regression",
             train_set_uid=self.last_train_set_uid,

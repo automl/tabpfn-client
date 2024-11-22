@@ -16,11 +16,9 @@ class TestUserAuthClient(unittest.TestCase):
     """
 
     def setUp(self):
-        ServiceClient().reset_authorization()
+        ServiceClient.reset_authorization()
 
     def tearDown(self):
-        ServiceClient().delete_instance()
-
         UserAuthenticationClient.CACHED_TOKEN_FILE.unlink(missing_ok=True)
 
     @with_mock_server()
@@ -32,13 +30,13 @@ class TestUserAuthClient(unittest.TestCase):
         )
 
         self.assertTrue(
-            UserAuthenticationClient(ServiceClient()).set_token_by_login(
+            UserAuthenticationClient.set_token_by_login(
                 "dummy_email", "dummy_password"
             )[0]
         )
 
         # assert token is set
-        self.assertEqual(dummy_token, ServiceClient().access_token)
+        self.assertEqual(dummy_token, ServiceClient.get_access_token())
 
     @with_mock_server()
     def test_set_token_by_invalid_login(self, mock_server):
@@ -48,13 +46,13 @@ class TestUserAuthClient(unittest.TestCase):
         )
         self.assertEqual(
             (False, "Incorrect email or password"),
-            UserAuthenticationClient(ServiceClient()).set_token_by_login(
+            UserAuthenticationClient.set_token_by_login(
                 "dummy_email", "dummy_password"
             ),
         )
 
         # assert token is not set
-        self.assertIsNone(ServiceClient().access_token)
+        self.assertIsNone(ServiceClient.get_access_token())
 
     @with_mock_server()
     def test_try_reusing_existing_token(self, mock_server):
@@ -68,17 +66,17 @@ class TestUserAuthClient(unittest.TestCase):
         mock_server.router.get(mock_server.endpoints.protected_root.path).respond(200)
 
         # assert no exception is raised
-        UserAuthenticationClient(ServiceClient()).try_reuse_existing_token()
+        UserAuthenticationClient.try_reuse_existing_token()
 
         # assert token is set
-        self.assertEqual(dummy_token, ServiceClient().access_token)
+        self.assertEqual(dummy_token, ServiceClient.get_access_token())
 
     def test_try_reusing_non_existing_token(self):
         # assert no exception is raised
-        UserAuthenticationClient(ServiceClient()).try_reuse_existing_token()
+        UserAuthenticationClient.try_reuse_existing_token()
 
         # assert token is not set
-        self.assertIsNone(ServiceClient().access_token)
+        self.assertIsNone(ServiceClient.get_access_token())
 
     @with_mock_server()
     def test_set_token_by_invalid_registration(self, mock_server):
@@ -88,7 +86,7 @@ class TestUserAuthClient(unittest.TestCase):
         )
         self.assertEqual(
             (False, "Password mismatch"),
-            UserAuthenticationClient(ServiceClient()).set_token_by_registration(
+            UserAuthenticationClient.set_token_by_registration(
                 "dummy_email",
                 "dummy_password",
                 "dummy_password",
@@ -103,7 +101,7 @@ class TestUserAuthClient(unittest.TestCase):
         )
 
         # assert token is not set
-        self.assertIsNone(ServiceClient().access_token)
+        self.assertIsNone(ServiceClient.get_access_token())
 
     @with_mock_server()
     def test_reset_cache_after_token_set(self, mock_server):
@@ -115,25 +113,23 @@ class TestUserAuthClient(unittest.TestCase):
 
         # mock authentication
         mock_server.router.get(mock_server.endpoints.protected_root.path).respond(200)
-        self.assertTrue(
-            UserAuthenticationClient(ServiceClient()).try_reuse_existing_token()
-        )
+        self.assertTrue(UserAuthenticationClient.try_reuse_existing_token())
 
         # assert token is set
-        self.assertEqual(dummy_token, ServiceClient().access_token)
+        self.assertEqual(dummy_token, ServiceClient.get_access_token())
 
         # reset cache
-        UserAuthenticationClient(ServiceClient()).reset_cache()
+        UserAuthenticationClient.reset_cache()
 
         # assert token is not set
-        self.assertIsNone(ServiceClient().access_token)
+        self.assertIsNone(ServiceClient.get_access_token())
 
     def test_reset_cache_without_token_set(self):
         # assert no exception is raised
-        UserAuthenticationClient(ServiceClient()).reset_cache()
+        UserAuthenticationClient.reset_cache()
 
         # assert token is not set
-        self.assertIsNone(ServiceClient().access_token)
+        self.assertIsNone(ServiceClient.get_access_token())
 
 
 class TestUserDataClient(unittest.TestCase):
@@ -156,7 +152,7 @@ class TestUserDataClient(unittest.TestCase):
             200, json=mock_summary
         )
 
-        self.assertEqual(mock_summary, UserDataClient().get_data_summary())
+        self.assertEqual(mock_summary, UserDataClient.get_data_summary())
 
     @with_mock_server()
     def test_download_all_data_accepts_empty_zip(self, mock_server):
@@ -173,7 +169,7 @@ class TestUserDataClient(unittest.TestCase):
         )
 
         # assert no exception is raised, and zip file is empty
-        zip_file_path = UserDataClient().download_all_data(Path("."))
+        zip_file_path = UserDataClient.download_all_data(Path("."))
         self.assertTrue(self._is_zip_file_empty(zip_file_path))
 
         # delete the zip file
@@ -194,7 +190,7 @@ class TestUserDataClient(unittest.TestCase):
         )
 
         # assert no exception is raised, and zip file is not empty
-        zip_file_path = UserDataClient().download_all_data(Path("."))
+        zip_file_path = UserDataClient.download_all_data(Path("."))
         self.assertFalse(self._is_zip_file_empty(zip_file_path))
 
         # delete the zip file
@@ -208,7 +204,7 @@ class TestUserDataClient(unittest.TestCase):
         )
 
         # assert no exception is raised
-        self.assertEqual([], UserDataClient().delete_dataset("dummy_uid"))
+        self.assertEqual([], UserDataClient.delete_dataset("dummy_uid"))
 
     @with_mock_server()
     def test_delete_datasets_accepts_uid_list(self, mock_server):
@@ -218,7 +214,7 @@ class TestUserDataClient(unittest.TestCase):
         )
 
         # assert no exception is raised
-        self.assertEqual(["dummy_uid"], UserDataClient().delete_dataset("dummy_uid"))
+        self.assertEqual(["dummy_uid"], UserDataClient.delete_dataset("dummy_uid"))
 
     @with_mock_server()
     def test_delete_all_datasets_accepts_empty_uid_list(self, mock_server):
@@ -228,7 +224,7 @@ class TestUserDataClient(unittest.TestCase):
         ).respond(200, json={"deleted_dataset_uids": []})
 
         # assert no exception is raised
-        self.assertEqual([], UserDataClient().delete_all_datasets())
+        self.assertEqual([], UserDataClient.delete_all_datasets())
 
     @with_mock_server()
     def test_delete_all_datasets_accepts_uid_list(self, mock_server):
@@ -238,11 +234,11 @@ class TestUserDataClient(unittest.TestCase):
         ).respond(200, json={"deleted_dataset_uids": ["dummy_uid"]})
 
         # assert no exception is raised
-        self.assertEqual(["dummy_uid"], UserDataClient().delete_all_datasets())
+        self.assertEqual(["dummy_uid"], UserDataClient.delete_all_datasets())
 
     @with_mock_server()
     @patch(
-        "tabpfn_client.service_wrapper.PromptAgent.prompt_confirm_password_for_user_account_deletion"
+        "tabpfn_client.prompt_agent.PromptAgent.prompt_confirm_password_for_user_account_deletion"
     )
     def test_delete_user_account_with_valid_password(
         self, mock_server, mock_prompt_confirm_password
@@ -256,11 +252,11 @@ class TestUserDataClient(unittest.TestCase):
         mock_prompt_confirm_password.return_value = "dummy_password"
 
         # assert no exception is raised
-        UserDataClient().delete_user_account()
+        UserDataClient.delete_user_account()
 
     @with_mock_server()
     @patch(
-        "tabpfn_client.service_wrapper.PromptAgent.prompt_confirm_password_for_user_account_deletion"
+        "tabpfn_client.prompt_agent.PromptAgent.prompt_confirm_password_for_user_account_deletion"
     )
     def test_delete_user_account_with_invalid_password(
         self, mock_server, mock_prompt_confirm_password
@@ -274,4 +270,4 @@ class TestUserDataClient(unittest.TestCase):
         mock_prompt_confirm_password.return_value = "dummy_password"
 
         # assert exception is raised
-        self.assertRaises(RuntimeError, UserDataClient().delete_user_account)
+        self.assertRaises(RuntimeError, UserDataClient.delete_user_account)
