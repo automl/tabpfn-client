@@ -13,6 +13,7 @@ from typing import Literal, Optional
 from cityhash import CityHash128
 import os
 from collections import OrderedDict
+import sseclient
 
 from tabpfn_client.tabpfn_common_utils import utils as common_utils
 from tabpfn_client.constants import CACHE_DIR
@@ -258,14 +259,25 @@ class ServiceClient:
 
         # Send prediction request. Loop two times, such that if anything cached is not correct
         # anymore, there is a second iteration where the datasets are uploaded.
+        results = None
         max_attempts = 2
         for attempt in range(max_attempts):
             try:
-                response = self._make_prediction_request(
+                with self._make_prediction_request(
                     cached_test_set_uid, x_test_serialized, params
-                )
-                self._validate_response(response, "predict")
-                break  # Successful response, exit the retry loop
+                ) as response:
+                    # Handle updates from server
+                    client = sseclient.SSEClient(response.iter_bytes())
+                    # self._validate_response(response, "predict")
+                    # TODO: Handle errors (catch and send in SSE format)
+
+                    for event in client.events():
+                        data = json.loads(event.data)
+                        if data["event"] == "update":
+                            print(data["detail"])
+                        elif data["event"] == "result":
+                            results = data["data"]
+                break
             except RuntimeError as e:
                 error_message = str(e)
                 if (
@@ -292,9 +304,8 @@ class ServiceClient:
         # The response from the predict API always returns a dictionary with the task as the key.
         # This is just s.t. we do not confuse the tasks, as they both use the same API endpoint.
         # That is why below we use the task as the key to access the response.
-        response = response.json()
-        result = response[task]
-        test_set_uid = response["test_set_uid"]
+        result = results[task]
+        test_set_uid = results["test_set_uid"]
         if cached_test_set_uid is None:
             self.dataset_uid_cache_manager.add_dataset_uid(dataset_hash, test_set_uid)
 
@@ -316,11 +327,12 @@ class ServiceClient:
         """
         if test_set_uid:
             params["test_set_uid"] = test_set_uid
-            response = self.httpx_client.post(
-                url=self.server_endpoints.predict.path, params=params
+            response = self.httpx_client.stream(
+                method="post", url=self.server_endpoints.predict.path, params=params
             )
         else:
-            response = self.httpx_client.post(
+            response = self.httpx_client.stream(
+                method="post",
                 url=self.server_endpoints.predict.path,
                 params=params,
                 files=common_utils.to_httpx_post_file_format(
