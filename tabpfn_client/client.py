@@ -26,6 +26,15 @@ logging.getLogger("httpcore").setLevel(logging.WARNING)
 logging.getLogger("httpcore.http11").setLevel(logging.WARNING)
 
 
+class GCPOverloaded(Exception):
+    """
+    Exception raised when the Google Cloud Platform service is overloaded or
+    unavailable.
+    """
+
+    pass
+
+
 class SensitiveDataFilter(logging.Filter):
     def filter(self, record):
         if "password" in record.getMessage():
@@ -266,10 +275,9 @@ class ServiceClient:
                 with self._make_prediction_request(
                     cached_test_set_uid, x_test_serialized, params
                 ) as response:
+                    self._validate_response(response, "predict")
                     # Handle updates from server
                     client = sseclient.SSEClient(response.iter_bytes())
-                    # self._validate_response(response, "predict")
-                    # TODO: Handle errors (catch and send in SSE format)
 
                     for event in client.events():
                         data = json.loads(event.data)
@@ -277,6 +285,13 @@ class ServiceClient:
                             print(data["detail"])
                         elif data["event"] == "result":
                             results = data["data"]
+                        elif data["event"] == "error":
+                            if data["error_class"] == "GCPOverloaded":
+                                raise GCPOverloaded(data["detail"])
+                            elif data["error_class"] == "ValueError":
+                                raise ValueError(data["detail"])
+                            else:
+                                raise RuntimeError(data["detail"])
                 break
             except RuntimeError as e:
                 error_message = str(e)
@@ -326,6 +341,7 @@ class ServiceClient:
         Helper function to make the prediction request to the server.
         """
         if test_set_uid:
+            params = params.copy()
             params["test_set_uid"] = test_set_uid
             response = self.httpx_client.stream(
                 method="post", url=self.server_endpoints.predict.path, params=params
