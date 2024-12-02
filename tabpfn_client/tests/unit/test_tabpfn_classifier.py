@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
 import shutil
+import json
 
 import numpy as np
 from sklearn.datasets import load_breast_cancer
@@ -62,7 +63,9 @@ class TestTabPFNClassifierInit(unittest.TestCase):
         mock_predict_response = [[1, 0.0], [0.9, 0.1], [0.01, 0.99]]
         predict_route = mock_server.router.post(mock_server.endpoints.predict.path)
         predict_route.respond(
-            200, json={"classification": mock_predict_response, "test_set_uid": "6"}
+            200,
+            content=f'data: {json.dumps({"event": "result", "data": {"classification": mock_predict_response, "test_set_uid": "6"}})}\n\n',
+            headers={"Content-Type": "text/event-stream"},
         )
 
         init(use_server=True)

@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 import numpy as np
+import json
 
 from tabpfn_client.client import ServiceClient
 from tabpfn_client.constants import CACHE_DIR
@@ -199,7 +200,9 @@ class TestServiceClient(unittest.TestCase):
 
         dummy_result = {"test_set_uid": "dummy_uid", "classification": [1, 2, 3]}
         mock_server.router.post(mock_server.endpoints.predict.path).respond(
-            200, json=dummy_result
+            200,
+            content=f'data: {json.dumps({"event": "result", "data": dummy_result})}\n\n',
+            headers={"Content-Type": "text/event-stream"},
         )
 
         pred = self.client.predict(
@@ -302,10 +305,14 @@ class TestServiceClient(unittest.TestCase):
                 elif kwargs.get("url") == self.client.server_endpoints.predict.path:
                     response = Mock()
                     response.status_code = 200
-                    response.json.return_value = {
-                        "classification": [1, 2, 3],
-                        "test_set_uid": "dummy_test_set_uid",
-                    }
+                    response.headers = {"Content-Type": "text/event-stream"}
+                    response.iter_bytes = Mock(
+                        return_value=iter(
+                            [
+                                'data: {"event": "result", "data": {"probas": [1, 2, 3], "test_set_uid": "dummy_test_set_uid"}}\n\n'.encode()
+                            ]
+                        )
+                    )
                     return response
                 else:
                     return Mock(status_code=404)
