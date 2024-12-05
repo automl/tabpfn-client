@@ -289,10 +289,7 @@ class TestServiceClient(unittest.TestCase):
         ) as mock_post:
             # Mock responses
             def side_effect(*args, **kwargs):
-                if (
-                    kwargs.get("url")
-                    == self.client.server_endpoints.fit.path
-                ):
+                if kwargs.get("url") == self.client.server_endpoints.fit.path:
                     response = Mock()
                     response.status_code = 200
                     response.json.return_value = {
@@ -329,9 +326,7 @@ class TestServiceClient(unittest.TestCase):
             self.assertTrue(np.array_equal(pred1["probas"], pred2["probas"]))
 
             # The predict endpoint should have been called twice
-            self.assertEqual(
-                mock_post.call_count, 3
-            )  # 1 for fit, 2 for predict
+            self.assertEqual(mock_post.call_count, 3)  # 1 for fit, 2 for predict
 
             # Check that the test set was uploaded only once (first predict call)
             upload_calls = [
@@ -354,10 +349,7 @@ class TestServiceClient(unittest.TestCase):
         ) as mock_post:
             # Mock responses with side effects to simulate invalid cached UIDs
             def side_effect(*args, **kwargs):
-                if (
-                    kwargs.get("url")
-                    == self.client.server_endpoints.fit.path
-                ):
+                if kwargs.get("url") == self.client.server_endpoints.fit.path:
                     response = Mock()
                     response.status_code = 200
                     response.json.return_value = {
@@ -408,16 +400,13 @@ class TestServiceClient(unittest.TestCase):
             self.assertTrue(np.array_equal(pred["probas"], [1, 2, 3]))
 
             # The predict endpoint should have been called twice due to retry
-            self.assertEqual(
-                mock_post.call_count, 4
-            )  # 1 fit + 2 predict + 1 re-upload
+            self.assertEqual(mock_post.call_count, 4)  # 1 fit + 2 predict + 1 re-upload
 
             # Ensure that fit was called again (re-upload)
             upload_calls = [
                 call
                 for call in mock_post.call_args_list
-                if call.kwargs.get("url")
-                == self.client.server_endpoints.fit.path
+                if call.kwargs.get("url") == self.client.server_endpoints.fit.path
             ]
             self.assertEqual(len(upload_calls), 2)
 
