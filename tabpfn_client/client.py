@@ -20,6 +20,7 @@ from tqdm import tqdm
 
 from tabpfn_client.tabpfn_common_utils import utils as common_utils
 from tabpfn_client.constants import CACHE_DIR
+from tabpfn_client.browser_auth import BrowserAuthHandler
 from tabpfn_client.tabpfn_common_utils.utils import Singleton
 
 logger = logging.getLogger(__name__)
@@ -833,3 +834,17 @@ class ServiceClient(Singleton):
         )
 
         cls._validate_response(response, "delete_user_account")
+
+    def try_browser_login(self) -> tuple[bool, str]:
+        """
+        Attempts browser-based login flow
+        Returns (success: bool, message: str)
+        """
+        browser_auth = BrowserAuthHandler(self.server_config.gui_url)
+        success, token = browser_auth.try_browser_login()
+
+        if success and token:
+            # Don't authorize directly, let UserAuthenticationClient handle it
+            return True, token
+
+        return False, "Browser login failed or was cancelled"

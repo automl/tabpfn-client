@@ -47,8 +47,20 @@ class PromptAgent:
 
     @classmethod
     def prompt_and_set_token(cls):
-        print("inside prompt_and_set_token")
-        # Choose between registration and login
+        # Try browser login first
+        success, message = UserAuthenticationClient.try_browser_login()
+        if success:
+            print(cls.indent("Login via browser successful!"))
+            return
+
+        # Fall back to CLI login if browser login failed
+        # Show terms and conditions for CLI login
+        if not cls.prompt_terms_and_cond():
+            raise RuntimeError(
+                "You must agree to the terms and conditions to use TabPFN"
+            )
+
+        # Rest of the existing CLI login code
         prompt = "\n".join(
             [
                 "Please choose one of the following options:",
