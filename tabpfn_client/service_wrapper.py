@@ -186,7 +186,7 @@ class InferenceClient(ServiceClientWrapper):
                 "Please Note: The email verification token expires in 30 minutes."
             )
 
-        return self.service_client.upload_train_set(X, y)
+        return self.service_client.fit(X, y)
 
     def predict(
         self,
