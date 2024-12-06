@@ -704,3 +704,4 @@ class ServiceClient:
         )
 
         self._validate_response(response, "delete_user_account")
+        # new commit
