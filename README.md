@@ -2,10 +2,9 @@
 
 This is an alpha family and friends service, so please do not expect this to never be down or run into errors. It worked fine in the settings that we tried, though.
 
-What model is behind the API? It is a new TabPFN which we allow to handle up to 10K data points with up to 500 features. You can control all pre-processing, the amount of ensembling etc.
+What model is behind the API? It is a new TabPFN which we allow to handle up to **10K data points** with up to **500 features** for both **regression** and **classification**. You can control all pre-processing, the amount of ensembling etc.
 
 ### We would really appreciate your feedback! Please join our discord community here https://discord.gg/VJRuU3bSxt or email us at hello@priorlabs.ai
-
 
 # How To
 
@@ -65,3 +64,12 @@ To encourage better coding practices, `ruff` has been added to the pre-commit ho
 pre-commit install
 ```
 Additionally, it is recommended that developers install the ruff extension in their preferred editor. For installation instructions, refer to the [Ruff Integrations Documentation](https://docs.astral.sh/ruff/integrations/).
+
+
+### Build for PyPI
+
+```bash
+if [ -d "dist" ]; then rm -rf dist/*; fi
+python3 -m pip install --upgrade build; python3 -m build
+python3 -m twine upload --repository pypi dist/*
+```
