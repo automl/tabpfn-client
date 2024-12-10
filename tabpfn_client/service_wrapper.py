@@ -103,6 +103,13 @@ class UserAuthenticationClient(ServiceClientWrapper):
         sent, message = self.service_client.send_verification_email(access_token)
         return sent, message
 
+    def try_browser_login(self) -> tuple[bool, str]:
+        """Try to authenticate using browser-based login"""
+        success, token_or_message = self.service_client.try_browser_login()
+        if success:
+            self.set_token(token_or_message)
+        return success, token_or_message
+
 
 class UserDataClient(ServiceClientWrapper):
     """
