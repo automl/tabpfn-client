@@ -12,7 +12,6 @@ class MockTabPFNServer(AbstractContextManager):
         self.router = None
 
     def __enter__(self):
-        print(self.base_url)
         self.router = respx.mock(base_url=self.base_url, assert_all_called=True)
         self.router.start()
         return self

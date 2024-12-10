@@ -1,7 +1,6 @@
 import unittest
 from unittest.mock import patch
 from tabpfn_client.prompt_agent import PromptAgent
-from tabpfn_client.tests.mock_tabpfn_server import with_mock_server
 
 
 class TestPromptAgent(unittest.TestCase):
@@ -11,25 +10,36 @@ class TestPromptAgent(unittest.TestCase):
         requirements = [repr(req) for req in password_policy.test("")]
         self.assertEqual(password_req, requirements)
 
-    @with_mock_server()
-    @patch("getpass.getpass", side_effect=["Password123!", "Password123!"])
+    @patch(
+        "tabpfn_client.prompt_agent.PromptAgent.prompt_terms_and_cond",
+        return_value=True,
+    )
+    @patch(
+        "tabpfn_client.prompt_agent.getpass.getpass",
+        side_effect=["Password123!", "Password123!"],
+    )
     @patch(
         "builtins.input",
-        side_effect=["1", "user@example.com", "test", "test", "test", "y", "test"],
+        side_effect=["1", "user@gmail.com", "test", "test", "test", "y", "test"],
     )
     def test_prompt_and_set_token_registration(
-        self, mock_input, mock_getpass, mock_server
+        self,
+        mock_input,
+        mock_getpass,
+        mock_prompt_terms_and_cond,
     ):
         # for some reason, it needs to be patched with a with-statement instead of a decorator
         with patch(
             "tabpfn_client.prompt_agent.UserAuthenticationClient"
         ) as mock_auth_client:
+    
+            mock_auth_client.try_browser_login.return_value = (False, None)
             mock_auth_client.get_password_policy.return_value = [
-                "Length(8)",
-                "Uppercase(1)",
-                "Numbers(1)",
-                "Special(1)",
-            ]
+                    "Length(8)",
+                    "Uppercase(1)",
+                    "Numbers(1)",
+                    "Special(1)",
+                ]
             mock_auth_client.set_token_by_registration.return_value = (
                 True,
                 "Registration successful",
@@ -41,11 +51,16 @@ class TestPromptAgent(unittest.TestCase):
                 "Verification successful",
             )
 
-            PromptAgent.prompt_and_set_token()
+    
+            with patch("builtins.print"):
+                PromptAgent.prompt_and_set_token()
 
-            mock_auth_client.validate_email.assert_called_once_with("user@example.com")
+            mock_auth_client.validate_email.assert_called_once_with("user@gmail.com")
+    
+            mock_auth_client.try_browser_login.assert_called_once()
+            mock_auth_client.validate_email.assert_called_once_with("user@gmail.com")
             mock_auth_client.set_token_by_registration.assert_called_once_with(
-                "user@example.com",
+                "user@gmail.com",
                 "Password123!",
                 "Password123!",
                 "tabpfn-2023",
@@ -57,19 +72,17 @@ class TestPromptAgent(unittest.TestCase):
                 },
             )
 
-    @patch("getpass.getpass", side_effect=["password123"])
-    @patch("builtins.input", side_effect=["2", "user@example.com"])
+    @patch(
+        "tabpfn_client.prompt_agent.PromptAgent.prompt_terms_and_cond",
+        return_value=True,
+    )
+    @patch("getpass.getpass", return_value="password123")
+    @patch("builtins.input", side_effect=["2", "user@gmail.com"])
     def test_prompt_and_set_token_login(self, mock_input, mock_getpass):
-        with patch(
-            "tabpfn_client.prompt_agent.UserAuthenticationClient"
-        ) as mock_auth_client:
-            mock_auth_client.set_token_by_login.return_value = (
-                True,
-                "Login successful",
-                200,
-            )
-            PromptAgent.prompt_and_set_token()
-            mock_auth_client.set_token_by_login.assert_called_once()
+        mock_auth_client = MagicMock()
+        mock_auth_client.set_token_by_login.return_value = (True, "Login successful")
+        PromptAgent.prompt_and_set_token(user_auth_handler=mock_auth_client)
+        mock_auth_client.set_token_by_login.assert_called_once()
 
     @patch("builtins.input", return_value="y")
     def test_prompt_terms_and_cond_returns_true(self, mock_input):

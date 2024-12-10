@@ -32,14 +32,14 @@ class TestTabPFNRegressorInit(unittest.TestCase):
         # remove cache dir
         shutil.rmtree(CACHE_DIR, ignore_errors=True)
 
-    @with_mock_server()
+    @patch("tabpfn_client.browser_auth.webbrowser.open", return_value=False)
     @patch("tabpfn_client.prompt_agent.PromptAgent.prompt_and_set_token")
-    @patch(
-        "tabpfn_client.prompt_agent.PromptAgent.prompt_terms_and_cond",
-        return_value=True,
-    )
+    @with_mock_server()
     def test_init_remote_regressor(
-        self, mock_server, mock_prompt_for_terms_and_cond, mock_prompt_and_set_token
+        self,
+        mock_server,
+        mock_prompt_and_set_token,
+        mock_webbrowser_open,
     ):
         mock_prompt_and_set_token.side_effect = (
             lambda: UserAuthenticationClient.set_token(self.dummy_token)
@@ -73,6 +73,7 @@ class TestTabPFNRegressorInit(unittest.TestCase):
         tabpfn = TabPFNRegressor(n_estimators=10)
         self.assertRaises(NotFittedError, tabpfn.predict, self.X_test)
         tabpfn.fit(self.X_train, self.y_train)
+        self.assertTrue(mock_prompt_and_set_token.called)
 
         for metric in ["mean", "median", "mode"]:
             tabpfn.optimize_metric = metric
@@ -118,13 +119,7 @@ class TestTabPFNRegressorInit(unittest.TestCase):
 
     @with_mock_server()
     @patch("tabpfn_client.prompt_agent.PromptAgent.prompt_and_set_token")
-    @patch(
-        "tabpfn_client.prompt_agent.PromptAgent.prompt_terms_and_cond",
-        return_value=True,
-    )
-    def test_invalid_saved_access_token(
-        self, mock_server, mock_prompt_for_terms_and_cond, mock_prompt_and_set_token
-    ):
+    def test_invalid_saved_access_token(self, mock_server, mock_prompt_and_set_token):
         mock_prompt_and_set_token.side_effect = [RuntimeError]
 
         # mock connection and invalid authentication
@@ -166,12 +161,15 @@ class TestTabPFNRegressorInit(unittest.TestCase):
         # check if config is reset
         self.assertFalse(config.Config.is_initialized)
 
-    @with_mock_server()
     @patch(
         "tabpfn_client.prompt_agent.PromptAgent.prompt_terms_and_cond",
         return_value=False,
     )
-    def test_decline_terms_and_cond(self, mock_server, mock_prompt_for_terms_and_cond):
+    @patch("tabpfn_client.browser_auth.webbrowser.open", return_value=False)
+    @with_mock_server()
+    def test_decline_terms_and_cond(
+        self, mock_server, mock_webbrowser_open, mock_prompt_for_terms_and_cond
+    ):
         # mock connection
         mock_server.router.get(mock_server.endpoints.root.path).respond(200)
 
