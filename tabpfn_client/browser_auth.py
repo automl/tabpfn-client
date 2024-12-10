@@ -2,11 +2,8 @@ from threading import Event
 import http.server
 import socketserver
 import webbrowser
-import logging
 import urllib.parse
 from typing import Optional, Tuple
-
-logger = logging.getLogger(__name__)
 
 
 class BrowserAuthHandler:
@@ -30,7 +27,6 @@ class BrowserAuthHandler:
 
                 if "token" in query:
                     received_token = query["token"][0]
-                    logger.debug("Received auth token from callback")
 
                 self.send_response(200)
                 self.send_header("Content-type", "text/html")
@@ -55,25 +51,22 @@ class BrowserAuthHandler:
                 callback_url = f"http://localhost:{port}"
 
                 login_url = f"{self.gui_url}/login?callback={callback_url}"
-                logger.debug(f"Opening browser for login at: {login_url}")
 
                 print(
                     "\nOpening browser for login. Please complete the login/registration process in your browser and return here.\n"
                 )
 
                 if not webbrowser.open(login_url):
-                    logger.debug("Failed to open browser")
                     print(
                         "\nCould not open browser automatically. Falling back to command-line login...\n"
                     )
                     return False, None
 
-                logger.info("Waiting for browser login completion...")
                 while not auth_event.is_set():
                     httpd.handle_request()
 
                 return received_token is not None, received_token
 
-        except Exception as e:
-            logger.debug(f"Browser auth failed: {str(e)}")
+        except Exception:
+            print("\n Browser auth failed. Falling back to command-line login...\n")
             return False, None
