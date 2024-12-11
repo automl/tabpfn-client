@@ -169,7 +169,7 @@ class ServiceClient:
     def is_initialized(self):
         return self.access_token is not None and self.access_token != ""
 
-    def upload_train_set(self, X, y) -> str:
+    def fit(self, X, y, task: Literal["classification", "regression"]) -> str:
         """
         Upload a train set to server and return the train set UID if successful.
 
@@ -179,6 +179,8 @@ class ServiceClient:
             The training input samples.
         y : array-like of shape (n_samples,) or (n_samples, n_outputs)
             The target values.
+        task : Literal["classification", "regression"]
+            The task to perform.
 
         Returns
         -------
@@ -199,17 +201,20 @@ class ServiceClient:
         if cached_dataset_uid:
             return cached_dataset_uid
 
+        params = {"task": task}
+
         response = self.httpx_client.post(
-            url=self.server_endpoints.upload_train_set.path,
+            url=self.server_endpoints.fit.path,
             files=common_utils.to_httpx_post_file_format(
                 [
                     ("x_file", "x_train_filename", X_serialized),
                     ("y_file", "y_train_filename", y_serialized),
                 ]
             ),
+            params=params,
         )
 
-        self._validate_response(response, "upload_train_set")
+        self._validate_response(response, "fit")
 
         train_set_uid = response.json()["train_set_uid"]
         self.dataset_uid_cache_manager.add_dataset_uid(dataset_hash, train_set_uid)
@@ -278,7 +283,7 @@ class ServiceClient:
                         raise RuntimeError(
                             "Train set data is required to re-upload but was not provided."
                         )
-                    train_set_uid = self.upload_train_set(X_train, y_train)
+                    train_set_uid = self.fit(X_train, y_train)
                     params["train_set_uid"] = train_set_uid
                     cached_test_set_uid = None
                 else:
