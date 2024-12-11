@@ -28,6 +28,26 @@ class PromptAgent:
             requirements[word_part.lower()] = number
         return PasswordPolicy.from_names(**requirements)
 
+    @staticmethod
+    def prompt_access_token_information():
+        """
+        Print information about the access token.
+        Where to find it, how to use it, how to reset it etc.
+        """
+        prompt = "\n".join(
+            [
+                "Please Note:\n",
+                "- Your access token is a secret key that allows you to use TabPFN-Client services.",
+                "- You can find your access token in the 'config' file under the './tabpfn' directory.",
+                "- The access token expires one year after your initial login.",
+                "- If you lose your access token, you can reset it using the `reset()` function and log in again.",
+                "- Keep it safe, and do not share it with anyone.",
+                "",
+            ]
+        )
+
+        print(PromptAgent.indent(prompt))
+
     @classmethod
     def prompt_welcome(cls):
         prompt = "\n".join(
@@ -112,6 +132,7 @@ class PromptAgent:
                 )
                 + "\n"
             )
+            cls.prompt_access_token_information()
 
         # Login
         elif choice == "2":

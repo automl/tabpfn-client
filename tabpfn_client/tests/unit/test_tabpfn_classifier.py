@@ -7,7 +7,7 @@ from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 from sklearn.exceptions import NotFittedError
 
-from tabpfn_client import init, reset
+from tabpfn_client import init, reset, get_token
 from tabpfn_client import estimator
 from tabpfn_client.estimator import TabPFNClassifier
 from tabpfn_client.service_wrapper import UserAuthenticationClient
@@ -103,6 +103,44 @@ class TestTabPFNClassifierInit(unittest.TestCase):
         self.assertTrue(UserAuthenticationClient.CACHED_TOKEN_FILE.exists())
 
     @with_mock_server()
+    def test_reuse_existing_access_token_by_user(self, mock_server):
+        # mock connection and authentication
+        mock_server.router.get(mock_server.endpoints.root.path).respond(200)
+        mock_server.router.get(mock_server.endpoints.protected_root.path).respond(200)
+        mock_server.router.get(
+            mock_server.endpoints.retrieve_greeting_messages.path
+        ).respond(200, json={"messages": []})
+
+        # init is called without error with
+        init(use_server=True, access_token=self.dummy_token)
+
+        # check if access token still exists
+        self.assertTrue(UserAuthenticationClient.CACHED_TOKEN_FILE.exists())
+
+    @with_mock_server()
+    @patch("tabpfn_client.prompt_agent.PromptAgent.prompt_and_set_token")
+    @patch(
+        "tabpfn_client.prompt_agent.PromptAgent.prompt_terms_and_cond",
+        return_value=True,
+    )
+    def test_reuse_existing_access_token_by_user_with_invalid_token(
+        self, mock_server, mock_prompt_for_terms_and_cond, mock_prompt_and_set_token
+    ):
+        # mock connection and invalid authentication
+        mock_server.router.get(mock_server.endpoints.root.path).respond(200)
+        mock_server.router.get(mock_server.endpoints.protected_root.path).respond(401)
+        mock_server.router.get(
+            mock_server.endpoints.retrieve_greeting_messages.path
+        ).respond(200, json={"messages": []})
+
+        # dont set invalid token and prompt for new token
+        init(use_server=True, access_token="invalid_token")
+        self.assertFalse(UserAuthenticationClient.CACHED_TOKEN_FILE.exists())
+        # set token by registration or login process
+        self.assertTrue(mock_prompt_and_set_token.called)
+        self.assertTrue(mock_prompt_for_terms_and_cond.called)
+
+    @with_mock_server()
     @patch("tabpfn_client.prompt_agent.PromptAgent.prompt_and_set_token")
     @patch(
         "tabpfn_client.prompt_agent.PromptAgent.prompt_terms_and_cond",
@@ -151,6 +189,36 @@ class TestTabPFNClassifierInit(unittest.TestCase):
 
         # check if config is reset
         self.assertFalse(estimator.config.g_tabpfn_config.is_initialized)
+
+    @with_mock_server()
+    def test_get_token_if_exists(self, mock_server):
+        # init classifier as usual
+        mock_server.router.get(mock_server.endpoints.root.path).respond(200)
+        mock_server.router.get(mock_server.endpoints.protected_root.path).respond(200)
+        mock_server.router.get(
+            mock_server.endpoints.retrieve_greeting_messages.path
+        ).respond(200, json={"messages": []})
+        # Create a dummy token file with a known token
+        # this will also set the token
+        init(use_server=True, access_token=self.dummy_token)
+
+        # Capture printed output
+        with patch("builtins.print") as mock_print:
+            get_token()
+            # Check if the token file was read correctly by verifying printed output
+            mock_print.assert_any_call(f"Access Token on Disk: {self.dummy_token}\n")
+
+    @with_mock_server()
+    def test_get_token_if_not_exists(self, mock_server):
+        # reset
+        reset()
+        # check if access token is deleted
+        with patch("builtins.print") as mock_print:
+            get_token()
+            # Assert that the correct message is printed
+            mock_print.assert_any_call(
+                "No access token found on disk. Please set your access token using the `init` function."
+            )
 
     @with_mock_server()
     @patch(

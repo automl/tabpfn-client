@@ -33,6 +33,7 @@ class TestPromptAgent(unittest.TestCase):
         )
         mock_auth_client.validate_email.return_value = (True, "")
         PromptAgent.prompt_and_set_token(user_auth_handler=mock_auth_client)
+        PromptAgent.prompt_access_token_information()
         mock_auth_client.set_token_by_registration.assert_called_once()
 
     @patch("getpass.getpass", side_effect=["password123"])
