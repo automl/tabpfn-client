@@ -169,7 +169,7 @@ class ServiceClient:
     def is_initialized(self):
         return self.access_token is not None and self.access_token != ""
 
-    def fit(self, X, y) -> str:
+    def fit(self, X, y, task: Literal["classification", "regression"]) -> str:
         """
         Upload a train set to server and return the train set UID if successful.
 
@@ -179,6 +179,8 @@ class ServiceClient:
             The training input samples.
         y : array-like of shape (n_samples,) or (n_samples, n_outputs)
             The target values.
+        task : Literal["classification", "regression"]
+            The task to perform.
 
         Returns
         -------
@@ -199,6 +201,8 @@ class ServiceClient:
         if cached_dataset_uid:
             return cached_dataset_uid
 
+        params = {"task": task}
+
         response = self.httpx_client.post(
             url=self.server_endpoints.fit.path,
             files=common_utils.to_httpx_post_file_format(
@@ -207,6 +211,7 @@ class ServiceClient:
                     ("y_file", "y_train_filename", y_serialized),
                 ]
             ),
+            params=params,
         )
 
         self._validate_response(response, "fit")

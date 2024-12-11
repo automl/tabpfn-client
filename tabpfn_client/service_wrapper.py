@@ -47,6 +47,7 @@ class UserAuthenticationClient(ServiceClientWrapper):
         is_created, message, access_token = self.service_client.register(
             email, password, password_confirm, validation_link, additional_info
         )
+
         if access_token is not None:
             self.set_token(access_token)
         return is_created, message
@@ -179,14 +180,14 @@ class InferenceClient(ServiceClientWrapper):
     def __init__(self, service_client=ServiceClient()):
         super().__init__(service_client)
 
-    def fit(self, X, y) -> str:
+    def fit(self, X, y, task: Literal["classification", "regression"]) -> str:
         if not self.service_client.is_initialized:
             raise RuntimeError(
                 "Dear TabPFN User, please initialize the client first by verifying your E-mail address sent to your registered E-mail account."
                 "Please Note: The email verification token expires in 30 minutes."
             )
 
-        return self.service_client.fit(X, y)
+        return self.service_client.fit(X, y, task)
 
     def predict(
         self,

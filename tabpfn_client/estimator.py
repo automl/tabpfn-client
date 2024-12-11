@@ -251,7 +251,9 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
         self._validate_targets_and_classes(y)
 
         if config.g_tabpfn_config.use_server:
-            self.last_train_set_uid = config.g_tabpfn_config.inference_handler.fit(X, y)
+            self.last_train_set_uid = config.g_tabpfn_config.inference_handler.fit(
+                X, y, task="classification"
+            )
             self.last_train_X = X
             self.last_train_y = y
             self.fitted_ = True
@@ -406,7 +408,9 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
         validate_data_size(X, y)
 
         if config.g_tabpfn_config.use_server:
-            self.last_train_set_uid = config.g_tabpfn_config.inference_handler.fit(X, y)
+            self.last_train_set_uid = config.g_tabpfn_config.inference_handler.fit(
+                X, y, task="regression"
+            )
             self.last_train_X = X
             self.last_train_y = y
             self.fitted_ = True
