@@ -142,6 +142,7 @@ class ServiceClient:
         self.httpx_timeout_s = (
             4 * 5 * 60 + 15  # temporary workaround for slow computation on server side
         )
+        logger.debug(f"Setting up client with base URL: {self.base_url}")
         self.httpx_client = httpx.Client(
             base_url=self.base_url,
             timeout=self.httpx_timeout_s,
@@ -525,6 +526,7 @@ class ServiceClient:
         """
 
         access_token = None
+        logger.debug(f"Logging at url: {self.server_endpoints.login.path}")
         response = self.httpx_client.post(
             self.server_endpoints.login.path,
             data=common_utils.to_oauth_request_form(email, password),
