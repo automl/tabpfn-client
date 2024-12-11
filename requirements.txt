@@ -5,3 +5,4 @@ password-strength
 scikit-learn>=1.5.2
 cityhash
 sseclient-py
+tqdm

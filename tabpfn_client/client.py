@@ -14,6 +14,9 @@ from cityhash import CityHash128
 import os
 from collections import OrderedDict
 import sseclient
+import threading
+import time
+from tqdm import tqdm
 
 from tabpfn_client.tabpfn_common_utils import utils as common_utils
 from tabpfn_client.constants import CACHE_DIR
@@ -279,12 +282,33 @@ class ServiceClient:
                     # Handle updates from server
                     client = sseclient.SSEClient(response.iter_bytes())
 
+                    progress_bar = None
+
+                    def run_progress():
+                        nonlocal progress_bar
+                        progress_bar = tqdm(
+                            range(int(duration * 10)),
+                            desc="Processing",
+                            total=int(duration * 10),
+                            bar_format="{desc}: {percentage:3.0f}%|{bar}| [{elapsed}<{remaining}]",
+                        )
+                        for _ in progress_bar:
+                            time.sleep(0.1)
+
                     for event in client.events():
                         data = json.loads(event.data)
-                        if data["event"] == "update":
-                            print(data["detail"])
+                        if data["event"] == "duration_estimate":
+                            duration = float(data["data"])
+                            print(f"Duration estimate: {duration} seconds")
+                            progress_thread = threading.Thread(target=run_progress)
+                            progress_thread.daemon = True
+                            progress_thread.start()
                         elif data["event"] == "result":
                             results = data["data"]
+                            if progress_bar:
+                                progress_bar.n = progress_bar.total
+                                progress_bar.refresh()
+                                progress_bar.close()
                         elif data["event"] == "error":
                             if data["error_class"] == "GCPOverloaded":
                                 raise GCPOverloaded(data["detail"])
