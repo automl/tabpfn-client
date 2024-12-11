@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
 import shutil
+import logging
 
 import numpy as np
 from sklearn.datasets import load_breast_cancer
@@ -15,6 +16,10 @@ from tabpfn_client.client import ServiceClient
 from tabpfn_client.tests.mock_tabpfn_server import with_mock_server
 from tabpfn_client.constants import CACHE_DIR
 from tabpfn_client import config
+
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
 class TestTabPFNClassifierInit(unittest.TestCase):
@@ -84,6 +89,9 @@ class TestTabPFNClassifierInit(unittest.TestCase):
 
     @with_mock_server()
     def test_reuse_saved_access_token(self, mock_server):
+        # Add debug logs
+        logger.debug(f"Mock server base URL: {mock_server.base_url}")
+        logger.debug(f"Mock server root path: {mock_server.endpoints.root.path}")
         # mock connection and authentication
         mock_server.router.get(mock_server.endpoints.root.path).respond(200)
         mock_server.router.get(mock_server.endpoints.protected_root.path).respond(200)
