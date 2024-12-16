@@ -3,7 +3,7 @@
 [![PyPI version](https://badge.fury.io/py/tabpfn-client.svg)](https://badge.fury.io/py/tabpfn-client)
 [![Discord](https://img.shields.io/discord/1285598202732482621?color=7289da&label=Discord&logo=discord&logoColor=ffffff)](https://discord.com/channels/1285598202732482621/)
 [![colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ns_KdtyHgl29AOVwTw9c-DZrPj7fx_DW?usp=sharing)
-[![Documentation](https://img.shields.io/badge/docs-priorlabs.ai-blue)](https://priorlabs.ai/docs)
+[![Documentation](https://img.shields.io/badge/docs-priorlabs.ai-blue)](https://priorlabs.ai/)
 
 TabPFN is a foundation model for tabular data that outperforms traditional methods while being dramatically faster. This client library provides easy access to the TabPFN API, enabling state-of-the-art tabular machine learning in just a few lines of code.
 
@@ -11,7 +11,6 @@ TabPFN is a foundation model for tabular data that outperforms traditional metho
 
 This is an alpha release. While we've tested it thoroughly in our use cases, you may encounter occasional issues. We appreciate your understanding and feedback as we continue to improve the service.
 
-## ⚠️ Important Data Privacy Notice
 This is a cloud-based service. Your data will be sent to our servers for processing.
 
 Do NOT upload any Personally Identifiable Information (PII)
@@ -53,7 +52,6 @@ probabilities = model.predict_proba(X_test)
 
 📚 For detailed usage examples and best practices, check out:
 - [Interactive Colab Tutorial](https://colab.research.google.com/drive/1ns_KdtyHgl29AOVwTw9c-DZrPj7fx_DW?usp=sharing)
-- [Full Documentation](https://priorlabs.ai/docs)
 
 ## 🔑 Authentication
 
