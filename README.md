@@ -15,9 +15,13 @@ This is an alpha release. While we've tested it thoroughly in our use cases, you
 This is a cloud-based service. Your data will be sent to our servers for processing.
 
 Do NOT upload any Personally Identifiable Information (PII)
+
 Do NOT upload any sensitive or confidential data
+
 Do NOT upload any data you don't have permission to share
+
 Consider anonymizing or pseudonymizing your data before upload
+
 Review your organization's data sharing policies before use
 
 ## 🏁 Quick Start
@@ -80,8 +84,8 @@ We're building the future of tabular machine learning and would love your involv
 1. **Try TabPFN**: Use it in your projects and share your experience
 2. **Connect & Learn**: 
    - Join our [Discord Community](https://discord.gg/VJRuU3bSxt) for discussions and support
-   - Read our [Documentation](https://priorlabs.ai/docs) for detailed guides
-   - Check out [GitHub Issues](https://github.com/priorlabs/tabpfn-client/issues) for known issues and feature requests
+   - Read our [Documentation](https://priorlabs.ai/) for detailed guides
+   - Check out [GitHub Issues](https://github.com/automl/tabpfn-client/issues) for known issues and feature requests
 3. **Contribute**: 
    - Report bugs or request features through issues
    - Submit pull requests (see development guide below)
