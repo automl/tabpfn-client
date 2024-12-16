@@ -1,19 +1,26 @@
-# The client for the (all new) TabPFN
+# TabPFN Client
 
-This is an alpha family and friends service, so please do not expect this to never be down or run into errors. It worked fine in the settings that we tried, though.
-
-What model is behind the API? It is a new TabPFN which we allow to handle up to **10K data points** with up to **500 features** for both **regression** and **classification**. You can control all pre-processing, the amount of ensembling etc.
-
-### We would really appreciate your feedback! Please join our discord community here https://discord.gg/VJRuU3bSxt or email us at hello@priorlabs.ai
-
-# How To
-
-### Tutorial
-
+[![PyPI version](https://badge.fury.io/py/tabpfn-client.svg)](https://badge.fury.io/py/tabpfn-client)
+[![Discord](https://img.shields.io/discord/1285598202732482621?color=7289da&label=Discord&logo=discord&logoColor=ffffff)](https://discord.com/channels/1285598202732482621/)
 [![colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ns_KdtyHgl29AOVwTw9c-DZrPj7fx_DW?usp=sharing)
+[![Documentation](https://img.shields.io/badge/docs-priorlabs.ai-blue)](https://priorlabs.ai/docs)
 
-We created a [colab](https://colab.research.google.com/drive/1ns_KdtyHgl29AOVwTw9c-DZrPj7fx_DW?usp=sharing)
-tutorial to get started quickly.
+TabPFN is a foundation model for tabular data that outperforms traditional methods while being dramatically faster. This client library provides easy access to the TabPFN API, enabling state-of-the-art tabular machine learning in just a few lines of code.
+
+## ⚠️ Alpha Release Note
+
+This is an alpha release. While we've tested it thoroughly in our use cases, you may encounter occasional issues. We appreciate your understanding and feedback as we continue to improve the service.
+
+## ⚠️ Important Data Privacy Notice
+This is a cloud-based service. Your data will be sent to our servers for processing.
+
+Do NOT upload any Personally Identifiable Information (PII)
+Do NOT upload any sensitive or confidential data
+Do NOT upload any data you don't have permission to share
+Consider anonymizing or pseudonymizing your data before upload
+Review your organization's data sharing policies before use
+
+## 🏁 Quick Start
 
 ### Installation
 
@@ -21,50 +28,75 @@ tutorial to get started quickly.
 pip install tabpfn-client
 ```
 
-### Usage
+### Basic Usage
 
-Import and login
 ```python
 from tabpfn_client import init, TabPFNClassifier
+
+# Login (interactive first time)
 init()
+
+# Use it like any sklearn model
+model = TabPFNClassifier()
+model.fit(X_train, y_train)
+
+# Get predictions
+predictions = model.predict(X_test)
+
+# Get probability estimates
+probabilities = model.predict_proba(X_test)
 ```
 
-Now you can use our model just like any other sklearn estimator
-```python
-tabpfn = TabPFNClassifier()
-tabpfn.fit(X_train, y_train)
-tabpfn.predict(X_test)
-# or you can also use tabpfn.predict_proba(X_test)
-```
+📚 For detailed usage examples and best practices, check out:
+- [Interactive Colab Tutorial](https://colab.research.google.com/drive/1ns_KdtyHgl29AOVwTw9c-DZrPj7fx_DW?usp=sharing)
+- [Full Documentation](https://priorlabs.ai/docs)
 
-To login using your access token, skipping the interactive flow, use:
+## 🔑 Authentication
 
+### Save Your Token
 ```python
 from tabpfn_client import config
 
-# Retrieve Token
+# Retrieve current token
 with open(config.g_tabpfn_config.user_auth_handler.CACHED_TOKEN_FILE, 'r') as file:
     token = file.read()
 print(f"TOKEN: {token}")
 ```
 
+### Use Saved Token
 ```python
 from tabpfn_client import config
 
-# Set Token
+# Initialize with saved token
 service_client = config.ServiceClient()
 config.g_tabpfn_config.user_auth_handler = config.UserAuthenticationClient(service_client=service_client)
 user_auth = config.g_tabpfn_config.user_auth_handler.set_token(token)
 ```
 
-# Development
+## 🤝 Join Our Community
+
+We're building the future of tabular machine learning and would love your involvement! Here's how you can participate and get help:
+
+1. **Try TabPFN**: Use it in your projects and share your experience
+2. **Connect & Learn**: 
+   - Join our [Discord Community](https://discord.gg/VJRuU3bSxt) for discussions and support
+   - Read our [Documentation](https://priorlabs.ai/docs) for detailed guides
+   - Check out [GitHub Issues](https://github.com/priorlabs/tabpfn-client/issues) for known issues and feature requests
+3. **Contribute**: 
+   - Report bugs or request features through issues
+   - Submit pull requests (see development guide below)
+   - Share your success stories and use cases
+4. **Stay Updated**: Star the repo and join Discord for the latest updates
+
+## Development
 
 To encourage better coding practices, `ruff` has been added to the pre-commit hooks. This will ensure that the code is formatted properly before being committed. To enable pre-commit (if you haven't), run the following command:
-```sh
+
+```bash
 pre-commit install
 ```
-Additionally, it is recommended that developers install the ruff extension in their preferred editor. For installation instructions, refer to the [Ruff Integrations Documentation](https://docs.astral.sh/ruff/integrations/).
 
+Additionally, it is recommended that developers install the ruff extension in their preferred editor. For installation instructions, refer to the [Ruff Integrations Documentation](https://docs.astral.sh/ruff/integrations/).
 
 ### Build for PyPI
 
