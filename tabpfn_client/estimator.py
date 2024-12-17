@@ -185,6 +185,7 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
         remove_outliers=12.0,
         add_fingerprint_features=True,
         subsample_samples=-1,
+        paper_version=False,
     ):
         """
         Parameters:
@@ -208,6 +209,7 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
             remove_outliers: If not 0.0, will remove outliers from the input features, where values with a standard deviation larger than remove_outliers will be removed.
             add_fingerprint_features: If True, will add one feature of random values, that will be added to the input features. This helps discern duplicated samples in the transformer model.
             subsample_samples: If not None, will use a random subset of the samples for training in each ensemble configuration. If 1 or above, this will subsample to the specified number of samples. If in 0 to 1, the value is viewed as a fraction of the training set size.
+            paper_version: If True, will use the model described in the paper. Otherwise, will use a better model. Default is False.
         """
         self.model = model
         self.n_estimators = n_estimators
@@ -224,6 +226,7 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
         self.remove_outliers = remove_outliers
         self.add_fingerprint_features = add_fingerprint_features
         self.subsample_samples = subsample_samples
+        self.paper_version = paper_version
         self.last_train_set_uid = None
         self.last_train_X = None
         self.last_train_y = None
@@ -251,8 +254,9 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
         validate_data_size(X, y)
         self._validate_targets_and_classes(y)
 
+        estimator_param = self.get_params()
         if Config.use_server:
-            self.last_train_set_uid = InferenceClient.fit(X, y)
+            self.last_train_set_uid = InferenceClient.fit(X, y, config=estimator_param)
             self.last_train_X = X
             self.last_train_y = y
             self.fitted_ = True
@@ -340,6 +344,7 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
         cancel_nan_borders: bool = True,
         super_bar_dist_averaging: bool = False,
         subsample_samples: float = -1,
+        paper_version: bool = False,
     ):
         """
         Parameters:
@@ -374,6 +379,7 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
             subsample_samples: If not None, will use a random subset of the samples for training in each ensemble configuration.
                 If 1 or above, this will subsample to the specified number of samples.
                 If in 0 to 1, the value is viewed as a fraction of the training set size.
+            paper_version: If True, will use the model described in the paper. Otherwise, will use a better model. Default is False.
         """
 
         if model not in self._AVAILABLE_MODELS:
@@ -399,6 +405,7 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
         self.last_train_set_uid = None
         self.last_train_X = None
         self.last_train_y = None
+        self.paper_version = paper_version
 
     def fit(self, X, y):
         # assert init() is called
@@ -406,8 +413,9 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
 
         validate_data_size(X, y)
 
+        estimator_param = self.get_params()
         if Config.use_server:
-            self.last_train_set_uid = InferenceClient.fit(X, y)
+            self.last_train_set_uid = InferenceClient.fit(X, y, config=estimator_param)
             self.last_train_X = X
             self.last_train_y = y
             self.fitted_ = True

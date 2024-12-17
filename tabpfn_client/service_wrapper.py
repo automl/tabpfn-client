@@ -210,8 +210,8 @@ class InferenceClient(ServiceClientWrapper, Singleton):
         )
 
     @classmethod
-    def fit(cls, X, y) -> str:
-        return ServiceClient.fit(X, y)
+    def fit(cls, X, y, config=None) -> str:
+        return ServiceClient.fit(X, y, config=config)
 
     @classmethod
     def predict(
