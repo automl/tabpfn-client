@@ -3,7 +3,9 @@ from unittest.mock import patch
 import shutil
 import json
 
+import pandas as pd
 import numpy as np
+
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 from sklearn.exceptions import NotFittedError
@@ -453,3 +455,38 @@ class TestTabPFNModelSelection(unittest.TestCase):
         tabpfn_false.fit(X, y)
         y_pred_false = tabpfn_false.predict(test_X)
         self.assertIsNotNone(y_pred_false)
+
+    def test_check_paper_version_with_non_numerical_data_raises_error(self):
+        # Create a TabPFNClassifier with paper_version=True
+        tabpfn = TabPFNClassifier(paper_version=True)
+
+        # Create non-numerical data
+        X = pd.DataFrame({"feature1": ["a", "b", "c"], "feature2": ["d", "e", "f"]})
+        y = np.array([0, 1, 0])
+
+        # Mock the inference handler
+        config.g_tabpfn_config.inference_handler = MagicMock()
+        config.g_tabpfn_config.inference_handler.fit = MagicMock()
+        config.g_tabpfn_config.inference_handler.predict = MagicMock(
+            return_value={"probas": np.random.rand(10, 2)}
+        )
+
+        with self.assertRaises(ValueError) as context:
+            tabpfn.fit(X, y)
+
+        self.assertIn(
+            "X must be numerical to use the paper version of the model",
+            str(context.exception),
+        )
+
+        # check that it works with paper_version=False
+        tabpfn = TabPFNClassifier(paper_version=False)
+        tabpfn.fit(X, y)
+
+        # check that paper_version=True works with numerical data even with the wrong type
+        X = np.random.rand(10, 5).astype(str)
+        y = np.random.randint(0, 2, 10)
+        tabpfn = TabPFNClassifier(paper_version=True)
+        tabpfn.fit(X, y)
+        X = pd.DataFrame(X).astype(str)
+        tabpfn.predict(X)

@@ -242,10 +242,14 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
         not_nan_mask = ~np.isnan(y)
         self.classes_ = np.unique(y_[not_nan_mask])
 
-    @staticmethod
-    def _validate_data_size(X: np.ndarray, y: np.ndarray | None):
-        if X.shape[0] != y.shape[0]:
-            raise ValueError("X and y must have the same number of samples")
+    def _check_paper_version(self, X):
+        if self.paper_version:
+            # check if X can be converted to numerical values
+            try:
+                np.array(X, dtype=np.float32)
+            except ValueError:
+                raise ValueError("""X must be numerical to use the paper version of the model.
+                                 Preprocess your data or use `paper_version=False`.""")
 
     def fit(self, X, y):
         # assert init() is called
@@ -253,6 +257,7 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
 
         validate_data_size(X, y)
         self._validate_targets_and_classes(y)
+        self._check_paper_version(X)
 
         estimator_param = self.get_params()
         if Config.use_server:
@@ -275,6 +280,7 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
     def predict_proba(self, X):
         check_is_fitted(self)
         validate_data_size(X)
+        self._check_paper_version(X)
 
         estimator_param = self.get_params()
         if "model" in estimator_param:
