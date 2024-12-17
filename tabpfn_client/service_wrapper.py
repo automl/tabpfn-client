@@ -179,14 +179,14 @@ class InferenceClient(ServiceClientWrapper):
     def __init__(self, service_client=ServiceClient()):
         super().__init__(service_client)
 
-    def fit(self, X, y) -> str:
+    def fit(self, X, y, config=None) -> str:
         if not self.service_client.is_initialized:
             raise RuntimeError(
                 "Dear TabPFN User, please initialize the client first by verifying your E-mail address sent to your registered E-mail account."
                 "Please Note: The email verification token expires in 30 minutes."
             )
 
-        return self.service_client.fit(X, y)
+        return self.service_client.fit(X, y, config=config)
 
     def predict(
         self,
