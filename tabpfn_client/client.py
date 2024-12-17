@@ -317,7 +317,9 @@ class ServiceClient:
                             elif data["error_class"] == "ValueError":
                                 raise ValueError(data["detail"])
                             else:
-                                raise RuntimeError(data["detail"])
+                                raise RuntimeError(
+                                    data["error_class"] + ": " + data["detail"]
+                                )
                 break
             except RuntimeError as e:
                 error_message = str(e)
