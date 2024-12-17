@@ -297,7 +297,9 @@ class ServiceClient:
 
                     for event in client.events():
                         data = json.loads(event.data)
-                        if data["event"] == "duration_estimate":
+                        if data["event"] == "message":
+                            print(data["data"])
+                        elif data["event"] == "estimated_time_to_answer":
                             duration = float(data["data"])
                             print(f"Duration estimate: {duration} seconds")
                             progress_thread = threading.Thread(target=run_progress)
