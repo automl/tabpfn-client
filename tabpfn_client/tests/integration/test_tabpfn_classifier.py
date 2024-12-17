@@ -45,15 +45,12 @@ class TestTabPFNClassifier(unittest.TestCase):
         )
         tabpfn.fit(self.X_train, self.y_train)
 
-        # mock prediction
+        # mock prediction with SSE
+        probas = np.random.rand(len(self.X_test), len(np.unique(self.y_train))).tolist()
         mock_server.router.post(mock_server.endpoints.predict.path).respond(
             200,
-            json={
-                "classification": np.random.rand(
-                    len(self.X_test), len(np.unique(self.y_train))
-                ).tolist(),
-                "test_set_uid": "6",
-            },
+            content=f'data: {{"event": "result", "data": {{"classification": {probas}, "test_set_uid": "6"}}}}\n\n',
+            headers={"Content-Type": "text/event-stream"},
         )
         pred = tabpfn.predict(self.X_test)
         self.assertEqual(pred.shape[0], self.X_test.shape[0])

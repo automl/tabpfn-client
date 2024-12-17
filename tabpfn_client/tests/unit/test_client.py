@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 import numpy as np
+import json
 
 from tabpfn_client.client import ServiceClient
 from tabpfn_client.constants import CACHE_DIR
@@ -199,7 +200,9 @@ class TestServiceClient(unittest.TestCase):
 
         dummy_result = {"test_set_uid": "dummy_uid", "classification": [1, 2, 3]}
         mock_server.router.post(mock_server.endpoints.predict.path).respond(
-            200, json=dummy_result
+            200,
+            content=f'data: {json.dumps({"event": "result", "data": dummy_result})}\n\n',
+            headers={"Content-Type": "text/event-stream"},
         )
 
         pred = self.client.predict(
@@ -284,9 +287,16 @@ class TestServiceClient(unittest.TestCase):
         self.client.authorize("dummy_access_token")
 
         # Mock the upload_train_set and predict endpoints
-        with patch.object(
-            self.client.httpx_client, "post", wraps=self.client.httpx_client.post
-        ) as mock_post:
+        with (
+            patch.object(
+                self.client.httpx_client, "post", wraps=self.client.httpx_client.post
+            ) as mock_post,
+            patch.object(
+                self.client.httpx_client,
+                "stream",
+                wraps=self.client.httpx_client.stream,
+            ) as mock_stream,
+        ):
             # Mock responses
             def side_effect(*args, **kwargs):
                 if (
@@ -302,15 +312,22 @@ class TestServiceClient(unittest.TestCase):
                 elif kwargs.get("url") == self.client.server_endpoints.predict.path:
                     response = Mock()
                     response.status_code = 200
-                    response.json.return_value = {
-                        "classification": [1, 2, 3],
-                        "test_set_uid": "dummy_test_set_uid",
-                    }
+                    response.headers = {"Content-Type": "text/event-stream"}
+                    response.iter_bytes = Mock(
+                        return_value=iter(
+                            [
+                                'data: {"event": "result", "data": {"classification": [1, 2, 3], "test_set_uid": "dummy_test_set_uid"}}\n\n'.encode()
+                            ]
+                        )
+                    )
+                    response.__enter__ = Mock(return_value=response)
+                    response.__exit__ = Mock(return_value=None)
                     return response
                 else:
                     return Mock(status_code=404)
 
             mock_post.side_effect = side_effect
+            mock_stream.side_effect = side_effect
 
             # Upload train set
             train_set_uid = self.client.upload_train_set(self.X_train, self.y_train)
@@ -330,16 +347,14 @@ class TestServiceClient(unittest.TestCase):
 
             # The predict endpoint should have been called twice
             self.assertEqual(
-                mock_post.call_count, 3
+                mock_post.call_count + mock_stream.call_count, 3
             )  # 1 for upload_train_set, 2 for predict
 
             # Check that the test set was uploaded only once (first predict call)
             upload_calls = [
-                call for call in mock_post.call_args_list if "files" in call[1]
+                call for call in mock_stream.call_args_list if "files" in call[1]
             ]
-            self.assertEqual(
-                len(upload_calls), 2
-            )  # 1 for train set, 1 for test set upload
+            self.assertEqual(len(upload_calls), 1)
 
     def test_predict_with_invalid_cached_uids(self):
         """
@@ -349,9 +364,16 @@ class TestServiceClient(unittest.TestCase):
         self.client.authorize("dummy_access_token")
 
         # Mock the upload_train_set and predict endpoints
-        with patch.object(
-            self.client.httpx_client, "post", wraps=self.client.httpx_client.post
-        ) as mock_post:
+        with (
+            patch.object(
+                self.client.httpx_client, "post", wraps=self.client.httpx_client.post
+            ) as mock_post,
+            patch.object(
+                self.client.httpx_client,
+                "stream",
+                wraps=self.client.httpx_client.stream,
+            ) as mock_stream,
+        ):
             # Mock responses with side effects to simulate invalid cached UIDs
             def side_effect(*args, **kwargs):
                 if (
@@ -372,14 +394,23 @@ class TestServiceClient(unittest.TestCase):
                         response.json.return_value = {
                             "detail": "Invalid train or test set uid"
                         }
+                        response.__enter__ = Mock(return_value=response)
+                        response.__exit__ = Mock(return_value=None)
                         return response
                     else:
+                        # Successful prediction after re-upload
                         response = Mock()
                         response.status_code = 200
-                        response.json.return_value = {
-                            "classification": [1, 2, 3],
-                            "test_set_uid": "new_dummy_test_set_uid",
-                        }
+                        response.headers = {"Content-Type": "text/event-stream"}
+                        response.iter_bytes = Mock(
+                            return_value=iter(
+                                [
+                                    'data: {"event": "result", "data": {"classification": [1, 2, 3], "test_set_uid": "new_dummy_test_set_uid"}}\n\n'.encode()
+                                ]
+                            )
+                        )
+                        response.__enter__ = Mock(return_value=response)
+                        response.__exit__ = Mock(return_value=None)
                         return response
                 else:
                     return Mock(status_code=404)
@@ -391,6 +422,7 @@ class TestServiceClient(unittest.TestCase):
                 return side_effect(*args, **kwargs)
 
             mock_post.side_effect = side_effect_counter
+            mock_stream.side_effect = side_effect_counter
 
             # Upload train set
             train_set_uid = self.client.upload_train_set(self.X_train, self.y_train)
@@ -409,7 +441,7 @@ class TestServiceClient(unittest.TestCase):
 
             # The predict endpoint should have been called twice due to retry
             self.assertEqual(
-                mock_post.call_count, 4
+                mock_post.call_count + mock_stream.call_count, 4
             )  # 1 upload_train_set + 2 predict + 1 re-upload
 
             # Ensure that upload_train_set was called again (re-upload)

@@ -13,6 +13,10 @@ from typing import Literal, Optional
 from cityhash import CityHash128
 import os
 from collections import OrderedDict
+import sseclient
+import threading
+import time
+from tqdm import tqdm
 
 from tabpfn_client.tabpfn_common_utils import utils as common_utils
 from tabpfn_client.constants import CACHE_DIR
@@ -23,6 +27,15 @@ logger = logging.getLogger(__name__)
 # avoid logging of httpx and httpcore on client side
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 logging.getLogger("httpcore.http11").setLevel(logging.WARNING)
+
+
+class GCPOverloaded(Exception):
+    """
+    Exception raised when the Google Cloud Platform service is overloaded or
+    unavailable.
+    """
+
+    pass
 
 
 class SensitiveDataFilter(logging.Filter):
@@ -258,14 +271,56 @@ class ServiceClient:
 
         # Send prediction request. Loop two times, such that if anything cached is not correct
         # anymore, there is a second iteration where the datasets are uploaded.
+        results = None
         max_attempts = 2
         for attempt in range(max_attempts):
             try:
-                response = self._make_prediction_request(
+                with self._make_prediction_request(
                     cached_test_set_uid, x_test_serialized, params
-                )
-                self._validate_response(response, "predict")
-                break  # Successful response, exit the retry loop
+                ) as response:
+                    self._validate_response(response, "predict")
+                    # Handle updates from server
+                    client = sseclient.SSEClient(response.iter_bytes())
+
+                    progress_bar = None
+
+                    def run_progress():
+                        nonlocal progress_bar
+                        progress_bar = tqdm(
+                            range(int(duration * 10)),
+                            desc="Processing",
+                            total=int(duration * 10),
+                            bar_format="{desc}: {percentage:3.0f}%|{bar}| [{elapsed}<{remaining}]",
+                        )
+                        for _ in progress_bar:
+                            time.sleep(0.1)
+
+                    for event in client.events():
+                        data = json.loads(event.data)
+                        if data["event"] == "message":
+                            print(data["data"])
+                        elif data["event"] == "estimated_time_to_answer":
+                            duration = float(data["data"])
+                            print(f"Duration estimate: {duration} seconds")
+                            progress_thread = threading.Thread(target=run_progress)
+                            progress_thread.daemon = True
+                            progress_thread.start()
+                        elif data["event"] == "result":
+                            results = data["data"]
+                            if progress_bar:
+                                progress_bar.n = progress_bar.total
+                                progress_bar.refresh()
+                                progress_bar.close()
+                        elif data["event"] == "error":
+                            if data["error_class"] == "GCPOverloaded":
+                                raise GCPOverloaded(data["detail"])
+                            elif data["error_class"] == "ValueError":
+                                raise ValueError(data["detail"])
+                            else:
+                                raise RuntimeError(
+                                    data["error_class"] + ": " + data["detail"]
+                                )
+                break
             except RuntimeError as e:
                 error_message = str(e)
                 if (
@@ -292,9 +347,8 @@ class ServiceClient:
         # The response from the predict API always returns a dictionary with the task as the key.
         # This is just s.t. we do not confuse the tasks, as they both use the same API endpoint.
         # That is why below we use the task as the key to access the response.
-        response = response.json()
-        result = response[task]
-        test_set_uid = response["test_set_uid"]
+        result = results[task]
+        test_set_uid = results["test_set_uid"]
         if cached_test_set_uid is None:
             self.dataset_uid_cache_manager.add_dataset_uid(dataset_hash, test_set_uid)
 
@@ -315,12 +369,14 @@ class ServiceClient:
         Helper function to make the prediction request to the server.
         """
         if test_set_uid:
+            params = params.copy()
             params["test_set_uid"] = test_set_uid
-            response = self.httpx_client.post(
-                url=self.server_endpoints.predict.path, params=params
+            response = self.httpx_client.stream(
+                method="post", url=self.server_endpoints.predict.path, params=params
             )
         else:
-            response = self.httpx_client.post(
+            response = self.httpx_client.stream(
+                method="post",
                 url=self.server_endpoints.predict.path,
                 params=params,
                 files=common_utils.to_httpx_post_file_format(
