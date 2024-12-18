@@ -17,6 +17,7 @@ from tabpfn_client.constants import CACHE_DIR
 from tabpfn_client import config
 from tabpfn_client.tabpfn_common_utils import utils as common_utils
 import json
+import pandas as pd
 
 
 class TestTabPFNRegressorInit(unittest.TestCase):
@@ -446,19 +447,19 @@ class TestTabPFNModelSelection(unittest.TestCase):
 
         self.assertEqual(predict_kwargs["config"]["model_path"], expected_model_path)
 
-    def test_paper_version_behavior(self):
-        # this just test that it doesn't break,
+    def test_paper_version_behavior_regression(self):
+        # this just tests that it doesn't break,
         # but the actual behavior is easier to test
         # on the server side
         X = np.random.rand(10, 5)
-        y = np.random.rand(10)
+        y = np.random.rand(10)  # Continuous target for regression
         test_X = np.random.rand(5, 5)
 
         # Mock the inference handler
         config.g_tabpfn_config.inference_handler = MagicMock()
         config.g_tabpfn_config.inference_handler.fit = MagicMock()
         config.g_tabpfn_config.inference_handler.predict = MagicMock(
-            return_value={"mean": np.random.rand(10)}
+            return_value={"mean": np.random.rand(5)}  # Adjusted for regression
         )
 
         # Test with paper_version=True
@@ -472,3 +473,38 @@ class TestTabPFNModelSelection(unittest.TestCase):
         tabpfn_false.fit(X, y)
         y_pred_false = tabpfn_false.predict(test_X)
         self.assertIsNotNone(y_pred_false)
+
+    def test_check_paper_version_with_non_numerical_data_raises_error_regression(self):
+        # Create a TabPFNRegressor with paper_version=True
+        tabpfn = TabPFNRegressor(paper_version=True)
+
+        # Create non-numerical data
+        X = pd.DataFrame({"feature1": ["a", "b", "c"], "feature2": ["d", "e", "f"]})
+        y = np.array([0.1, 0.2, 0.3])  # Continuous target for regression
+
+        # Mock the inference handler
+        config.g_tabpfn_config.inference_handler = MagicMock()
+        config.g_tabpfn_config.inference_handler.fit = MagicMock()
+        config.g_tabpfn_config.inference_handler.predict = MagicMock(
+            return_value={"mean": np.random.rand(3)}  # Adjusted for regression
+        )
+
+        with self.assertRaises(ValueError) as context:
+            tabpfn.fit(X, y)
+
+        self.assertIn(
+            "X must be numerical to use the paper version of the model",
+            str(context.exception),
+        )
+
+        # check that it works with paper_version=False
+        tabpfn = TabPFNRegressor(paper_version=False)
+        tabpfn.fit(X, y)
+
+        # check that paper_version=True works with numerical data even with the wrong type
+        X = np.random.rand(10, 5).astype(str)
+        y = np.random.rand(10)  # Continuous target for regression
+        tabpfn = TabPFNRegressor(paper_version=True)
+        tabpfn.fit(X, y)
+        X = pd.DataFrame(X).astype(str)
+        tabpfn.predict(X)
