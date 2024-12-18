@@ -450,7 +450,7 @@ class TestTabPFNModelSelection(unittest.TestCase):
         # but the actual behavior is easier to test
         # on the server side
         X = np.random.rand(10, 5)
-        y = np.random.rand(10)  # Continuous target for regression
+        y = np.random.rand(10)
         test_X = np.random.rand(5, 5)
 
         # Test with paper_version=True
@@ -467,14 +467,14 @@ class TestTabPFNModelSelection(unittest.TestCase):
 
     @patch.object(InferenceClient, "fit", return_value="dummy_uid")
     @patch.object(InferenceClient, "predict", return_value={"mean": np.random.rand(10)})    
-    def test_check_paper_version_with_non_numerical_data_raises_error_regression(self, 
+    def test_check_paper_version_with_non_numerical_data_raises_error(self, 
                                                                                  mock_predict, mock_fit):
         # Create a TabPFNRegressor with paper_version=True
         tabpfn = TabPFNRegressor(paper_version=True)
 
         # Create non-numerical data
         X = pd.DataFrame({"feature1": ["a", "b", "c"], "feature2": ["d", "e", "f"]})
-        y = np.array([0.1, 0.2, 0.3])  # Continuous target for regression
+        y = np.array([0.1, 0.2, 0.3])
 
         with self.assertRaises(ValueError) as context:
             tabpfn.fit(X, y)
