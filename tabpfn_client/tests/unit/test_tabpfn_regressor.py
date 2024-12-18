@@ -447,12 +447,12 @@ class TestTabPFNModelSelection(unittest.TestCase):
 
         self.assertEqual(predict_kwargs["config"]["model_path"], expected_model_path)
 
-    def test_paper_version_behavior_regression(self):
+    def test_paper_version_behavior(self):
         # this just tests that it doesn't break,
         # but the actual behavior is easier to test
         # on the server side
         X = np.random.rand(10, 5)
-        y = np.random.rand(10)  # Continuous target for regression
+        y = np.random.rand(10)
         test_X = np.random.rand(5, 5)
 
         # Mock the inference handler
@@ -474,13 +474,12 @@ class TestTabPFNModelSelection(unittest.TestCase):
         y_pred_false = tabpfn_false.predict(test_X)
         self.assertIsNotNone(y_pred_false)
 
-    def test_check_paper_version_with_non_numerical_data_raises_error_regression(self):
-        # Create a TabPFNRegressor with paper_version=True
+    def test_check_paper_version_with_non_numerical_data_raises_error(self):
         tabpfn = TabPFNRegressor(paper_version=True)
 
         # Create non-numerical data
         X = pd.DataFrame({"feature1": ["a", "b", "c"], "feature2": ["d", "e", "f"]})
-        y = np.array([0.1, 0.2, 0.3])  # Continuous target for regression
+        y = np.array([0.1, 0.2, 0.3])
 
         # Mock the inference handler
         config.g_tabpfn_config.inference_handler = MagicMock()
