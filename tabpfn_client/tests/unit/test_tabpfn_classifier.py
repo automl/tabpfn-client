@@ -176,6 +176,10 @@ class TestTabPFNClassifierInit(unittest.TestCase):
     def test_cache_based_on_paper_version(
         self, mock_server, mock_prompt_for_terms_and_cond, mock_prompt_and_set_token
     ):
+        """
+        Check that the dataset cached is different for different paper_version
+        and similar for the same paper_version
+        """
         # a bit out of place but we don't want to skip init for this test
         mock_prompt_and_set_token.side_effect = (
             lambda user_auth_handler: user_auth_handler.set_token(self.dummy_token)
