@@ -8,6 +8,7 @@ protocol: "https"
 host: "tabpfn-server-wjedmz7r5a-ez.a.run.app"
 # host: tabpfn-server-preprod-wjedmz7r5a-ez.a.run.app   # preprod
 port: "443"
+gui_url: "https://ux.priorlabs.ai"
 endpoints:
   root:
     path: "/"

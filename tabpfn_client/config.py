@@ -46,11 +46,6 @@ def init(use_server=True):
             PromptAgent.reverify_email(is_valid_token_set[1], user_auth_handler)
         else:
             PromptAgent.prompt_welcome()
-            if not PromptAgent.prompt_terms_and_cond():
-                raise RuntimeError(
-                    "You must agree to the terms and conditions to use TabPFN"
-                )
-
             # prompt for login / register
             PromptAgent.prompt_and_set_token(user_auth_handler)
 
