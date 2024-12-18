@@ -15,7 +15,7 @@ from tabpfn_client.constants import CACHE_DIR
 from tabpfn_client import config
 import json
 from tabpfn_client.tabpfn_common_utils import utils as common_utils
-from unittest.mock import MagicMock
+import json
 
 
 class TestTabPFNRegressorInit(unittest.TestCase):
@@ -208,7 +208,9 @@ class TestTabPFNRegressorInit(unittest.TestCase):
         }
         predict_route = mock_server.router.post(mock_server.endpoints.predict.path)
         predict_route.respond(
-            200, json={"regression": mock_predict_response, "test_set_uid": "6"}
+            200,
+            content=f'data: {json.dumps({"event": "result", "data": {"regression": mock_predict_response, "test_set_uid": "6"}})}\n\n',
+            headers={"Content-Type": "text/event-stream"},
         )
 
         init(use_server=True)

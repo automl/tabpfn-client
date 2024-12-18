@@ -346,7 +346,9 @@ class TestServiceClient(unittest.TestCase):
             self.assertTrue(np.array_equal(pred1["probas"], pred2["probas"]))
 
             # The predict endpoint should have been called twice
-            self.assertEqual(mock_post.call_count, 3)  # 1 for fit, 2 for predict
+            self.assertEqual(
+                mock_post.call_count + mock_stream.call_count, 3
+            )  # 1 for fit, 2 for predict
 
             # Check that the test set was uploaded only once (first predict call)
             upload_calls = [
@@ -440,7 +442,9 @@ class TestServiceClient(unittest.TestCase):
             self.assertTrue(np.array_equal(pred["probas"], [1, 2, 3]))
 
             # The predict endpoint should have been called twice due to retry
-            self.assertEqual(mock_post.call_count, 4)  # 1 fit + 2 predict + 1 re-upload
+            self.assertEqual(
+                mock_post.call_count + mock_stream.call_count, 4
+            )  # 1 fit + 2 predict + 1 re-upload
 
             # Ensure that fit was called again (re-upload)
             upload_calls = [
