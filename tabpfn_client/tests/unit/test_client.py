@@ -192,11 +192,11 @@ class TestServiceClient(unittest.TestCase):
     @with_mock_server()
     def test_predict_with_valid_train_set_and_test_set(self, mock_server):
         dummy_json = {"train_set_uid": "5"}
-        mock_server.router.post(mock_server.endpoints.upload_train_set.path).respond(
+        mock_server.router.post(mock_server.endpoints.fit.path).respond(
             200, json=dummy_json
         )
         self.client.authorize("dummy_token")
-        self.client.upload_train_set(self.X_train, self.y_train)
+        self.client.fit(self.X_train, self.y_train)
 
         dummy_result = {"test_set_uid": "dummy_uid", "classification": [1, 2, 3]}
         mock_server.router.post(mock_server.endpoints.predict.path).respond(
@@ -250,14 +250,14 @@ class TestServiceClient(unittest.TestCase):
         self.assertIsNone(r)
 
     @with_mock_server()
-    def test_upload_train_set_with_caching(self, mock_server):
+    def test_fit_with_caching(self, mock_server):
         """
-        Test that uploading the same training set multiple times uses the cache and
-        only calls the upload_train_set endpoint once.
+        Test that calling fit with the same training set multiple times uses the cache and
+        only calls the fit endpoint once.
         """
         self.client.authorize("dummy_access_token")
 
-        # Mock the upload_train_set endpoint to return a fixed train_set_uid
+        # Mock the fit endpoint to return a fixed train_set_uid
         with patch.object(
             self.client.httpx_client, "post", wraps=self.client.httpx_client.post
         ) as mock_post:
@@ -268,15 +268,15 @@ class TestServiceClient(unittest.TestCase):
             mock_post.return_value = mock_response
 
             # First upload
-            train_set_uid1 = self.client.upload_train_set(self.X_train, self.y_train)
+            train_set_uid1 = self.client.fit(self.X_train, self.y_train)
 
             # Second upload with the same data
-            train_set_uid2 = self.client.upload_train_set(self.X_train, self.y_train)
+            train_set_uid2 = self.client.fit(self.X_train, self.y_train)
 
             # The train_set_uid should be the same due to caching
             self.assertEqual(train_set_uid1, train_set_uid2)
 
-            # The upload_train_set endpoint should have been called only once
+            # The fit endpoint should have been called only once
             mock_post.assert_called_once()
 
     def test_predict_with_caching(self):
@@ -286,7 +286,7 @@ class TestServiceClient(unittest.TestCase):
         """
         self.client.authorize("dummy_access_token")
 
-        # Mock the upload_train_set and predict endpoints
+        # Mock the fit and predict endpoints
         with (
             patch.object(
                 self.client.httpx_client, "post", wraps=self.client.httpx_client.post
@@ -299,10 +299,7 @@ class TestServiceClient(unittest.TestCase):
         ):
             # Mock responses
             def side_effect(*args, **kwargs):
-                if (
-                    kwargs.get("url")
-                    == self.client.server_endpoints.upload_train_set.path
-                ):
+                if kwargs.get("url") == self.client.server_endpoints.fit.path:
                     response = Mock()
                     response.status_code = 200
                     response.json.return_value = {
@@ -330,7 +327,7 @@ class TestServiceClient(unittest.TestCase):
             mock_stream.side_effect = side_effect
 
             # Upload train set
-            train_set_uid = self.client.upload_train_set(self.X_train, self.y_train)
+            train_set_uid = self.client.fit(self.X_train, self.y_train)
 
             # First prediction
             pred1 = self.client.predict(
@@ -348,7 +345,7 @@ class TestServiceClient(unittest.TestCase):
             # The predict endpoint should have been called twice
             self.assertEqual(
                 mock_post.call_count + mock_stream.call_count, 3
-            )  # 1 for upload_train_set, 2 for predict
+            )  # 1 for fit, 2 for predict
 
             # Check that the test set was uploaded only once (first predict call)
             upload_calls = [
@@ -363,7 +360,7 @@ class TestServiceClient(unittest.TestCase):
         """
         self.client.authorize("dummy_access_token")
 
-        # Mock the upload_train_set and predict endpoints
+        # Mock the fit and predict endpoints
         with (
             patch.object(
                 self.client.httpx_client, "post", wraps=self.client.httpx_client.post
@@ -376,10 +373,7 @@ class TestServiceClient(unittest.TestCase):
         ):
             # Mock responses with side effects to simulate invalid cached UIDs
             def side_effect(*args, **kwargs):
-                if (
-                    kwargs.get("url")
-                    == self.client.server_endpoints.upload_train_set.path
-                ):
+                if kwargs.get("url") == self.client.server_endpoints.fit.path:
                     response = Mock()
                     response.status_code = 200
                     response.json.return_value = {
@@ -425,7 +419,7 @@ class TestServiceClient(unittest.TestCase):
             mock_stream.side_effect = side_effect_counter
 
             # Upload train set
-            train_set_uid = self.client.upload_train_set(self.X_train, self.y_train)
+            train_set_uid = self.client.fit(self.X_train, self.y_train)
 
             # Attempt prediction, which should fail and trigger retry
             pred = self.client.predict(
@@ -442,14 +436,13 @@ class TestServiceClient(unittest.TestCase):
             # The predict endpoint should have been called twice due to retry
             self.assertEqual(
                 mock_post.call_count + mock_stream.call_count, 4
-            )  # 1 upload_train_set + 2 predict + 1 re-upload
+            )  # 1 fit + 2 predict + 1 re-upload
 
-            # Ensure that upload_train_set was called again (re-upload)
+            # Ensure that fit was called again (re-upload)
             upload_calls = [
                 call
                 for call in mock_post.call_args_list
-                if call.kwargs.get("url")
-                == self.client.server_endpoints.upload_train_set.path
+                if call.kwargs.get("url") == self.client.server_endpoints.fit.path
             ]
             self.assertEqual(len(upload_calls), 2)
 
