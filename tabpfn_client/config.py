@@ -33,15 +33,16 @@ def init(use_server=True):
                 "TabPFN is inaccessible at the moment, please try again later."
             )
 
-        is_valid_token_set = UserAuthenticationClient.try_reuse_existing_token()
+        is_valid_token, access_token = (
+            UserAuthenticationClient.try_reuse_existing_token()
+        )
 
-        if isinstance(is_valid_token_set, bool) and is_valid_token_set:
+        if is_valid_token:
             PromptAgent.prompt_reusing_existing_token()
-        elif (
-            isinstance(is_valid_token_set, tuple) and is_valid_token_set[1] is not None
-        ):
+        elif access_token is not None:
+            # token holds invalid due to user email verification
             print("Your email is not verified. Please verify your email to continue...")
-            PromptAgent.reverify_email(is_valid_token_set[1])
+            PromptAgent.reverify_email(access_token)
         else:
             PromptAgent.prompt_welcome()
             if not PromptAgent.prompt_terms_and_cond():

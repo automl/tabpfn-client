@@ -45,7 +45,7 @@ class TestUserAuthClient(unittest.TestCase):
             401, json={"detail": "Incorrect email or password"}
         )
         self.assertEqual(
-            (False, "Incorrect email or password"),
+            (False, "Incorrect email or password", 401),
             UserAuthenticationClient.set_token_by_login(
                 "dummy_email", "dummy_password"
             ),
@@ -85,7 +85,7 @@ class TestUserAuthClient(unittest.TestCase):
             401, json={"detail": "Password mismatch"}
         )
         self.assertEqual(
-            (False, "Password mismatch"),
+            (False, "Password mismatch", None),
             UserAuthenticationClient.set_token_by_registration(
                 "dummy_email",
                 "dummy_password",
@@ -113,7 +113,7 @@ class TestUserAuthClient(unittest.TestCase):
 
         # mock authentication
         mock_server.router.get(mock_server.endpoints.protected_root.path).respond(200)
-        self.assertTrue(UserAuthenticationClient.try_reuse_existing_token())
+        self.assertTrue(UserAuthenticationClient.try_reuse_existing_token()[0])
 
         # assert token is set
         self.assertEqual(dummy_token, ServiceClient.get_access_token())

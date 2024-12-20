@@ -483,6 +483,7 @@ class ServiceClient(Singleton):
         if response.status_code == 200:
             is_authenticated = True
         elif response.status_code == 403:
+            # 403 means user is not verified
             is_authenticated = None
         return is_authenticated
 
@@ -567,6 +568,38 @@ class ServiceClient(Singleton):
         return is_created, message, access_token
 
     @classmethod
+    def verify_email(cls, token: str, access_token: str) -> tuple[bool, str]:
+        """
+        Verify the email with the provided token.
+
+        Parameters
+        ----------
+        token : str
+        access_token : str
+
+        Returns
+        -------
+        is_verified : bool
+            True if the email is verified successfully.
+        message : str
+            The message returned from the server.
+        """
+
+        response = cls.httpx_client.get(
+            cls.server_endpoints.verify_email.path,
+            params={"token": token, "access_token": access_token},
+        )
+        cls._validate_response(response, "verify_email", only_version_check=True)
+        if response.status_code == 200:
+            is_verified = True
+            message = response.json()["message"]
+        else:
+            is_verified = False
+            message = response.json()["detail"]
+
+        return is_verified, message
+
+    @classmethod
     def login(cls, email: str, password: str) -> tuple[str, str]:
         """
         Login with the provided credentials and return the access token if successful.
@@ -594,10 +627,14 @@ class ServiceClient(Singleton):
         if response.status_code == 200:
             access_token = response.json()["access_token"]
             message = ""
+        elif response.status_code == 403:
+            access_token = response.headers["access_token"]
+            message = response.json()["detail"]
         else:
             message = response.json()["detail"]
-
-        return access_token, message
+        # status code signifies the success of the login, issues with password, and email verification
+        # 200 : success, 401 : wrong password, 403 : email not verified yet
+        return access_token, message, response.status_code
 
     @classmethod
     def get_password_policy(cls) -> dict:

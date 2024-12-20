@@ -59,23 +59,23 @@ class UserAuthenticationClient(ServiceClientWrapper, Singleton):
         )
         if access_token is not None:
             cls.set_token(access_token)
-        return is_created, message
+        return is_created, message, access_token
 
     @classmethod
     def set_token_by_login(cls, email: str, password: str) -> tuple[bool, str]:
-        access_token, message = ServiceClient.login(email, password)
+        access_token, message, status_code = ServiceClient.login(email, password)
 
         if access_token is None:
-            return False, message
+            return False, message, status_code
 
         cls.set_token(access_token)
-        return True, message
+        return access_token, message, status_code
 
     @classmethod
-    def try_reuse_existing_token(cls) -> bool | tuple[bool, str]:
+    def try_reuse_existing_token(cls) -> tuple[bool, str or None]:
         if ServiceClient.get_access_token() is None:
             if not cls.CACHED_TOKEN_FILE.exists():
-                return False
+                return False, None
 
             access_token = cls.CACHED_TOKEN_FILE.read_text()
 
@@ -85,14 +85,14 @@ class UserAuthenticationClient(ServiceClientWrapper, Singleton):
         is_valid = ServiceClient.is_auth_token_outdated(access_token)
         if is_valid is False:
             cls._reset_token()
-            return False
+            return False, None
         elif is_valid is None:
             return False, access_token
 
         logger.debug(f"Reusing existing access token? {is_valid}")
         cls.set_token(access_token)
 
-        return True
+        return True, access_token
 
     @classmethod
     def get_password_policy(cls):
@@ -120,6 +120,11 @@ class UserAuthenticationClient(ServiceClientWrapper, Singleton):
     def send_verification_email(cls, access_token: str) -> tuple[bool, str]:
         sent, message = ServiceClient.send_verification_email(access_token)
         return sent, message
+
+    @classmethod
+    def verify_email(cls, token: str, access_token: str) -> tuple[bool, str]:
+        verified, message = ServiceClient.verify_email(token, access_token)
+        return verified, message
 
 
 class UserDataClient(ServiceClientWrapper, Singleton):

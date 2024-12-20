@@ -38,6 +38,11 @@ endpoints:
     methods: [ "POST" ]
     description: "Send verifiaction email or for reverification"
 
+  verify_email:
+    path: "/auth/verify_email/"
+    methods: [ "GET" ]
+    description: "Verify email"
+
   send_reset_password_email:
     path: "/auth/send_reset_password_email/"
     methods: [ "POST" ]
