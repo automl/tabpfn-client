@@ -82,7 +82,6 @@ class UserAuthenticationClient(ServiceClientWrapper, Singleton):
         else:
             access_token = ServiceClient.get_access_token()
 
-        print(f"{ServiceClient.get_access_token()=}, {cls.CACHED_TOKEN_FILE.exists()=}")
 
         is_valid = ServiceClient.is_auth_token_outdated(access_token)
         if is_valid is False:
