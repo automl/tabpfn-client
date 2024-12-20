@@ -302,7 +302,7 @@ class TestServiceClient(unittest.TestCase):
         ):
             # Mock responses
             def side_effect(*args, **kwargs):
-                if kwargs.get("url") == self.client.server_endpoints.fit.path:
+                if kwargs.get("url") == ServiceClient.server_endpoints.fit.path:
                     response = Mock()
                     response.status_code = 200
                     response.json.return_value = {
@@ -378,10 +378,7 @@ class TestServiceClient(unittest.TestCase):
         ):
             # Mock responses with side effects to simulate invalid cached UIDs
             def side_effect(*args, **kwargs):
-                if (
-                    kwargs.get("url")
-                    == ServiceClient.server_endpoints.fit.path
-                ):
+                if kwargs.get("url") == ServiceClient.server_endpoints.fit.path:
                     response = Mock()
                     response.status_code = 200
                     response.json.return_value = {
@@ -450,8 +447,7 @@ class TestServiceClient(unittest.TestCase):
             upload_calls = [
                 call
                 for call in mock_post.call_args_list
-                if call.kwargs.get("url")
-                == ServiceClient.server_endpoints.fit.path
+                if call.kwargs.get("url") == ServiceClient.server_endpoints.fit.path
             ]
             self.assertEqual(len(upload_calls), 2)
 

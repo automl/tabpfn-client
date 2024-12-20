@@ -178,24 +178,6 @@ class ServiceClient(Singleton):
         cls._access_token = None
         cls.httpx_client.headers.pop("Authorization", None)
 
-    @property
-    def access_token(self):
-        return self._access_token
-
-    def authorize(self, access_token: str):
-        self._access_token = access_token
-        self.httpx_client.headers.update(
-            {"Authorization": f"Bearer {self.access_token}"}
-        )
-
-    def reset_authorization(self):
-        self._access_token = None
-        self.httpx_client.headers.pop("Authorization", None)
-
-    @property
-    def is_initialized(self):
-        return self.access_token is not None and self.access_token != ""
-
     @classmethod
     def fit(cls, X, y, config=None) -> str:
         """
@@ -295,7 +277,7 @@ class ServiceClient(Singleton):
         # In the arguments for hashing, include train_set_uid for the case that the same test set was previously used
         # with different train set. Include access token for the case that a user uses different accounts.
         cached_test_set_uid, dataset_hash = (
-            self.dataset_uid_cache_manager.get_dataset_uid(
+            cls.dataset_uid_cache_manager.get_dataset_uid(
                 x_test_serialized,
                 train_set_uid,
                 cls._access_token,
