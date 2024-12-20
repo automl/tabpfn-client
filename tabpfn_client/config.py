@@ -35,7 +35,6 @@ def init(use_server=True):
 
         is_valid_token_set = UserAuthenticationClient.try_reuse_existing_token()
 
-
         if isinstance(is_valid_token_set, bool) and is_valid_token_set:
             PromptAgent.prompt_reusing_existing_token()
         elif (

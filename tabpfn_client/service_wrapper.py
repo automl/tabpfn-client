@@ -82,7 +82,6 @@ class UserAuthenticationClient(ServiceClientWrapper, Singleton):
         else:
             access_token = ServiceClient.get_access_token()
 
-
         is_valid = ServiceClient.is_auth_token_outdated(access_token)
         if is_valid is False:
             cls._reset_token()

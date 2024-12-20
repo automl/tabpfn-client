@@ -290,7 +290,9 @@ class TestServiceClient(unittest.TestCase):
         # Mock the upload_train_set and predict endpoints
         with (
             patch.object(
-                ServiceClient.httpx_client, "post", wraps=ServiceClient.httpx_client.post
+                ServiceClient.httpx_client,
+                "post",
+                wraps=ServiceClient.httpx_client.post,
             ) as mock_post,
             patch.object(
                 ServiceClient.httpx_client,
@@ -367,7 +369,9 @@ class TestServiceClient(unittest.TestCase):
         # Mock the upload_train_set and predict endpoints
         with (
             patch.object(
-                ServiceClient.httpx_client, "post", wraps=ServiceClient.httpx_client.post
+                ServiceClient.httpx_client,
+                "post",
+                wraps=ServiceClient.httpx_client.post,
             ) as mock_post,
             patch.object(
                 ServiceClient.httpx_client,
