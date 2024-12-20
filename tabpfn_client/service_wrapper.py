@@ -4,128 +4,145 @@ from typing import Literal
 
 from tabpfn_client.client import ServiceClient
 from tabpfn_client.constants import CACHE_DIR
-from tabpfn_client.prompt_agent import PromptAgent
+from tabpfn_client.tabpfn_common_utils.utils import Singleton
 
 logger = logging.getLogger(__name__)
 
 
 class ServiceClientWrapper:
-    def __init__(self, service_client: ServiceClient):
-        self.service_client = service_client
+    pass
 
 
-class UserAuthenticationClient(ServiceClientWrapper):
+# Singleton class for user authentication
+class UserAuthenticationClient(ServiceClientWrapper, Singleton):
     """
     Wrapper of ServiceClient to handle user authentication, including:
     - user registration and login
     - access token caching
 
+    This is implemented as a singleton class with classmethods.
     """
 
     CACHED_TOKEN_FILE = CACHE_DIR / "config"
 
-    def is_accessible_connection(self) -> bool:
-        return self.service_client.try_connection()
+    def __new__(self):
+        raise TypeError(
+            "This class should not be instantiated. Use classmethods instead."
+        )
 
-    def set_token(self, access_token: str):
-        self.service_client.authorize(access_token)
-        self.CACHED_TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
-        self.CACHED_TOKEN_FILE.write_text(access_token)
+    @classmethod
+    def is_accessible_connection(cls) -> bool:
+        return ServiceClient.try_connection()
 
-    def validate_email(self, email: str) -> tuple[bool, str]:
-        is_valid, message = self.service_client.validate_email(email)
+    @classmethod
+    def set_token(cls, access_token: str):
+        ServiceClient.authorize(access_token)
+        cls.CACHED_TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
+        cls.CACHED_TOKEN_FILE.write_text(access_token)
+
+    @classmethod
+    def validate_email(cls, email: str) -> tuple[bool, str]:
+        is_valid, message = ServiceClient.validate_email(email)
         return is_valid, message
 
+    @classmethod
     def set_token_by_registration(
-        self,
+        cls,
         email: str,
         password: str,
         password_confirm: str,
         validation_link: str,
         additional_info: dict,
     ) -> tuple[bool, str]:
-        is_created, message, access_token = self.service_client.register(
+        is_created, message, access_token = ServiceClient.register(
             email, password, password_confirm, validation_link, additional_info
         )
         if access_token is not None:
-            self.set_token(access_token)
+            cls.set_token(access_token)
         return is_created, message
 
-    def set_token_by_login(self, email: str, password: str) -> tuple[bool, str]:
-        access_token, message = self.service_client.login(email, password)
+    @classmethod
+    def set_token_by_login(cls, email: str, password: str) -> tuple[bool, str]:
+        access_token, message = ServiceClient.login(email, password)
 
         if access_token is None:
             return False, message
 
-        self.set_token(access_token)
+        cls.set_token(access_token)
         return True, message
 
-    def try_reuse_existing_token(self) -> bool | tuple[bool, str]:
-        if self.service_client.access_token is None:
-            if not self.CACHED_TOKEN_FILE.exists():
+    @classmethod
+    def try_reuse_existing_token(cls) -> bool | tuple[bool, str]:
+        if ServiceClient.get_access_token() is None:
+            if not cls.CACHED_TOKEN_FILE.exists():
                 return False
 
-            access_token = self.CACHED_TOKEN_FILE.read_text()
+            access_token = cls.CACHED_TOKEN_FILE.read_text()
 
         else:
-            access_token = self.service_client.access_token
+            access_token = ServiceClient.get_access_token()
 
-        is_valid = self.service_client.is_auth_token_outdated(access_token)
+        is_valid = ServiceClient.is_auth_token_outdated(access_token)
         if is_valid is False:
-            self._reset_token()
+            cls._reset_token()
             return False
         elif is_valid is None:
             return False, access_token
 
         logger.debug(f"Reusing existing access token? {is_valid}")
-        self.set_token(access_token)
+        cls.set_token(access_token)
 
         return True
 
-    def get_password_policy(self):
-        return self.service_client.get_password_policy()
+    @classmethod
+    def get_password_policy(cls):
+        return ServiceClient.get_password_policy()
 
-    def reset_cache(self):
-        self._reset_token()
+    @classmethod
+    def reset_cache(cls):
+        cls._reset_token()
 
-    def _reset_token(self):
-        self.service_client.reset_authorization()
-        self.CACHED_TOKEN_FILE.unlink(missing_ok=True)
+    @classmethod
+    def _reset_token(cls):
+        ServiceClient.reset_authorization()
+        cls.CACHED_TOKEN_FILE.unlink(missing_ok=True)
 
-    def retrieve_greeting_messages(self):
-        return self.service_client.retrieve_greeting_messages()
+    @classmethod
+    def retrieve_greeting_messages(cls):
+        return ServiceClient.retrieve_greeting_messages()
 
-    def send_reset_password_email(self, email: str) -> tuple[bool, str]:
-        sent, message = self.service_client.send_reset_password_email(email)
+    @classmethod
+    def send_reset_password_email(cls, email: str) -> tuple[bool, str]:
+        sent, message = ServiceClient.send_reset_password_email(email)
         return sent, message
 
-    def send_verification_email(self, access_token: str) -> tuple[bool, str]:
-        sent, message = self.service_client.send_verification_email(access_token)
+    @classmethod
+    def send_verification_email(cls, access_token: str) -> tuple[bool, str]:
+        sent, message = ServiceClient.send_verification_email(access_token)
         return sent, message
 
 
-class UserDataClient(ServiceClientWrapper):
+class UserDataClient(ServiceClientWrapper, Singleton):
     """
     Wrapper of ServiceClient to handle user data, including:
     - query, or delete user account data
     - query, download, or delete uploaded data
     """
 
-    def __init__(self, service_client=ServiceClient()):
-        super().__init__(service_client)
-
-    def get_data_summary(self) -> {}:
+    @classmethod
+    def get_data_summary(cls) -> {}:
         try:
-            summary = self.service_client.get_data_summary()
+            summary = ServiceClient.get_data_summary()
         except RuntimeError as e:
             logging.error(f"Failed to get data summary: {e}")
             raise e
 
         return summary
 
-    def download_all_data(self, save_dir: Path = Path(".")) -> Path:
+    @classmethod
+    def download_all_data(cls, save_dir: Path = Path(".")) -> Path:
         try:
-            saved_path = self.service_client.download_all_data(save_dir)
+            saved_path = ServiceClient.download_all_data(save_dir)
         except RuntimeError as e:
             logging.error(f"Failed to download data: {e}")
             raise e
@@ -136,9 +153,10 @@ class UserDataClient(ServiceClientWrapper):
         logging.info(f"Data saved to {saved_path}")
         return saved_path
 
-    def delete_dataset(self, dataset_uid: str) -> [str]:
+    @classmethod
+    def delete_dataset(cls, dataset_uid: str) -> list[str]:
         try:
-            deleted_datasets = self.service_client.delete_dataset(dataset_uid)
+            deleted_datasets = ServiceClient.delete_dataset(dataset_uid)
         except RuntimeError as e:
             logging.error(f"Failed to delete dataset: {e}")
             raise e
@@ -147,9 +165,10 @@ class UserDataClient(ServiceClientWrapper):
 
         return deleted_datasets
 
-    def delete_all_datasets(self) -> [str]:
+    @classmethod
+    def delete_all_datasets(cls) -> list[str]:
         try:
-            deleted_datasets = self.service_client.delete_all_datasets()
+            deleted_datasets = ServiceClient.delete_all_datasets()
         except RuntimeError as e:
             logging.error(f"Failed to delete all datasets: {e}")
             raise e
@@ -158,10 +177,14 @@ class UserDataClient(ServiceClientWrapper):
 
         return deleted_datasets
 
-    def delete_user_account(self):
+    @classmethod
+    def delete_user_account(cls):
+        # local import to avoid circular import
+        from tabpfn_client.prompt_agent import PromptAgent
+
         confirm_pass = PromptAgent.prompt_confirm_password_for_user_account_deletion()
         try:
-            self.service_client.delete_user_account(confirm_pass)
+            ServiceClient.delete_user_account(confirm_pass)
         except RuntimeError as e:
             logging.error(f"Failed to delete user account: {e}")
             raise e
@@ -169,27 +192,25 @@ class UserDataClient(ServiceClientWrapper):
         PromptAgent.prompt_account_deleted()
 
 
-class InferenceClient(ServiceClientWrapper):
+class InferenceClient(ServiceClientWrapper, Singleton):
     """
     Wrapper of ServiceClient to handle inference, including:
     - fitting
     - prediction
     """
 
-    def __init__(self, service_client=ServiceClient()):
-        super().__init__(service_client)
+    def __new__(self):
+        raise TypeError(
+            "This class should not be instantiated. Use classmethods instead."
+        )
 
-    def fit(self, X, y) -> str:
-        if not self.service_client.is_initialized:
-            raise RuntimeError(
-                "Dear TabPFN User, please initialize the client first by verifying your E-mail address sent to your registered E-mail account."
-                "Please Note: The email verification token expires in 30 minutes."
-            )
+    @classmethod
+    def fit(cls, X, y) -> str:
+        return ServiceClient.upload_train_set(X, y)
 
-        return self.service_client.upload_train_set(X, y)
-
+    @classmethod
     def predict(
-        self,
+        cls,
         X,
         task: Literal["classification", "regression"],
         train_set_uid: str,
@@ -197,7 +218,7 @@ class InferenceClient(ServiceClientWrapper):
         X_train=None,
         y_train=None,
     ):
-        return self.service_client.predict(
+        return ServiceClient.predict(
             train_set_uid=train_set_uid,
             x_test=X,
             tabpfn_config=config,

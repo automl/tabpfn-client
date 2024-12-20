@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from tabpfn_client.prompt_agent import PromptAgent
 from tabpfn_client.tests.mock_tabpfn_server import with_mock_server
 
@@ -20,28 +20,50 @@ class TestPromptAgent(unittest.TestCase):
     def test_prompt_and_set_token_registration(
         self, mock_input, mock_getpass, mock_server
     ):
-        mock_auth_client = MagicMock()
-        mock_auth_client.get_password_policy.return_value = [
-            "Length(8)",
-            "Uppercase(1)",
-            "Numbers(1)",
-            "Special(1)",
-        ]
-        mock_auth_client.set_token_by_registration.return_value = (
-            True,
-            "Registration successful",
-        )
-        mock_auth_client.validate_email.return_value = (True, "")
-        PromptAgent.prompt_and_set_token(user_auth_handler=mock_auth_client)
-        mock_auth_client.set_token_by_registration.assert_called_once()
+        # for some reason, it needs to be patched with a with-statement instead of a decorator
+        with patch(
+            "tabpfn_client.prompt_agent.UserAuthenticationClient"
+        ) as mock_auth_client:
+            mock_auth_client.get_password_policy.return_value = [
+                "Length(8)",
+                "Uppercase(1)",
+                "Numbers(1)",
+                "Special(1)",
+            ]
+            mock_auth_client.set_token_by_registration.return_value = (
+                True,
+                "Registration successful",
+            )
+            mock_auth_client.validate_email.return_value = (True, "")
+
+            PromptAgent.prompt_and_set_token()
+
+            mock_auth_client.validate_email.assert_called_once_with("user@example.com")
+            mock_auth_client.set_token_by_registration.assert_called_once_with(
+                "user@example.com",
+                "Password123!",
+                "Password123!",
+                "tabpfn-2023",
+                {
+                    "company": "test",
+                    "role": "test",
+                    "use_case": "test",
+                    "contact_via_email": True,
+                },
+            )
 
     @patch("getpass.getpass", side_effect=["password123"])
     @patch("builtins.input", side_effect=["2", "user@example.com"])
     def test_prompt_and_set_token_login(self, mock_input, mock_getpass):
-        mock_auth_client = MagicMock()
-        mock_auth_client.set_token_by_login.return_value = (True, "Login successful")
-        PromptAgent.prompt_and_set_token(user_auth_handler=mock_auth_client)
-        mock_auth_client.set_token_by_login.assert_called_once()
+        with patch(
+            "tabpfn_client.prompt_agent.UserAuthenticationClient"
+        ) as mock_auth_client:
+            mock_auth_client.set_token_by_login.return_value = (
+                True,
+                "Login successful",
+            )
+            PromptAgent.prompt_and_set_token()
+            mock_auth_client.set_token_by_login.assert_called_once()
 
     @patch("builtins.input", return_value="y")
     def test_prompt_terms_and_cond_returns_true(self, mock_input):

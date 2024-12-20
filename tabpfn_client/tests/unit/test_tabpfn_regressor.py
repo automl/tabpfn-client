@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import shutil
 import numpy as np
@@ -8,10 +8,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.exceptions import NotFittedError
 
 from tabpfn_client import init, reset
-from tabpfn_client import estimator
 from tabpfn_client.estimator import TabPFNRegressor
-from tabpfn_client.service_wrapper import UserAuthenticationClient
-from tabpfn_client.client import ServiceClient
+from tabpfn_client.service_wrapper import UserAuthenticationClient, InferenceClient
 from tabpfn_client.tests.mock_tabpfn_server import with_mock_server
 from tabpfn_client.constants import CACHE_DIR
 from tabpfn_client import config
@@ -23,17 +21,13 @@ class TestTabPFNRegressorInit(unittest.TestCase):
 
     def setUp(self):
         # set up dummy data
+        reset()
         X, y = load_diabetes(return_X_y=True)
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
             X, y, test_size=0.33
         )
 
     def tearDown(self):
-        reset()
-
-        # remove singleton instance of ServiceClient
-        ServiceClient().delete_instance()
-
         # remove cache dir
         shutil.rmtree(CACHE_DIR, ignore_errors=True)
 
@@ -47,7 +41,7 @@ class TestTabPFNRegressorInit(unittest.TestCase):
         self, mock_server, mock_prompt_for_terms_and_cond, mock_prompt_and_set_token
     ):
         mock_prompt_and_set_token.side_effect = (
-            lambda user_auth_handler: user_auth_handler.set_token(self.dummy_token)
+            lambda: UserAuthenticationClient.set_token(self.dummy_token)
         )
 
         # mock server connection
@@ -72,12 +66,12 @@ class TestTabPFNRegressorInit(unittest.TestCase):
         )
 
         init(use_server=True)
+        self.assertTrue(mock_prompt_and_set_token.called)
+        self.assertTrue(mock_prompt_for_terms_and_cond.called)
 
         tabpfn = TabPFNRegressor(n_estimators=10)
         self.assertRaises(NotFittedError, tabpfn.predict, self.X_test)
         tabpfn.fit(self.X_train, self.y_train)
-        self.assertTrue(mock_prompt_and_set_token.called)
-        self.assertTrue(mock_prompt_for_terms_and_cond.called)
 
         for metric in ["mean", "median", "mode"]:
             tabpfn.optimize_metric = metric
@@ -169,7 +163,7 @@ class TestTabPFNRegressorInit(unittest.TestCase):
         self.assertFalse(UserAuthenticationClient.CACHED_TOKEN_FILE.exists())
 
         # check if config is reset
-        self.assertFalse(estimator.config.g_tabpfn_config.is_initialized)
+        self.assertFalse(config.Config.is_initialized)
 
     @with_mock_server()
     @patch(
@@ -187,7 +181,7 @@ class TestTabPFNRegressorInit(unittest.TestCase):
 class TestTabPFNRegressorInference(unittest.TestCase):
     def setUp(self):
         # skip init
-        config.g_tabpfn_config.is_initialized = True
+        config.Config.is_initialized = True
 
     def tearDown(self):
         # undo setUp
@@ -236,19 +230,16 @@ class TestTabPFNRegressorInference(unittest.TestCase):
         tabpfn.fitted_ = True
 
         # mock prediction
-        config.g_tabpfn_config.inference_handler = MagicMock()
-        config.g_tabpfn_config.inference_handler.predict = MagicMock(
-            return_value={"mean": np.random.randn(10)}
-        )
-
-        tabpfn.predict(test_X)
+        with patch.object(InferenceClient, "predict") as mock_predict:
+            mock_predict.return_value = {"mean": np.random.randn(10)}
+            tabpfn.predict(test_X)
 
 
 class TestTabPFNModelSelection(unittest.TestCase):
     def setUp(self):
         # skip init
-        config.g_tabpfn_config.is_initialized = True
-        config.g_tabpfn_config.use_server = True
+        config.Config.is_initialized = True
+        config.Config.use_server = True
 
     def tearDown(self):
         # undo setUp
@@ -295,19 +286,23 @@ class TestTabPFNModelSelection(unittest.TestCase):
 
         tabpfn = TabPFNRegressor(model="2noar4o2")
 
-        # Mock the inference handler
-        config.g_tabpfn_config.inference_handler = MagicMock()
-        config.g_tabpfn_config.inference_handler.fit = MagicMock()
-        config.g_tabpfn_config.inference_handler.predict = MagicMock(
-            return_value={"mean": np.random.rand(10)}
-        )
+        # Mock the inference client
+        with patch.object(InferenceClient, "predict") as mock_predict:
+            mock_predict.return_value = {"mean": np.random.rand(10)}
 
-        # Fit and predict
-        tabpfn.fit(X, y)
-        tabpfn.predict(X)
+            with patch.object(InferenceClient, "fit") as mock_fit:
+                mock_fit.return_value = "dummy_uid"
 
-        # Verify the model path was correctly passed to predict
-        predict_kwargs = config.g_tabpfn_config.inference_handler.predict.call_args[1]
-        expected_model_path = f"{TabPFNRegressor._BASE_PATH}_regression_2noar4o2.ckpt"
+                # Fit and predict
+                tabpfn.fit(X, y)
+                tabpfn.predict(X)
 
-        self.assertEqual(predict_kwargs["config"]["model_path"], expected_model_path)
+                # Verify the model path was correctly passed to predict
+                predict_kwargs = mock_predict.call_args[1]
+                expected_model_path = (
+                    f"{TabPFNRegressor._BASE_PATH}_regression_2noar4o2.ckpt"
+                )
+
+                self.assertEqual(
+                    predict_kwargs["config"]["model_path"], expected_model_path
+                )

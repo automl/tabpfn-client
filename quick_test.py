@@ -29,7 +29,7 @@ if __name__ == "__main__":
     print("predicting_proba")
     print(tabpfn.predict_proba(X_test))
 
-    print(UserDataClient().get_data_summary())
+    print(UserDataClient.get_data_summary())
 
     X, y = load_diabetes(return_X_y=True)
     X_train, X_test, y_train, y_test = train_test_split(
@@ -42,4 +42,4 @@ if __name__ == "__main__":
     print("predicting reg")
     print(tabpfn.predict(X_test))
 
-    print(UserDataClient().get_data_summary())
+    print(UserDataClient.get_data_summary())

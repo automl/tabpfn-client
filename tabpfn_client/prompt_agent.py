@@ -1,13 +1,16 @@
 import textwrap
 import getpass
 from password_strength import PasswordPolicy
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from tabpfn_client.estimator import UserAuthenticationClient
+from tabpfn_client.service_wrapper import UserAuthenticationClient
 
 
 class PromptAgent:
+    def __new__(cls):
+        raise RuntimeError(
+            "This class should not be instantiated. Use classmethods instead."
+        )
+
     @staticmethod
     def indent(text: str):
         indent_factor = 2
@@ -43,7 +46,8 @@ class PromptAgent:
         print(cls.indent(prompt))
 
     @classmethod
-    def prompt_and_set_token(cls, user_auth_handler: "UserAuthenticationClient"):
+    def prompt_and_set_token(cls):
+        print("inside prompt_and_set_token")
         # Choose between registration and login
         prompt = "\n".join(
             [
@@ -59,18 +63,17 @@ class PromptAgent:
 
         # Registration
         if choice == "1":
-            # validation_link = input(cls.indent("Please enter your secret code: "))
             validation_link = "tabpfn-2023"
             while True:
                 email = input(cls.indent("Please enter your email: "))
                 # Send request to server to check if email is valid and not already taken.
-                is_valid, message = user_auth_handler.validate_email(email)
+                is_valid, message = UserAuthenticationClient.validate_email(email)
                 if is_valid:
                     break
                 else:
                     print(cls.indent(message + "\n"))
 
-            password_req = user_auth_handler.get_password_policy()
+            password_req = UserAuthenticationClient.get_password_policy()
             password_policy = cls.password_req_to_policy(password_req)
             password_req_prompt = "\n".join(
                 [
@@ -100,7 +103,7 @@ class PromptAgent:
                         )
                     )
             additional_info = cls.prompt_add_user_information()
-            is_created, message = user_auth_handler.set_token_by_registration(
+            is_created, message = UserAuthenticationClient.set_token_by_registration(
                 email, password, password_confirm, validation_link, additional_info
             )
             if not is_created:
@@ -120,7 +123,7 @@ class PromptAgent:
                 email = input(cls.indent("Please enter your email: "))
                 password = getpass.getpass(cls.indent("Please enter your password: "))
 
-                successful, message = user_auth_handler.set_token_by_login(
+                successful, message = UserAuthenticationClient.set_token_by_login(
                     email, password
                 )
                 if successful:
@@ -148,13 +151,14 @@ class PromptAgent:
                             "that allows you to reset your password. \n"
                         )
                     )
-                    while not sent:
-                        email = input(cls.indent("Please enter your email address: "))
-
-                        sent, message = user_auth_handler.send_reset_password_email(
-                            email
+                    while True:
+                        sent, message = (
+                            UserAuthenticationClient.send_reset_password_email(email)
                         )
                         print("\n" + cls.indent(message))
+                        if sent:
+                            break
+                        email = input(cls.indent("Please enter your email address: "))
                     print(
                         cls.indent(
                             "Once you have reset your password, you will be able to login here: "
@@ -211,9 +215,7 @@ class PromptAgent:
         print(cls.indent(prompt))
 
     @classmethod
-    def reverify_email(
-        cls, access_token, user_auth_handler: "UserAuthenticationClient"
-    ):
+    def reverify_email(cls, access_token):
         prompt = "\n".join(
             [
                 "Please check your inbox for the verification email.",
@@ -228,8 +230,10 @@ class PromptAgent:
         )
         choice = cls._choice_with_retries(retry_verification, ["y", "n"])
         if choice == "y":
-            # get user email from user_auth_handler and resend verification email
-            sent, message = user_auth_handler.send_verification_email(access_token)
+            # get user email from UserAuthenticationClient and resend verification email
+            sent, message = UserAuthenticationClient.send_verification_email(
+                access_token
+            )
             if not sent:
                 print(cls.indent("Failed to send verification email: " + message))
             else:
