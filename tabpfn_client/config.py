@@ -51,7 +51,6 @@ def init(use_server=True):
                 )
 
             # prompt for login / register
-            print("prompt_and_set_token")
             PromptAgent.prompt_and_set_token()
 
         # Print new greeting messages. If there are no new messages, nothing will be printed.
