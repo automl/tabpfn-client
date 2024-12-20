@@ -179,7 +179,7 @@ class ServiceClient(Singleton):
         cls.httpx_client.headers.pop("Authorization", None)
 
     @classmethod
-    def upload_train_set(cls, X, y) -> str:
+    def fit(cls, X, y, config=None) -> str:
         """
         Upload a train set to server and return the train set UID if successful.
 
@@ -189,6 +189,8 @@ class ServiceClient(Singleton):
             The training input samples.
         y : array-like of shape (n_samples,) or (n_samples, n_outputs)
             The target values.
+        config : dict, optional
+            Configuration for the fit method. Includes tabpfn_systems and paper_version.
 
         Returns
         -------
@@ -200,26 +202,34 @@ class ServiceClient(Singleton):
         X_serialized = common_utils.serialize_to_csv_formatted_bytes(X)
         y_serialized = common_utils.serialize_to_csv_formatted_bytes(y)
 
+        if config is None:
+            tabpfn_systems = ["preprocessing", "text"]
+        else:
+            tabpfn_systems = (
+                [] if config["paper_version"] else ["preprocessing", "text"]
+            )
+
         # Get hash for dataset. Include access token for the case that one user uses different accounts.
         cached_dataset_uid, dataset_hash = (
             cls.dataset_uid_cache_manager.get_dataset_uid(
-                X_serialized, y_serialized, cls._access_token
+                X_serialized, y_serialized, cls._access_token, "_".join(tabpfn_systems)
             )
         )
         if cached_dataset_uid:
             return cached_dataset_uid
 
         response = cls.httpx_client.post(
-            url=cls.server_endpoints.upload_train_set.path,
+            url=cls.server_endpoints.fit.path,
             files=common_utils.to_httpx_post_file_format(
                 [
                     ("x_file", "x_train_filename", X_serialized),
                     ("y_file", "y_train_filename", y_serialized),
                 ]
             ),
+            params={"tabpfn_systems": json.dumps(tabpfn_systems)},
         )
 
-        cls._validate_response(response, "upload_train_set")
+        cls._validate_response(response, "fit")
 
         train_set_uid = response.json()["train_set_uid"]
         cls.dataset_uid_cache_manager.add_dataset_uid(dataset_hash, train_set_uid)
@@ -253,19 +263,27 @@ class ServiceClient(Singleton):
 
         x_test_serialized = common_utils.serialize_to_csv_formatted_bytes(x_test)
 
+        params = {"train_set_uid": train_set_uid, "task": task}
+        if tabpfn_config is not None:
+            paper_version = tabpfn_config.pop("paper_version")
+            params["tabpfn_config"] = json.dumps(
+                tabpfn_config, default=lambda x: x.to_dict()
+            )
+        else:
+            paper_version = False
+        tabpfn_systems = [] if paper_version else ["preprocessing", "text"]
+        params["tabpfn_systems"] = json.dumps(tabpfn_systems)
+
         # In the arguments for hashing, include train_set_uid for the case that the same test set was previously used
         # with different train set. Include access token for the case that a user uses different accounts.
         cached_test_set_uid, dataset_hash = (
             cls.dataset_uid_cache_manager.get_dataset_uid(
-                x_test_serialized, train_set_uid, cls._access_token
+                x_test_serialized,
+                train_set_uid,
+                cls._access_token,
+                "_".join(tabpfn_systems),
             )
         )
-
-        params = {"train_set_uid": train_set_uid, "task": task}
-        if tabpfn_config is not None:
-            params["tabpfn_config"] = json.dumps(
-                tabpfn_config, default=lambda x: x.to_dict()
-            )
 
         # Send prediction request. Loop two times, such that if anything cached is not correct
         # anymore, there is a second iteration where the datasets are uploaded.
@@ -331,7 +349,14 @@ class ServiceClient(Singleton):
                         raise RuntimeError(
                             "Train set data is required to re-upload but was not provided."
                         )
-                    train_set_uid = cls.upload_train_set(X_train, y_train)
+                    train_set_uid = cls.fit(
+                        X_train,
+                        y_train,
+                        config=dict(
+                            tabpfn_config if tabpfn_config else {},
+                            **{"paper_version": paper_version},
+                        ),
+                    )
                     params["train_set_uid"] = train_set_uid
                     cached_test_set_uid = None
                 else:

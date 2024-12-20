@@ -14,6 +14,7 @@ from tabpfn_client.tests.mock_tabpfn_server import with_mock_server
 from tabpfn_client.constants import CACHE_DIR
 from tabpfn_client import config
 import json
+import pandas as pd
 
 
 class TestTabPFNRegressorInit(unittest.TestCase):
@@ -46,7 +47,7 @@ class TestTabPFNRegressorInit(unittest.TestCase):
 
         # mock server connection
         mock_server.router.get(mock_server.endpoints.root.path).respond(200)
-        mock_server.router.post(mock_server.endpoints.upload_train_set.path).respond(
+        mock_server.router.post(mock_server.endpoints.fit.path).respond(
             200, json={"train_set_uid": "5"}
         )
         mock_server.router.get(
@@ -177,6 +178,140 @@ class TestTabPFNRegressorInit(unittest.TestCase):
         self.assertRaises(RuntimeError, init, use_server=True)
         self.assertTrue(mock_prompt_for_terms_and_cond.called)
 
+    @with_mock_server()
+    @patch("tabpfn_client.prompt_agent.PromptAgent.prompt_and_set_token")
+    @patch(
+        "tabpfn_client.prompt_agent.PromptAgent.prompt_terms_and_cond",
+        return_value=True,
+    )
+    def test_cache_based_on_paper_version(
+        self, mock_server, mock_prompt_for_terms_and_cond, mock_prompt_and_set_token
+    ):
+        mock_prompt_and_set_token.side_effect = (
+            lambda: UserAuthenticationClient.set_token(self.dummy_token)
+        )
+
+        # mock server connection
+        mock_server.router.get(mock_server.endpoints.root.path).respond(200)
+        fit_route = mock_server.router.post(mock_server.endpoints.fit.path)
+        fit_route.respond(200, json={"train_set_uid": "5"})
+
+        mock_server.router.get(
+            mock_server.endpoints.retrieve_greeting_messages.path
+        ).respond(200, json={"messages": []})
+
+        mock_predict_response = {
+            "mean": [100, 200, 300],
+            "median": [110, 210, 310],
+            "mode": [120, 220, 320],
+        }
+        predict_route = mock_server.router.post(mock_server.endpoints.predict.path)
+        predict_route.respond(
+            200,
+            content=f'data: {json.dumps({"event": "result", "data": {"regression": mock_predict_response, "test_set_uid": "6"}})}\n\n',
+            headers={"Content-Type": "text/event-stream"},
+        )
+
+        init(use_server=True)
+
+        X = np.random.rand(10, 5)
+        y = np.random.rand(10)
+        test_X = np.random.rand(5, 5)
+
+        # Initialize with paper_version=True
+        tabpfn_true = TabPFNRegressor(paper_version=True)
+
+        tabpfn_true.fit(X, y)
+        tabpfn_true.predict(test_X)
+
+        # Call fit and predict again with the same paper_version
+        tabpfn_true.fit(X, y)
+        tabpfn_true.predict(test_X)
+
+        # Ensure fit endpoint is not called again
+        self.assertEqual(
+            fit_route.call_count,
+            1,
+            "Fit endpoint should not be called again with the same paper_version",
+        )
+
+        # Initialize with paper_version=False
+        tabpfn_false = TabPFNRegressor(paper_version=False)
+
+        tabpfn_false.fit(X, y)
+        tabpfn_false.predict(test_X)
+
+        # check fit is called
+        self.assertEqual(
+            fit_route.call_count,
+            2,
+            "Fit endpoint should be called again with a different paper_version",
+        )
+
+        # Call fit and predict again with the same paper_version
+        tabpfn_false.fit(X, y)
+        tabpfn_false.predict(test_X)
+
+        # Ensure fit endpoint is not called again
+        self.assertEqual(
+            fit_route.call_count,
+            2,
+            "Fit endpoint should not be called again with the same paper_version",
+        )
+
+        # TODO: fix this
+        # # Check that different cache entries are created for training set
+        # cache_manager = ServiceClient.dataset_uid_cache_manager
+        # X_serialized = common_utils.serialize_to_csv_formatted_bytes(X)
+        # y_serialized = common_utils.serialize_to_csv_formatted_bytes(y)
+        # uid_true_train, hash_true_train = cache_manager.get_dataset_uid(
+        #     X_serialized, y_serialized, self.dummy_token, "_".join([])
+        # )
+        # uid_false_train, hash_false_train = cache_manager.get_dataset_uid(
+        #     X_serialized,
+        #     y_serialized,
+        #     self.dummy_token,
+        #     "_".join(["preprocessing", "text"]),
+        # )
+
+        # self.assertNotEqual(
+        #     hash_true_train,
+        #     hash_false_train,
+        #     "Cache hash should differ based on paper_version for training set",
+        # )
+
+        # # Check that different cache entries are created for test set
+        # test_X_serialized = common_utils.serialize_to_csv_formatted_bytes(test_X)
+        # uid_true_test, hash_true_test = cache_manager.get_dataset_uid(
+        #     test_X_serialized, uid_true_train, self.dummy_token, "_".join([])
+        # )
+        # uid_false_test, hash_false_test = cache_manager.get_dataset_uid(
+        #     test_X_serialized,
+        #     uid_false_train,
+        #     self.dummy_token,
+        #     "_".join(["preprocessing", "text"]),
+        # )
+
+        # self.assertNotEqual(
+        #     hash_true_test,
+        #     hash_false_test,
+        #     "Cache hash should differ based on paper_version for test set",
+        # )
+
+        # # Verify that the cache entries are used correctly
+        # self.assertIsNotNone(
+        #     uid_true_train, "Training set cache should be used for paper_version=True"
+        # )
+        # self.assertIsNotNone(
+        #     uid_false_train, "Training set cache should be used for paper_version=False"
+        # )
+        # self.assertIsNotNone(
+        #     uid_true_test, "Test set cache should be used for paper_version=True"
+        # )
+        # self.assertIsNotNone(
+        #     uid_false_test, "Test set cache should be used for paper_version=False"
+        # )
+
 
 class TestTabPFNRegressorInference(unittest.TestCase):
     def setUp(self):
@@ -306,3 +441,57 @@ class TestTabPFNModelSelection(unittest.TestCase):
                 self.assertEqual(
                     predict_kwargs["config"]["model_path"], expected_model_path
                 )
+
+    @patch.object(InferenceClient, "fit", return_value="dummy_uid")
+    @patch.object(InferenceClient, "predict", return_value={"mean": np.random.rand(10)})
+    def test_paper_version_behavior(self, mock_predict, mock_fit):
+        # this just tests that it doesn't break,
+        # but the actual behavior is easier to test
+        # on the server side
+        X = np.random.rand(10, 5)
+        y = np.random.rand(10)
+        test_X = np.random.rand(5, 5)
+
+        # Test with paper_version=True
+        tabpfn_true = TabPFNRegressor(paper_version=True)
+        tabpfn_true.fit(X, y)
+        y_pred_true = tabpfn_true.predict(test_X)
+        self.assertIsNotNone(y_pred_true)
+
+        # Test with paper_version=False
+        tabpfn_false = TabPFNRegressor(paper_version=False)
+        tabpfn_false.fit(X, y)
+        y_pred_false = tabpfn_false.predict(test_X)
+        self.assertIsNotNone(y_pred_false)
+
+    @patch.object(InferenceClient, "fit", return_value="dummy_uid")
+    @patch.object(InferenceClient, "predict", return_value={"mean": np.random.rand(10)})
+    def test_check_paper_version_with_non_numerical_data_raises_error(
+        self, mock_predict, mock_fit
+    ):
+        # Create a TabPFNRegressor with paper_version=True
+        tabpfn = TabPFNRegressor(paper_version=True)
+
+        # Create non-numerical data
+        X = pd.DataFrame({"feature1": ["a", "b", "c"], "feature2": ["d", "e", "f"]})
+        y = np.array([0.1, 0.2, 0.3])
+
+        with self.assertRaises(ValueError) as context:
+            tabpfn.fit(X, y)
+
+        self.assertIn(
+            "X must be numerical to use the paper version of the model",
+            str(context.exception),
+        )
+
+        # check that it works with paper_version=False
+        tabpfn = TabPFNRegressor(paper_version=False)
+        tabpfn.fit(X, y)
+
+        # check that paper_version=True works with numerical data even with the wrong type
+        X = np.random.rand(10, 5).astype(str)
+        y = np.random.rand(10)  # Continuous target for regression
+        tabpfn = TabPFNRegressor(paper_version=True)
+        tabpfn.fit(X, y)
+        X = pd.DataFrame(X).astype(str)
+        tabpfn.predict(X)
