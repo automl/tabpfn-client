@@ -29,7 +29,8 @@ jobs:
           - os: ubuntu-latest
             python-version: "3.9"
             dependency-set: minimum
-          - os: macos-latest
+          - os: macos-13 # macos-latest doesn't work with python 3.10
+          # https://github.com/actions/setup-python/issues/855
             python-version: "3.9"
             dependency-set: minimum
           - os: ubuntu-latest
