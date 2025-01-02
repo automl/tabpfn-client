@@ -1,8 +1,0 @@
-scikit-learn<=1.6.0
-httpx>=0.24.0,<=0.27.2
-omegaconf>=2.1.2
-pandas>=2.1.2
-password-strength>=0.0.3.post2
-cityhash>=0.4.3
-sseclient-py>=1.8.0
-tqdm>=4.63.0,<=4.67.1
