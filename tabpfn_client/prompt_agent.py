@@ -63,6 +63,13 @@ class PromptAgent:
         # Registration
         if choice == "1":
             validation_link = "tabpfn-2023"
+
+            agreed_terms_and_cond = cls.prompt_terms_and_cond()
+            if not agreed_terms_and_cond:
+                raise RuntimeError(
+                    "You must agree to the terms and conditions to use TabPFN"
+                )
+
             while True:
                 email = input(cls.indent("Please enter your email: "))
                 # Send request to server to check if email is valid and not already taken.
@@ -101,12 +108,19 @@ class PromptAgent:
                             "Entered password and confirmation password do not match, please try again.\n"
                         )
                     )
-            if not cls.prompt_personally_identifiable_information():
+            agreed_personally_identifiable_information = (
+                cls.prompt_personally_identifiable_information()
+            )
+            if not agreed_personally_identifiable_information:
                 raise RuntimeError(
                     "You must agree to not upload personally identifiable information."
                 )
 
             additional_info = cls.prompt_add_user_information()
+            additional_info["agreed_terms_and_cond"] = agreed_terms_and_cond
+            additional_info["agreed_personally_identifiable_information"] = (
+                agreed_personally_identifiable_information
+            )
             is_created, message, access_token = (
                 UserAuthenticationClient.set_token_by_registration(
                     email, password, password_confirm, validation_link, additional_info

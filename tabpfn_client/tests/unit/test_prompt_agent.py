@@ -17,6 +17,7 @@ class TestPromptAgent(unittest.TestCase):
         "builtins.input",
         side_effect=[
             "1",
+            "y",
             "user@example.com",
             "y",
             "first",
@@ -67,6 +68,8 @@ class TestPromptAgent(unittest.TestCase):
                     "role": "test",
                     "use_case": "test",
                     "contact_via_email": True,
+                    "agreed_terms_and_cond": True,
+                    "agreed_personally_identifiable_information": True,
                 },
             )
 

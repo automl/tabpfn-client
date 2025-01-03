@@ -34,13 +34,7 @@ class TestTabPFNRegressorInit(unittest.TestCase):
 
     @with_mock_server()
     @patch("tabpfn_client.prompt_agent.PromptAgent.prompt_and_set_token")
-    @patch(
-        "tabpfn_client.prompt_agent.PromptAgent.prompt_terms_and_cond",
-        return_value=True,
-    )
-    def test_init_remote_regressor(
-        self, mock_server, mock_prompt_for_terms_and_cond, mock_prompt_and_set_token
-    ):
+    def test_init_remote_regressor(self, mock_server, mock_prompt_and_set_token):
         mock_prompt_and_set_token.side_effect = (
             lambda: UserAuthenticationClient.set_token(self.dummy_token)
         )
@@ -68,7 +62,6 @@ class TestTabPFNRegressorInit(unittest.TestCase):
 
         init(use_server=True)
         self.assertTrue(mock_prompt_and_set_token.called)
-        self.assertTrue(mock_prompt_for_terms_and_cond.called)
 
         tabpfn = TabPFNRegressor(n_estimators=10)
         self.assertRaises(NotFittedError, tabpfn.predict, self.X_test)
@@ -118,13 +111,7 @@ class TestTabPFNRegressorInit(unittest.TestCase):
 
     @with_mock_server()
     @patch("tabpfn_client.prompt_agent.PromptAgent.prompt_and_set_token")
-    @patch(
-        "tabpfn_client.prompt_agent.PromptAgent.prompt_terms_and_cond",
-        return_value=True,
-    )
-    def test_invalid_saved_access_token(
-        self, mock_server, mock_prompt_for_terms_and_cond, mock_prompt_and_set_token
-    ):
+    def test_invalid_saved_access_token(self, mock_server, mock_prompt_and_set_token):
         mock_prompt_and_set_token.side_effect = [RuntimeError]
 
         # mock connection and invalid authentication
@@ -171,7 +158,15 @@ class TestTabPFNRegressorInit(unittest.TestCase):
         "tabpfn_client.prompt_agent.PromptAgent.prompt_terms_and_cond",
         return_value=False,
     )
-    def test_decline_terms_and_cond(self, mock_server, mock_prompt_for_terms_and_cond):
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "1",
+        ],
+    )
+    def test_decline_terms_and_cond(
+        self, mock_server, mock_input, mock_prompt_for_terms_and_cond
+    ):
         # mock connection
         mock_server.router.get(mock_server.endpoints.root.path).respond(200)
 
