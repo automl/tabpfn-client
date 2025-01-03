@@ -15,7 +15,18 @@ class TestPromptAgent(unittest.TestCase):
     @patch("getpass.getpass", side_effect=["Password123!", "Password123!"])
     @patch(
         "builtins.input",
-        side_effect=["1", "user@example.com", "test", "test", "test", "y", "test"],
+        side_effect=[
+            "1",
+            "user@example.com",
+            "y",
+            "first",
+            "last",
+            "test",
+            "test",
+            "test",
+            "y",
+            "test",
+        ],
     )
     def test_prompt_and_set_token_registration(
         self, mock_input, mock_getpass, mock_server
@@ -50,6 +61,8 @@ class TestPromptAgent(unittest.TestCase):
                 "Password123!",
                 "tabpfn-2023",
                 {
+                    "first_name": "first",
+                    "last_name": "last",
                     "company": "test",
                     "role": "test",
                     "use_case": "test",

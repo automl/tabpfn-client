@@ -47,7 +47,6 @@ class PromptAgent:
 
     @classmethod
     def prompt_and_set_token(cls):
-        print("inside prompt_and_set_token")
         # Choose between registration and login
         prompt = "\n".join(
             [
