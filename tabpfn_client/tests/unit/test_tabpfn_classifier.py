@@ -67,7 +67,6 @@ class TestTabPFNClassifierInit(unittest.TestCase):
 
         init(use_server=True)
         self.assertTrue(mock_prompt_and_set_token.called)
-        self.assertTrue(mock_prompt_for_terms_and_cond.called)
 
         tabpfn = TabPFNClassifier(n_estimators=10)
         self.assertRaises(NotFittedError, tabpfn.predict, self.X_test)

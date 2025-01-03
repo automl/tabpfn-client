@@ -835,12 +835,13 @@ class ServiceClient(Singleton):
 
         cls._validate_response(response, "delete_user_account")
 
-    def try_browser_login(self) -> tuple[bool, str]:
+    @classmethod
+    def try_browser_login(cls) -> tuple[bool, str]:
         """
         Attempts browser-based login flow
         Returns (success: bool, message: str)
         """
-        browser_auth = BrowserAuthHandler(self.server_config.gui_url)
+        browser_auth = BrowserAuthHandler(cls.server_config.gui_url)
         success, token = browser_auth.try_browser_login()
 
         if success and token:
