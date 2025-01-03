@@ -102,6 +102,11 @@ class PromptAgent:
                             "Entered password and confirmation password do not match, please try again.\n"
                         )
                     )
+            if not cls.prompt_personally_identifiable_information():
+                raise RuntimeError(
+                    "You must agree to not upload personally identifiable information."
+                )
+
             additional_info = cls.prompt_add_user_information()
             is_created, message, access_token = (
                 UserAuthenticationClient.set_token_by_registration(
@@ -189,14 +194,44 @@ class PromptAgent:
         return choice == "y"
 
     @classmethod
+    def prompt_personally_identifiable_information(cls) -> bool:
+        pii = "\n".join(
+            [
+                "Do you agree to not upload personally identifiable information? (y/n): ",
+            ]
+        )
+        choice = cls._choice_with_retries(pii, ["y", "n"])
+        return choice == "y"
+
+    @classmethod
     def prompt_add_user_information(cls) -> dict:
+        print(cls.indent("\nPlease provide your name:"))
+
+        # Required fields
+        while True:
+            first_name = input(cls.indent("First Name: ")).strip()
+            if not first_name:
+                print(
+                    cls.indent("First name is required. Please enter your first name.")
+                )
+                continue
+            break
+
+        while True:
+            last_name = input(cls.indent("Last Name: ")).strip()
+            if not last_name:
+                print(cls.indent("Last name is required. Please enter your last name."))
+                continue
+            break
+
         print(
             cls.indent(
-                "To help us tailor our support and services to your needs, we have a few optional questions. "
+                "\nTo help us tailor our support and services to your needs, we have a few optional questions. "
                 "Feel free to skip any question by leaving it blank."
             )
             + "\n"
         )
+
         company = input(cls.indent("Where do you work? "))
         role = input(cls.indent("What is your role? "))
         use_case = input(cls.indent("What do you want to use TabPFN for? "))
@@ -207,6 +242,8 @@ class PromptAgent:
         contact_via_email = True if choice_contact == "y" else False
 
         return {
+            "first_name": first_name,
+            "last_name": last_name,
             "company": company,
             "role": role,
             "use_case": use_case,
