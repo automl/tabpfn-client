@@ -47,7 +47,6 @@ class PromptAgent:
 
     @classmethod
     def prompt_and_set_token(cls):
-        print("inside prompt_and_set_token")
         # Choose between registration and login
         prompt = "\n".join(
             [
@@ -64,6 +63,13 @@ class PromptAgent:
         # Registration
         if choice == "1":
             validation_link = "tabpfn-2023"
+
+            agreed_terms_and_cond = cls.prompt_terms_and_cond()
+            if not agreed_terms_and_cond:
+                raise RuntimeError(
+                    "You must agree to the terms and conditions to use TabPFN"
+                )
+
             while True:
                 email = input(cls.indent("Please enter your email: "))
                 # Send request to server to check if email is valid and not already taken.
@@ -102,7 +108,19 @@ class PromptAgent:
                             "Entered password and confirmation password do not match, please try again.\n"
                         )
                     )
+            agreed_personally_identifiable_information = (
+                cls.prompt_personally_identifiable_information()
+            )
+            if not agreed_personally_identifiable_information:
+                raise RuntimeError(
+                    "You must agree to not upload personally identifiable information."
+                )
+
             additional_info = cls.prompt_add_user_information()
+            additional_info["agreed_terms_and_cond"] = agreed_terms_and_cond
+            additional_info["agreed_personally_identifiable_information"] = (
+                agreed_personally_identifiable_information
+            )
             is_created, message, access_token = (
                 UserAuthenticationClient.set_token_by_registration(
                     email, password, password_confirm, validation_link, additional_info
@@ -180,7 +198,7 @@ class PromptAgent:
     def prompt_terms_and_cond(cls) -> bool:
         t_and_c = "\n".join(
             [
-                "Please refer to our terms and conditions at: https://www.priorlabs.ai/terms-eu-en "
+                "\nPlease refer to our terms and conditions at: https://www.priorlabs.ai/terms "
                 "By using TabPFN, you agree to the following terms and conditions:",
                 "Do you agree to the above terms and conditions? (y/n): ",
             ]
@@ -189,14 +207,44 @@ class PromptAgent:
         return choice == "y"
 
     @classmethod
+    def prompt_personally_identifiable_information(cls) -> bool:
+        pii = "\n".join(
+            [
+                "Do you agree to not upload personally identifiable information? (y/n): ",
+            ]
+        )
+        choice = cls._choice_with_retries(pii, ["y", "n"])
+        return choice == "y"
+
+    @classmethod
     def prompt_add_user_information(cls) -> dict:
+        print(cls.indent("\nPlease provide your name:"))
+
+        # Required fields
+        while True:
+            first_name = input(cls.indent("First Name: ")).strip()
+            if not first_name:
+                print(
+                    cls.indent("First name is required. Please enter your first name.")
+                )
+                continue
+            break
+
+        while True:
+            last_name = input(cls.indent("Last Name: ")).strip()
+            if not last_name:
+                print(cls.indent("Last name is required. Please enter your last name."))
+                continue
+            break
+
         print(
             cls.indent(
-                "To help us tailor our support and services to your needs, we have a few optional questions. "
+                "\nTo help us tailor our support and services to your needs, we have a few optional questions. "
                 "Feel free to skip any question by leaving it blank."
             )
             + "\n"
         )
+
         company = input(cls.indent("Where do you work? "))
         role = input(cls.indent("What is your role? "))
         use_case = input(cls.indent("What do you want to use TabPFN for? "))
@@ -207,6 +255,8 @@ class PromptAgent:
         contact_via_email = True if choice_contact == "y" else False
 
         return {
+            "first_name": first_name,
+            "last_name": last_name,
             "company": company,
             "role": role,
             "use_case": use_case,
