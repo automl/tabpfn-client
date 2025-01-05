@@ -317,7 +317,6 @@ class ServiceClient(Singleton):
                             print(data["data"])
                         elif data["event"] == "estimated_time_to_answer":
                             duration = float(data["data"])
-                            print(f"Duration estimate: {duration} seconds")
                             progress_thread = threading.Thread(target=run_progress)
                             progress_thread.daemon = True
                             progress_thread.start()

@@ -34,10 +34,7 @@ pip install tabpfn-client
 ### Basic Usage
 
 ```python
-from tabpfn_client import init, TabPFNClassifier
-
-# Login (interactive first time)
-init()
+from tabpfn_client import TabPFNClassifier
 
 # Use it like any sklearn model
 model = TabPFNClassifier()
@@ -56,7 +53,7 @@ probabilities = model.predict_proba(X_test)
 ## 🔑 Authentication
 You can retrieve your access token
 
-### Save Your Token
+### Load Your Token
 ```python
 import tabpfn_client
 token = tabpfn_client.get_access_token()
@@ -83,6 +80,21 @@ We're building the future of tabular machine learning and would love your involv
    - Share your success stories and use cases
 4. **Stay Updated**: Star the repo and join Discord for the latest updates
 
+## 🤝 License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE.txt](LICENSE.txt) file for details.
+
+## Access/Delete Personal Information
+
+You can use our `UserDataClient` to access and delete personal information.
+
+```python
+from tabpfn_client import UserDataClient
+
+print(UserDataClient.get_data_summary())
+```
+
+
 ## Development
 
 To encourage better coding practices, `ruff` has been added to the pre-commit hooks. This will ensure that the code is formatted properly before being committed. To enable pre-commit (if you haven't), run the following command:
@@ -99,15 +111,4 @@ Additionally, it is recommended that developers install the ruff extension in th
 if [ -d "dist" ]; then rm -rf dist/*; fi
 python3 -m pip install --upgrade build; python3 -m build
 python3 -m twine upload --repository pypi dist/*
-```
-
-
-### Access/Delete Personal Information
-
-You can use our `UserDataClient` to access and delete personal information.
-
-```python
-from tabpfn_client import UserDataClient
-
-print(UserDataClient.get_data_summary())
 ```
