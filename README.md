@@ -1,5 +1,4 @@
 # TabPFN Client
-
 [![PyPI version](https://badge.fury.io/py/tabpfn-client.svg)](https://badge.fury.io/py/tabpfn-client)
 [![Discord](https://img.shields.io/discord/1285598202732482621?color=7289da&label=Discord&logo=discord&logoColor=ffffff)](https://discord.com/channels/1285598202732482621/)
 [![colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ns_KdtyHgl29AOVwTw9c-DZrPj7fx_DW?usp=sharing)
@@ -11,52 +10,75 @@
 
 TabPFN is a foundation model for tabular data that outperforms traditional methods while being dramatically faster. This client library provides easy access to the TabPFN API, enabling state-of-the-art tabular machine learning in just a few lines of code.
 
-## ⚠️ Alpha Release Note
+📚 For detailed usage examples and best practices, check out:
+- [Interactive Colab Tutorial](https://colab.research.google.com/drive/1ns_KdtyHgl29AOVwTw9c-DZrPj7fx_DW?usp=sharing)
 
+## ⚠️ Alpha Release Note
 This is an alpha release. While we've tested it thoroughly in our use cases, you may encounter occasional issues. We appreciate your understanding and feedback as we continue to improve the service.
 
 This is a cloud-based service. Your data will be sent to our servers for processing.
-
-Do NOT upload any Personally Identifiable Information (PII)
-
-Do NOT upload any sensitive or confidential data
-
-Do NOT upload any data you don't have permission to share
-
-Consider anonymizing or pseudonymizing your data before upload
-
-Review your organization's data sharing policies before use
+- Do NOT upload any Personally Identifiable Information (PII)
+- Do NOT upload any sensitive or confidential data
+- Do NOT upload any data you don't have permission to share
+- Consider anonymizing or pseudonymizing your data before upload
+- Review your organization's data sharing policies before use
 
 ## 🏁 Quick Start
 
 ### Installation
-
 ```bash
 pip install tabpfn-client
 ```
 
 ### Basic Usage
-
 ```python
 from tabpfn_client import TabPFNClassifier
+# Login (interactive first time)
 
 # Use it like any sklearn model
 model = TabPFNClassifier()
 model.fit(X_train, y_train)
-
 # Get predictions
 predictions = model.predict(X_test)
-
 # Get probability estimates
 probabilities = model.predict_proba(X_test)
 ```
 
-📚 For detailed usage examples and best practices, check out:
-- [Interactive Colab Tutorial](https://colab.research.google.com/drive/1ns_KdtyHgl29AOVwTw9c-DZrPj7fx_DW?usp=sharing)
+## 📊 Usage Limits
+
+### API Cost Calculation
+Each API request consumes usage credits based on the following formula:
+```python
+api_cost = (num_train_rows + num_test_rows) * num_cols * n_estimators
+```
+Where `n_estimators` defaults to:
+- 4 for classification tasks
+- 8 for regression tasks
+
+### Monitoring Usage
+Track your API usage through response headers:
+- `X-RateLimit-Limit`: Your total allowed usage
+- `X-RateLimit-Remaining`: Remaining usage
+- `X-RateLimit-Reset`: Reset timestamp (UTC)
+
+Usage limits reset daily at 00:00:00 UTC.
+
+### Size Limitations
+
+1. Maximum total cells per request must be below 100,000:
+```python
+max_cells = (num_train_rows + num_test_rows) * num_cols
+```
+
+2. For regression with full output (`return_full_output=True`), the number of test samples must be below 500:
+```python
+if task == 'regression' and return_full_output and num_test_samples > 500:
+    raise ValueError("Cannot return full output for regression with >500 test samples")
+```
+
+These limits will be increased in future releases.
 
 ## 🔑 Authentication
-You can retrieve your access token
-
 ### Load Your Token
 ```python
 import tabpfn_client
@@ -64,13 +86,11 @@ token = tabpfn_client.get_access_token()
 ```
 
 and login (on another machine) using your access token, skipping the interactive flow, use:
-
 ```python
 tabpfn_client.set_access_token(token)
 ```
 
 ## 🤝 Join Our Community
-
 We're building the future of tabular machine learning and would love your involvement! Here's how you can participate and get help:
 
 1. **Try TabPFN**: Use it in your projects and share your experience
@@ -100,7 +120,6 @@ print(UserDataClient.get_data_summary())
 
 
 ## Development
-
 To encourage better coding practices, `ruff` has been added to the pre-commit hooks. This will ensure that the code is formatted properly before being committed. To enable pre-commit (if you haven't), run the following command:
 
 ```bash
@@ -110,7 +129,6 @@ pre-commit install
 Additionally, it is recommended that developers install the ruff extension in their preferred editor. For installation instructions, refer to the [Ruff Integrations Documentation](https://docs.astral.sh/ruff/integrations/).
 
 ### Build for PyPI
-
 ```bash
 if [ -d "dist" ]; then rm -rf dist/*; fi
 python3 -m pip install --upgrade build; python3 -m build
