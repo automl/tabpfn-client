@@ -210,10 +210,11 @@ class ServiceClient(Singleton):
             )
 
         # Get hash for dataset. Include access token for the case that one user uses different accounts.
-        cached_dataset_uid, dataset_hash = (
-            cls.dataset_uid_cache_manager.get_dataset_uid(
-                X_serialized, y_serialized, cls._access_token, "_".join(tabpfn_systems)
-            )
+        (
+            cached_dataset_uid,
+            dataset_hash,
+        ) = cls.dataset_uid_cache_manager.get_dataset_uid(
+            X_serialized, y_serialized, cls._access_token, "_".join(tabpfn_systems)
         )
         if cached_dataset_uid:
             return cached_dataset_uid
@@ -276,13 +277,14 @@ class ServiceClient(Singleton):
 
         # In the arguments for hashing, include train_set_uid for the case that the same test set was previously used
         # with different train set. Include access token for the case that a user uses different accounts.
-        cached_test_set_uid, dataset_hash = (
-            cls.dataset_uid_cache_manager.get_dataset_uid(
-                x_test_serialized,
-                train_set_uid,
-                cls._access_token,
-                "_".join(tabpfn_systems),
-            )
+        (
+            cached_test_set_uid,
+            dataset_hash,
+        ) = cls.dataset_uid_cache_manager.get_dataset_uid(
+            x_test_serialized,
+            train_set_uid,
+            cls._access_token,
+            "_".join(tabpfn_systems),
         )
 
         # Send prediction request. Loop two times, such that if anything cached is not correct
