@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "tabpfn-client"
 version = "0.0.26"
-requires-python = ">=3.10"
+requires-python = ">=3.9"
 dynamic = ["dependencies", "optional-dependencies"]
 
 classifiers = [
@@ -19,6 +19,7 @@ classifiers = [
   'Operating System :: Unix',
   'Operating System :: MacOS',
   'Programming Language :: Python :: 3',
+  'Programming Language :: Python :: 3.9',
   'Programming Language :: Python :: 3.10',
   'Programming Language :: Python :: 3.11',
 ]
