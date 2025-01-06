@@ -356,6 +356,84 @@ class TestTabPFNClassifierInference(unittest.TestCase):
             mock_predict.return_value = {"probas": np.random.rand(10, 2)}
             tabpfn.predict(test_X)
 
+    def test_only_allowed_parameters_passed_to_config(self):
+        """Test that only allowed parameters are passed to the config."""
+        ALLOWED_PARAMS = {
+            "n_estimators",
+            # TODO: put it back
+            # "categorical_features_indices",
+            "softmax_temperature",
+            "average_before_softmax",
+            "ignore_pretraining_limits",
+            "inference_precision",
+            "random_state",
+            "inference_config",
+            "model_path",
+            "balance_probabilities",
+            "paper_version",
+        }
+
+        # Create classifier with various parameters
+        classifier = TabPFNClassifier(
+            n_estimators=5,
+            softmax_temperature=0.8,
+            paper_version=True,
+            random_state=42,
+            balance_probabilities=True,
+        )
+
+        # Skip fitting
+        classifier.fitted_ = True
+        classifier.last_train_set_uid = "dummy_uid"
+
+        test_X = np.random.randn(10, 5)
+
+        # Mock predict and capture config
+        with patch.object(InferenceClient, "predict") as mock_predict:
+            mock_predict.return_value = np.random.rand(10, 2)
+            classifier.predict(test_X)
+
+            # Get the config that was passed to predict
+            actual_config = mock_predict.call_args[1]["config"]
+
+            # Check that only allowed parameters are present
+            config_params = set(actual_config.keys())
+            unexpected_params = config_params - ALLOWED_PARAMS
+            missing_params = ALLOWED_PARAMS - config_params
+
+            self.assertEqual(
+                unexpected_params,
+                set(),
+                f"Found unexpected parameters in config: {unexpected_params}",
+            )
+            self.assertEqual(
+                missing_params,
+                set(),
+                f"Missing required parameters in config: {missing_params}",
+            )
+
+    def test_predict_params_output_type(self):
+        """Test that predict_params contains correct output_type."""
+        classifier = TabPFNClassifier()
+        classifier.fitted_ = True  # Skip fitting
+        test_X = np.random.randn(10, 5)
+
+        # Test predict() sets output_type to "preds"
+        with patch.object(InferenceClient, "predict") as mock_predict:
+            mock_predict.return_value = np.random.rand(10)
+            classifier.predict(test_X)
+
+            predict_params = mock_predict.call_args[1]["predict_params"]
+            self.assertEqual(predict_params, {"output_type": "preds"})
+
+        # Test predict_proba() sets output_type to "probas"
+        with patch.object(InferenceClient, "predict") as mock_predict:
+            mock_predict.return_value = np.random.rand(10, 2)
+            classifier.predict_proba(test_X)
+
+            predict_params = mock_predict.call_args[1]["predict_params"]
+            self.assertEqual(predict_params, {"output_type": "probas"})
+
 
 class TestTabPFNModelSelection(unittest.TestCase):
     def setUp(self):

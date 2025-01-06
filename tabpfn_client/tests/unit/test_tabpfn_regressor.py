@@ -358,6 +358,85 @@ class TestTabPFNRegressorInference(unittest.TestCase):
             mock_predict.return_value = {"mean": np.random.randn(10)}
             tabpfn.predict(test_X)
 
+    def test_only_allowed_parameters_passed_to_config(self):
+        """Test that only allowed parameters are passed to the config."""
+        ALLOWED_PARAMS = {
+            "n_estimators",
+            # TODO: put it back
+            # "categorical_features_indices",
+            "softmax_temperature",
+            "average_before_softmax",
+            "ignore_pretraining_limits",
+            "inference_precision",
+            "random_state",
+            "inference_config",
+            "model_path",
+            "paper_version",
+        }
+
+        # Create regressor with various parameters
+        regressor = TabPFNRegressor(
+            n_estimators=8,
+            softmax_temperature=0.9,
+            paper_version=True,
+            random_state=42,
+        )
+
+        # Skip fitting
+        regressor.fitted_ = True
+        regressor.last_train_set_uid = "dummy_uid"
+
+        test_X = np.random.randn(10, 5)
+
+        # Mock predict and capture config
+        with patch.object(InferenceClient, "predict") as mock_predict:
+            mock_predict.return_value = {"mean": np.random.randn(10)}
+            regressor.predict(test_X)
+
+            # Get the config that was passed to predict
+            actual_config = mock_predict.call_args[1]["config"]
+
+            # Check that only allowed parameters are present
+            config_params = set(actual_config.keys())
+            unexpected_params = config_params - ALLOWED_PARAMS
+            missing_params = ALLOWED_PARAMS - config_params
+
+            self.assertEqual(
+                unexpected_params,
+                set(),
+                f"Found unexpected parameters in config: {unexpected_params}",
+            )
+            self.assertEqual(
+                missing_params,
+                set(),
+                f"Missing required parameters in config: {missing_params}",
+            )
+
+    def test_predict_params_output_type(self):
+        """Test that predict_params contains correct output_type and quantiles."""
+        regressor = TabPFNRegressor()
+        regressor.fitted_ = True  # Skip fitting
+        test_X = np.random.randn(10, 5)
+
+        # Test default predict() sets output_type to "mean"
+        with patch.object(InferenceClient, "predict") as mock_predict:
+            mock_predict.return_value = {"mean": np.random.randn(10)}
+            regressor.predict(test_X)
+
+            predict_params = mock_predict.call_args[1]["predict_params"]
+            self.assertEqual(predict_params, {"output_type": "mean", "quantiles": None})
+
+        # Test predict() with quantiles
+        with patch.object(InferenceClient, "predict") as mock_predict:
+            mock_predict.return_value = {"quantiles": np.random.randn(10, 3)}
+            quantiles = [0.1, 0.5, 0.9]
+            regressor.predict(test_X, output_type="quantiles", quantiles=quantiles)
+
+            predict_params = mock_predict.call_args[1]["predict_params"]
+            self.assertEqual(
+                predict_params, {"output_type": "quantiles", "quantiles": quantiles}
+            )
+
 
 class TestTabPFNModelSelection(unittest.TestCase):
     def setUp(self):
