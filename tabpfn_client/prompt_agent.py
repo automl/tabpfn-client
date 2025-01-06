@@ -113,7 +113,7 @@ class PromptAgent:
             )
             if not agreed_personally_identifiable_information:
                 raise RuntimeError(
-                    "You must agree to not upload personally identifiable information."
+                    "You must agree to not upload personal data."
                 )
 
             additional_info = cls.prompt_add_user_information()
@@ -210,7 +210,7 @@ class PromptAgent:
     def prompt_personally_identifiable_information(cls) -> bool:
         pii = "\n".join(
             [
-                "Do you agree to not upload personally identifiable information? (y/n): ",
+                "Do you agree to not upload personal data? (y/n): ",
             ]
         )
         choice = cls._choice_with_retries(pii, ["y", "n"])
