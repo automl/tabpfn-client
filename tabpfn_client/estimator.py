@@ -1,4 +1,4 @@
-from typing import Optional, Literal, Dict, Union, Sequence
+from typing import Optional, Literal, Dict, Union
 import logging
 
 import numpy as np
@@ -58,14 +58,13 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
         self,
         model_path: str = "default",
         n_estimators: int = 4,
-        categorical_features_indices: Sequence[int] | None = None,
         softmax_temperature: float = 0.9,
         balance_probabilities: bool = False,
         average_before_softmax: bool = False,
         ignore_pretraining_limits: bool = False,
         inference_precision: Literal["autocast", "auto"] = "auto",
-        random_state: int | np.random.RandomState | np.random.Generator | None = None,
-        inference_config: dict | None = None,
+        random_state: Optional[Union[int, np.random.RandomState, np.random.Generator]] = None,
+        inference_config: Optional[Dict] = None,
         paper_version: bool = False,
     ):
         """Initialize TabPFNClassifier.
@@ -79,11 +78,6 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
              predictions of `n_estimators`-many forward passes of TabPFN. Each forward
              pass has (slightly) different input data. Think of this as an ensemble of
              `n_estimators`-many "prompts" of the input data.
-        categorical_features_indices: Sequence[int] or None, default=None
-            The indices of the columns that are suggested to be treated as categorical.
-            If None, the model will infer the categorical columns. If provided, we
-            might ignore some of the suggestion to better fit the data seen during
-            pre-training.
         softmax_temperature: float, default=0.9
             The temperature for the softmax function. This is used to control the
             confidence of the model's predictions. Lower values make the model's
@@ -113,11 +107,11 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
         inference_config: dict or None, default=None
             Additional advanced arguments for model interface.
         paper_version: bool, default=False
-            If True, will use the model described in the paper.
+            If True, will use the model described in the paper, instead of the newest
+            version available on the API, which e.g handles text features better.
         """
         self.model_path = model_path
         self.n_estimators = n_estimators
-        self.categorical_features_indices = categorical_features_indices
         self.softmax_temperature = softmax_temperature
         self.balance_probabilities = balance_probabilities
         self.average_before_softmax = average_before_softmax
@@ -207,7 +201,6 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
         self,
         model_path: str = "default",
         n_estimators: int = 8,
-        categorical_features_indices: Optional[Sequence[int]] = None,
         softmax_temperature: float = 0.9,
         average_before_softmax: bool = False,
         ignore_pretraining_limits: bool = False,
@@ -227,11 +220,6 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
              predictions of `n_estimators`-many forward passes of TabPFN. Each forward
              pass has (slightly) different input data. Think of this as an ensemble of
              `n_estimators`-many "prompts" of the input data.
-        categorical_features_indices: Sequence[int] or None, default=None
-            The indices of the columns that are suggested to be treated as categorical.
-            If None, the model will infer the categorical columns. If provided, we
-            might ignore some of the suggestion to better fit the data seen during
-            pre-training.
         softmax_temperature: float, default=0.9
             The temperature for the softmax function. This is used to control the
             confidence of the model's predictions. Lower values make the model's
@@ -255,12 +243,11 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
         inference_config: dict or None, default=None
             Additional advanced arguments for model interface.
         paper_version: bool, default=False
-            If True, will use the model described in the paper. Note that this requires
-            all input features to be numerical.
+            If True, will use the model described in the paper, instead of the newest
+            version available on the API, which e.g handles text features better.
         """
         self.model_path = model_path
         self.n_estimators = n_estimators
-        self.categorical_features_indices = categorical_features_indices
         self.softmax_temperature = softmax_temperature
         self.average_before_softmax = average_before_softmax
         self.ignore_pretraining_limits = ignore_pretraining_limits
