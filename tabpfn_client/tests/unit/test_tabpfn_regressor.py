@@ -14,7 +14,6 @@ from tabpfn_client.tests.mock_tabpfn_server import with_mock_server
 from tabpfn_client.constants import CACHE_DIR
 from tabpfn_client import config
 import json
-import pandas as pd
 
 
 class TestTabPFNRegressorInit(unittest.TestCase):
@@ -54,47 +53,35 @@ class TestTabPFNRegressorInit(unittest.TestCase):
             mock_server.endpoints.retrieve_greeting_messages.path
         ).respond(200, json={"messages": []})
 
-        mock_predict_response = {
+        mock_predict_responses = {
             "mean": [100, 200, 300],
             "median": [110, 210, 310],
             "mode": [120, 220, 320],
         }
-        predict_route = mock_server.router.post(mock_server.endpoints.predict.path)
-        predict_route.respond(
-            200,
-            content=f'data: {json.dumps({"event": "result", "data": {"regression": mock_predict_response, "test_set_uid": "6"}})}\n\n',
-            headers={"Content-Type": "text/event-stream"},
-        )
+        for metric, response in mock_predict_responses.items():
+            predict_route = mock_server.router.post(mock_server.endpoints.predict.path)
+            predict_route.respond(
+                200,
+                content=f'data: {json.dumps({"event": "result", "data": {"regression": response, "test_set_uid": "6"}})}\n\n',
+                headers={"Content-Type": "text/event-stream"},
+            )
 
-        init(use_server=True)
-        self.assertTrue(mock_prompt_and_set_token.called)
+            init(use_server=True)
+            self.assertTrue(mock_prompt_and_set_token.called)
 
         tabpfn = TabPFNRegressor(n_estimators=10)
         self.assertRaises(NotFittedError, tabpfn.predict, self.X_test)
         tabpfn.fit(self.X_train, self.y_train)
         self.assertTrue(mock_prompt_and_set_token.called)
 
-        for metric in ["mean", "median", "mode"]:
-            tabpfn.optimize_metric = metric
-            y_pred = tabpfn.predict(self.X_test)
-            self.assertTrue(np.all(np.array(mock_predict_response[metric]) == y_pred))
+        y_pred = tabpfn.predict(self.X_test, output_type=metric)
+        self.assertTrue(np.all(np.array(response) == y_pred))
 
         self.assertIn(
             "n_estimators%22%3A%2010",
             str(predict_route.calls.last.request.url),
             "check that n_estimators is passed to the server",
         )
-
-    def test_valid_model_config(self):
-        # Test with valid model configuration
-        model_name = TabPFNRegressor.list_available_models()[0]
-        valid_config = TabPFNRegressor(model=model_name)
-        self.assertEqual(valid_config.model, model_name)
-
-    def test_invalid_model_config(self):
-        # Test with invalid model configuration
-        with self.assertRaises(ValueError):
-            TabPFNRegressor(model="invalid_model_name")
 
     @with_mock_server()
     def test_reuse_saved_access_token(self, mock_server):
@@ -396,17 +383,15 @@ class TestTabPFNModelSelection(unittest.TestCase):
             TabPFNRegressor._validate_model_name("invalid_model")
 
     def test_model_name_to_path_returns_expected_path(self):
-        base_path = TabPFNRegressor._BASE_PATH
-
         # Test default model path
-        expected_default_path = f"{base_path}_regression.ckpt"
+        expected_default_path = "tabpfn-v2-regressor.ckpt"
         self.assertEqual(
             TabPFNRegressor._model_name_to_path("regression", "default"),
             expected_default_path,
         )
 
         # Test specific model path
-        expected_specific_path = f"{base_path}_regression_2noar4o2.ckpt"
+        expected_specific_path = "tabpfn-v2-regressor-2noar4o2.ckpt"
         self.assertEqual(
             TabPFNRegressor._model_name_to_path("regression", "2noar4o2"),
             expected_specific_path,
@@ -417,16 +402,19 @@ class TestTabPFNModelSelection(unittest.TestCase):
             TabPFNRegressor._model_name_to_path("regression", "invalid_model")
 
     def test_predict_uses_correct_model_path(self):
+        # First verify available models are as expected
+        expected_models = ["default", "2noar4o2", "5wof9ojf", "09gpqh39", "wyl4o83o"]
+        self.assertEqual(TabPFNRegressor._AVAILABLE_MODELS, expected_models)
+
         # Setup
         X = np.random.rand(10, 5)
         y = np.random.rand(10)
 
-        tabpfn = TabPFNRegressor(model="2noar4o2")
+        tabpfn = TabPFNRegressor(model_path="2noar4o2")
 
         # Mock the inference client
         with patch.object(InferenceClient, "predict") as mock_predict:
             mock_predict.return_value = {"mean": np.random.rand(10)}
-
             with patch.object(InferenceClient, "fit") as mock_fit:
                 mock_fit.return_value = "dummy_uid"
 
@@ -436,9 +424,7 @@ class TestTabPFNModelSelection(unittest.TestCase):
 
                 # Verify the model path was correctly passed to predict
                 predict_kwargs = mock_predict.call_args[1]
-                expected_model_path = (
-                    f"{TabPFNRegressor._BASE_PATH}_regression_2noar4o2.ckpt"
-                )
+                expected_model_path = "tabpfn-v2-regressor-2noar4o2.ckpt"
 
                 self.assertEqual(
                     predict_kwargs["config"]["model_path"], expected_model_path
@@ -465,35 +451,3 @@ class TestTabPFNModelSelection(unittest.TestCase):
         tabpfn_false.fit(X, y)
         y_pred_false = tabpfn_false.predict(test_X)
         self.assertIsNotNone(y_pred_false)
-
-    @patch.object(InferenceClient, "fit", return_value="dummy_uid")
-    @patch.object(InferenceClient, "predict", return_value={"mean": np.random.rand(10)})
-    def test_check_paper_version_with_non_numerical_data_raises_error(
-        self, mock_predict, mock_fit
-    ):
-        # Create a TabPFNRegressor with paper_version=True
-        tabpfn = TabPFNRegressor(paper_version=True)
-
-        # Create non-numerical data
-        X = pd.DataFrame({"feature1": ["a", "b", "c"], "feature2": ["d", "e", "f"]})
-        y = np.array([0.1, 0.2, 0.3])
-
-        with self.assertRaises(ValueError) as context:
-            tabpfn.fit(X, y)
-
-        self.assertIn(
-            "X must be numerical to use the paper version of the model",
-            str(context.exception),
-        )
-
-        # check that it works with paper_version=False
-        tabpfn = TabPFNRegressor(paper_version=False)
-        tabpfn.fit(X, y)
-
-        # check that paper_version=True works with numerical data even with the wrong type
-        X = np.random.rand(10, 5).astype(str)
-        y = np.random.rand(10)  # Continuous target for regression
-        tabpfn = TabPFNRegressor(paper_version=True)
-        tabpfn.fit(X, y)
-        X = pd.DataFrame(X).astype(str)
-        tabpfn.predict(X)

@@ -243,6 +243,7 @@ class ServiceClient(Singleton):
         train_set_uid: str,
         x_test,
         task: Literal["classification", "regression"],
+        predict_params: Union[dict, None] = None,
         tabpfn_config: Union[dict, None] = None,
         X_train=None,
         y_train=None,
@@ -265,7 +266,11 @@ class ServiceClient(Singleton):
 
         x_test_serialized = common_utils.serialize_to_csv_formatted_bytes(x_test)
 
-        params = {"train_set_uid": train_set_uid, "task": task}
+        params = {
+            "train_set_uid": train_set_uid,
+            "task": task,
+            "predict_params": json.dumps(predict_params),
+        }
         if tabpfn_config is not None:
             paper_version = tabpfn_config.pop("paper_version")
             params["tabpfn_config"] = json.dumps(
@@ -377,15 +382,12 @@ class ServiceClient(Singleton):
         if cached_test_set_uid is None:
             cls.dataset_uid_cache_manager.add_dataset_uid(dataset_hash, test_set_uid)
 
-        # The results contain different things for the different tasks
-        # - classification: probas_array
-        # - regression: {"mean": mean_array, "median": median_array, "mode": mode_array, ...}
-        # So, if the result is not a dictionary, we add a "probas" key to it.
         if not isinstance(result, dict):
-            result = {"probas": result}
-
-        for k in result:
-            result[k] = np.array(result[k])
+            result = np.array(result)
+        else:
+            for k in result:
+                if isinstance(result[k], list):
+                    result[k] = np.array(result[k])
 
         return result
 

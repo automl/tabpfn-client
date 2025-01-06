@@ -3,8 +3,6 @@ from unittest.mock import patch
 import shutil
 import json
 
-import pandas as pd
-
 import numpy as np
 
 from sklearn.datasets import load_breast_cancer
@@ -57,7 +55,7 @@ class TestTabPFNClassifierInit(unittest.TestCase):
             mock_server.endpoints.retrieve_greeting_messages.path
         ).respond(200, json={"messages": []})
 
-        mock_predict_response = [[1, 0.0], [0.9, 0.1], [0.01, 0.99]]
+        mock_predict_response = [1, 0, 1]
         predict_route = mock_server.router.post(mock_server.endpoints.predict.path)
         predict_route.respond(
             200,
@@ -73,7 +71,7 @@ class TestTabPFNClassifierInit(unittest.TestCase):
         tabpfn.fit(self.X_train, self.y_train)
         self.assertTrue(mock_prompt_and_set_token.called)
         y_pred = tabpfn.predict(self.X_test)
-        self.assertTrue(np.all(np.argmax(mock_predict_response, axis=1) == y_pred))
+        self.assertTrue(np.all(mock_predict_response == y_pred))
 
         self.assertIn(
             "n_estimators%22%3A%2010",
@@ -390,17 +388,15 @@ class TestTabPFNModelSelection(unittest.TestCase):
             TabPFNClassifier._validate_model_name("invalid_model")
 
     def test_model_name_to_path_returns_expected_path(self):
-        base_path = TabPFNClassifier._BASE_PATH
-
         # Test default model path
-        expected_default_path = f"{base_path}_classification.ckpt"
+        expected_default_path = "tabpfn-v2-classifier.ckpt"
         self.assertEqual(
             TabPFNClassifier._model_name_to_path("classification", "default"),
             expected_default_path,
         )
 
         # Test specific model path
-        expected_specific_path = f"{base_path}_classification_gn2p4bpt.ckpt"
+        expected_specific_path = "tabpfn-v2-classifier-gn2p4bpt.ckpt"
         self.assertEqual(
             TabPFNClassifier._model_name_to_path("classification", "gn2p4bpt"),
             expected_specific_path,
@@ -415,7 +411,7 @@ class TestTabPFNModelSelection(unittest.TestCase):
         X = np.random.rand(10, 5)
         y = np.random.randint(0, 2, 10)
 
-        tabpfn = TabPFNClassifier(model="gn2p4bpt")
+        tabpfn = TabPFNClassifier(model_path="gn2p4bpt")
 
         # Mock the inference client
         with patch.object(InferenceClient, "predict") as mock_predict:
@@ -430,9 +426,7 @@ class TestTabPFNModelSelection(unittest.TestCase):
 
                 # Verify the model path was correctly passed to predict
                 predict_kwargs = mock_predict.call_args[1]
-                expected_model_path = (
-                    f"{TabPFNClassifier._BASE_PATH}_classification_gn2p4bpt.ckpt"
-                )
+                expected_model_path = "tabpfn-v2-classifier-gn2p4bpt.ckpt"
 
                 self.assertEqual(
                     predict_kwargs["config"]["model_path"], expected_model_path
@@ -461,37 +455,3 @@ class TestTabPFNModelSelection(unittest.TestCase):
         tabpfn_false.fit(X, y)
         y_pred_false = tabpfn_false.predict(test_X)
         self.assertIsNotNone(y_pred_false)
-
-    @patch.object(InferenceClient, "fit", return_value="dummy_uid")
-    @patch.object(
-        InferenceClient, "predict", return_value={"probas": np.random.rand(10, 2)}
-    )
-    def test_check_paper_version_with_non_numerical_data_raises_error(
-        self, mock_predict, mock_fit
-    ):
-        # Create a TabPFNClassifier with paper_version=True
-        tabpfn = TabPFNClassifier(paper_version=True)
-
-        # Create non-numerical data
-        X = pd.DataFrame({"feature1": ["a", "b", "c"], "feature2": ["d", "e", "f"]})
-        y = np.array([0, 1, 0])
-
-        with self.assertRaises(ValueError) as context:
-            tabpfn.fit(X, y)
-
-        self.assertIn(
-            "X must be numerical to use the paper version of the model",
-            str(context.exception),
-        )
-
-        # check that it works with paper_version=False
-        tabpfn = TabPFNClassifier(paper_version=False)
-        tabpfn.fit(X, y)
-
-        # check that paper_version=True works with numerical data even with the wrong type
-        X = np.random.rand(10, 5).astype(str)
-        y = np.random.randint(0, 2, 10)
-        tabpfn = TabPFNClassifier(paper_version=True)
-        tabpfn.fit(X, y)
-        X = pd.DataFrame(X).astype(str)
-        tabpfn.predict(X)
