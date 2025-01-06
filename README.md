@@ -126,6 +126,7 @@ To encourage better coding practices, `ruff` has been added to the pre-commit ho
 pre-commit install
 ```
 
+
 Additionally, it is recommended that developers install the ruff extension in their preferred editor. For installation instructions, refer to the [Ruff Integrations Documentation](https://docs.astral.sh/ruff/integrations/).
 
 ### Build for PyPI
