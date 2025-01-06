@@ -23,7 +23,7 @@ classifiers = [
   'Programming Language :: Python :: 3.10',
   'Programming Language :: Python :: 3.11',
 ]
-license = { file = "LICENSE" }
+license = { file = "LICENSE.txt" }
 
 [project.urls]
 documentation = "https://priorlabs.ai/docs"

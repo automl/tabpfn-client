@@ -9,7 +9,7 @@ from importlib.metadata import version, PackageNotFoundError
 import numpy as np
 from omegaconf import OmegaConf
 import json
-from typing import Literal, Optional
+from typing import Literal, Optional, Union
 from cityhash import CityHash128
 import os
 from collections import OrderedDict
@@ -241,7 +241,7 @@ class ServiceClient(Singleton):
         train_set_uid: str,
         x_test,
         task: Literal["classification", "regression"],
-        tabpfn_config: dict | None = None,
+        tabpfn_config: Union[dict, None] = None,
         X_train=None,
         y_train=None,
     ) -> dict[str, np.ndarray]:
@@ -491,7 +491,7 @@ class ServiceClient(Singleton):
         return found_valid_connection
 
     @classmethod
-    def is_auth_token_outdated(cls, access_token) -> bool | None:
+    def is_auth_token_outdated(cls, access_token) -> Union[bool, None]:
         """
         Check if the provided access token is valid and return True if successful.
         """
@@ -748,7 +748,7 @@ class ServiceClient(Singleton):
         return response.json()
 
     @classmethod
-    def download_all_data(cls, save_dir: Path) -> Path | None:
+    def download_all_data(cls, save_dir: Path) -> Union[Path, None]:
         """
         Download all data uploaded by the user from the server.
 

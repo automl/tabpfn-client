@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, Literal, Dict
+from typing import Optional, Tuple, Literal, Dict, Union
 import logging
 from dataclasses import dataclass, asdict
 
@@ -325,11 +325,13 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
         remove_outliers=-1,
         regression_y_preprocess_transforms: Optional[
             Tuple[
-                None
-                | Literal[
-                    "safepower",
-                    "power",
-                    "quantile_norm",
+                Union[
+                    None,
+                    Literal[
+                        "safepower",
+                        "power",
+                        "quantile_norm",
+                    ],
                 ],
                 ...,
             ]
@@ -456,7 +458,7 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
         )
 
 
-def validate_data_size(X: np.ndarray, y: np.ndarray | None = None):
+def validate_data_size(X: np.ndarray, y: Union[np.ndarray, None] = None):
     """
     Check the integrity of the training data.
     - check if the number of rows between X and y is consistent
@@ -483,5 +485,7 @@ def _check_paper_version(paper_version, X):
         try:
             np.array(X, dtype=np.float32)
         except ValueError:
-            raise ValueError("""X must be numerical to use the paper version of the model.
-                                Preprocess your data or use `paper_version=False`.""")
+            raise ValueError(
+                """X must be numerical to use the paper version of the model.
+                                Preprocess your data or use `paper_version=False`."""
+            )
