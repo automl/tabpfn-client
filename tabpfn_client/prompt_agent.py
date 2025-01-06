@@ -112,19 +112,19 @@ class PromptAgent:
                 cls.prompt_personally_identifiable_information()
             )
             if not agreed_personally_identifiable_information:
-                raise RuntimeError(
-                    "You must agree to not upload personally identifiable information."
-                )
+                raise RuntimeError("You must agree to not upload personal data.")
 
             additional_info = cls.prompt_add_user_information()
             additional_info["agreed_terms_and_cond"] = agreed_terms_and_cond
-            additional_info["agreed_personally_identifiable_information"] = (
-                agreed_personally_identifiable_information
-            )
-            is_created, message, access_token = (
-                UserAuthenticationClient.set_token_by_registration(
-                    email, password, password_confirm, validation_link, additional_info
-                )
+            additional_info[
+                "agreed_personally_identifiable_information"
+            ] = agreed_personally_identifiable_information
+            (
+                is_created,
+                message,
+                access_token,
+            ) = UserAuthenticationClient.set_token_by_registration(
+                email, password, password_confirm, validation_link, additional_info
             )
             if not is_created:
                 raise RuntimeError("User registration failed: " + str(message) + "\n")
@@ -145,9 +145,11 @@ class PromptAgent:
                 email = input(cls.indent("Please enter your email: "))
                 password = getpass.getpass(cls.indent("Please enter your password: "))
 
-                access_token, message, status_code = (
-                    UserAuthenticationClient.set_token_by_login(email, password)
-                )
+                (
+                    access_token,
+                    message,
+                    status_code,
+                ) = UserAuthenticationClient.set_token_by_login(email, password)
                 if status_code == 200 and access_token is not None:
                     break
                 print(cls.indent("Login failed: " + str(message)) + "\n")
@@ -179,9 +181,10 @@ class PromptAgent:
                         )
                     )
                     while True:
-                        sent, message = (
-                            UserAuthenticationClient.send_reset_password_email(email)
-                        )
+                        (
+                            sent,
+                            message,
+                        ) = UserAuthenticationClient.send_reset_password_email(email)
                         print("\n" + cls.indent(message))
                         if sent:
                             break
@@ -210,7 +213,7 @@ class PromptAgent:
     def prompt_personally_identifiable_information(cls) -> bool:
         pii = "\n".join(
             [
-                "Do you agree to not upload personally identifiable information? (y/n): ",
+                "Do you agree to not upload personal data? (y/n): ",
             ]
         )
         choice = cls._choice_with_retries(pii, ["y", "n"])

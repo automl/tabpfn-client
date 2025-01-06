@@ -3,8 +3,15 @@
 [![Discord](https://img.shields.io/discord/1285598202732482621?color=7289da&label=Discord&logo=discord&logoColor=ffffff)](https://discord.com/channels/1285598202732482621/)
 [![colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ns_KdtyHgl29AOVwTw9c-DZrPj7fx_DW?usp=sharing)
 [![Documentation](https://img.shields.io/badge/docs-priorlabs.ai-blue)](https://priorlabs.ai/)
+[![Twitter Follow](https://img.shields.io/twitter/follow/Prior_Labs?style=social)](https://twitter.com/Prior_Labs)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+![Last Commit](https://img.shields.io/github/last-commit/automl/tabpfn-client)
+
 
 TabPFN is a foundation model for tabular data that outperforms traditional methods while being dramatically faster. This client library provides easy access to the TabPFN API, enabling state-of-the-art tabular machine learning in just a few lines of code.
+
+📚 For detailed usage examples and best practices, check out:
+- [Interactive Colab Tutorial](https://colab.research.google.com/drive/1ns_KdtyHgl29AOVwTw9c-DZrPj7fx_DW?usp=sharing)
 
 ## ⚠️ Alpha Release Note
 This is an alpha release. While we've tested it thoroughly in our use cases, you may encounter occasional issues. We appreciate your understanding and feedback as we continue to improve the service.
@@ -25,9 +32,9 @@ pip install tabpfn-client
 
 ### Basic Usage
 ```python
-from tabpfn_client import init, TabPFNClassifier
+from tabpfn_client import TabPFNClassifier
 # Login (interactive first time)
-init()
+
 # Use it like any sklearn model
 model = TabPFNClassifier()
 model.fit(X_train, y_train)
@@ -72,8 +79,7 @@ if task == 'regression' and return_full_output and num_test_samples > 500:
 These limits will be increased in future releases.
 
 ## 🔑 Authentication
-
-### Save Your Token
+### Load Your Token
 ```python
 import tabpfn_client
 token = tabpfn_client.get_access_token()
@@ -98,6 +104,21 @@ We're building the future of tabular machine learning and would love your involv
    - Share your success stories and use cases
 4. **Stay Updated**: Star the repo and join Discord for the latest updates
 
+## 🤝 License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE.txt](LICENSE.txt) file for details.
+
+## Access/Delete Personal Information
+
+You can use our `UserDataClient` to access and delete personal information.
+
+```python
+from tabpfn_client import UserDataClient
+
+print(UserDataClient.get_data_summary())
+```
+
+
 ## Development
 To encourage better coding practices, `ruff` has been added to the pre-commit hooks. This will ensure that the code is formatted properly before being committed. To enable pre-commit (if you haven't), run the following command:
 
@@ -113,14 +134,3 @@ if [ -d "dist" ]; then rm -rf dist/*; fi
 python3 -m pip install --upgrade build; python3 -m build
 python3 -m twine upload --repository pypi dist/*
 ```
-
-### Access/Delete Personal Information
-You can use our `UserDataClient` to access and delete personal information.
-
-```python
-from tabpfn_client import UserDataClient
-print(UserDataClient.get_data_summary())
-```
-
-📚 For detailed usage examples and best practices, check out:
-- [Interactive Colab Tutorial](https://colab.research.google.com/drive/1ns_KdtyHgl29AOVwTw9c-DZrPj7fx_DW?usp=sharing)

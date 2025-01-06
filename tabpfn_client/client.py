@@ -9,7 +9,7 @@ from importlib.metadata import version, PackageNotFoundError
 import numpy as np
 from omegaconf import OmegaConf
 import json
-from typing import Literal, Optional
+from typing import Literal, Optional, Union
 from cityhash import CityHash128
 import os
 from collections import OrderedDict
@@ -210,10 +210,11 @@ class ServiceClient(Singleton):
             )
 
         # Get hash for dataset. Include access token for the case that one user uses different accounts.
-        cached_dataset_uid, dataset_hash = (
-            cls.dataset_uid_cache_manager.get_dataset_uid(
-                X_serialized, y_serialized, cls._access_token, "_".join(tabpfn_systems)
-            )
+        (
+            cached_dataset_uid,
+            dataset_hash,
+        ) = cls.dataset_uid_cache_manager.get_dataset_uid(
+            X_serialized, y_serialized, cls._access_token, "_".join(tabpfn_systems)
         )
         if cached_dataset_uid:
             return cached_dataset_uid
@@ -241,7 +242,7 @@ class ServiceClient(Singleton):
         train_set_uid: str,
         x_test,
         task: Literal["classification", "regression"],
-        tabpfn_config: dict | None = None,
+        tabpfn_config: Union[dict, None] = None,
         X_train=None,
         y_train=None,
     ) -> dict[str, np.ndarray]:
@@ -276,13 +277,14 @@ class ServiceClient(Singleton):
 
         # In the arguments for hashing, include train_set_uid for the case that the same test set was previously used
         # with different train set. Include access token for the case that a user uses different accounts.
-        cached_test_set_uid, dataset_hash = (
-            cls.dataset_uid_cache_manager.get_dataset_uid(
-                x_test_serialized,
-                train_set_uid,
-                cls._access_token,
-                "_".join(tabpfn_systems),
-            )
+        (
+            cached_test_set_uid,
+            dataset_hash,
+        ) = cls.dataset_uid_cache_manager.get_dataset_uid(
+            x_test_serialized,
+            train_set_uid,
+            cls._access_token,
+            "_".join(tabpfn_systems),
         )
 
         # Send prediction request. Loop two times, such that if anything cached is not correct
@@ -317,7 +319,6 @@ class ServiceClient(Singleton):
                             print(data["data"])
                         elif data["event"] == "estimated_time_to_answer":
                             duration = float(data["data"])
-                            print(f"Duration estimate: {duration} seconds")
                             progress_thread = threading.Thread(target=run_progress)
                             progress_thread.daemon = True
                             progress_thread.start()
@@ -492,7 +493,7 @@ class ServiceClient(Singleton):
         return found_valid_connection
 
     @classmethod
-    def is_auth_token_outdated(cls, access_token) -> bool | None:
+    def is_auth_token_outdated(cls, access_token) -> Union[bool, None]:
         """
         Check if the provided access token is valid and return True if successful.
         """
@@ -749,7 +750,7 @@ class ServiceClient(Singleton):
         return response.json()
 
     @classmethod
-    def download_all_data(cls, save_dir: Path) -> Path | None:
+    def download_all_data(cls, save_dir: Path) -> Union[Path, None]:
         """
         Download all data uploaded by the user from the server.
 
