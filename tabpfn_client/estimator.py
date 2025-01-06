@@ -63,7 +63,9 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
         average_before_softmax: bool = False,
         ignore_pretraining_limits: bool = False,
         inference_precision: Literal["autocast", "auto"] = "auto",
-        random_state: Optional[Union[int, np.random.RandomState, np.random.Generator]] = None,
+        random_state: Optional[
+            Union[int, np.random.RandomState, np.random.Generator]
+        ] = None,
         inference_config: Optional[Dict] = None,
         paper_version: bool = False,
     ):
@@ -205,7 +207,9 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
         average_before_softmax: bool = False,
         ignore_pretraining_limits: bool = False,
         inference_precision: Literal["autocast", "auto"] = "auto",
-        random_state: Optional[Union[int, np.random.RandomState, np.random.Generator]] = None,
+        random_state: Optional[
+            Union[int, np.random.RandomState, np.random.Generator]
+        ] = None,
         inference_config: Optional[Dict] = None,
         paper_version: bool = False,
     ):
