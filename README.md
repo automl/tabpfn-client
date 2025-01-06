@@ -57,17 +57,19 @@ Track your API usage through response headers:
 Usage limits reset daily at 00:00:00 UTC.
 
 ### Size Limitations
-Current constraints:
-1. Maximum total cells per request:
+
+1. Maximum total cells per request must be below 100,000:
 ```python
 max_cells = (num_train_rows + num_test_rows) * num_cols
-# Must be below MAX_NUM_CELLS
 ```
-2. For regression with full output:
+
+2. For regression with full output (`return_full_output=True`), the number of test samples must be below 500:
 ```python
-# When return_full_output=True
-max_test_samples = MAX_NUM_TEST_SAMPLES_WITH_FULL_REGRESSION_OUTPUT
+if task == 'regression' and return_full_output and num_test_samples > 500:
+    raise ValueError("Cannot return full output for regression with >500 test samples")
 ```
+
+These limits will be increased in future releases.
 
 ## 🔑 Authentication
 
