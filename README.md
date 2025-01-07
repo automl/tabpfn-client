@@ -133,6 +133,15 @@ pre-commit install
 
 Additionally, it is recommended that developers install the ruff extension in their preferred editor. For installation instructions, refer to the [Ruff Integrations Documentation](https://docs.astral.sh/ruff/integrations/).
 
+### Build from GitHub
+```bash
+!git clone https://github.com/automl/tabpfn-client
+%cd tabpfn-client
+!git submodule update --init --recursive
+!pip install -e .
+%cd ..
+```
+
 ### Build for PyPI
 ```bash
 if [ -d "dist" ]; then rm -rf dist/*; fi
