@@ -3,8 +3,6 @@ from unittest.mock import patch
 import shutil
 import json
 
-import pandas as pd
-
 import numpy as np
 
 from sklearn.datasets import load_breast_cancer
@@ -57,7 +55,7 @@ class TestTabPFNClassifierInit(unittest.TestCase):
             mock_server.endpoints.retrieve_greeting_messages.path
         ).respond(200, json={"messages": []})
 
-        mock_predict_response = [[1, 0.0], [0.9, 0.1], [0.01, 0.99]]
+        mock_predict_response = [1, 0, 1]
         predict_route = mock_server.router.post(mock_server.endpoints.predict.path)
         predict_route.respond(
             200,
@@ -73,7 +71,7 @@ class TestTabPFNClassifierInit(unittest.TestCase):
         tabpfn.fit(self.X_train, self.y_train)
         self.assertTrue(mock_prompt_and_set_token.called)
         y_pred = tabpfn.predict(self.X_test)
-        self.assertTrue(np.all(np.argmax(mock_predict_response, axis=1) == y_pred))
+        self.assertTrue(np.all(mock_predict_response == y_pred))
 
         self.assertIn(
             "n_estimators%22%3A%2010",
@@ -358,6 +356,84 @@ class TestTabPFNClassifierInference(unittest.TestCase):
             mock_predict.return_value = {"probas": np.random.rand(10, 2)}
             tabpfn.predict(test_X)
 
+    def test_only_allowed_parameters_passed_to_config(self):
+        """Test that only allowed parameters are passed to the config."""
+        ALLOWED_PARAMS = {
+            "n_estimators",
+            # TODO: put it back
+            # "categorical_features_indices",
+            "softmax_temperature",
+            "average_before_softmax",
+            "ignore_pretraining_limits",
+            "inference_precision",
+            "random_state",
+            "inference_config",
+            "model_path",
+            "balance_probabilities",
+            "paper_version",
+        }
+
+        # Create classifier with various parameters
+        classifier = TabPFNClassifier(
+            n_estimators=5,
+            softmax_temperature=0.8,
+            paper_version=True,
+            random_state=42,
+            balance_probabilities=True,
+        )
+
+        # Skip fitting
+        classifier.fitted_ = True
+        classifier.last_train_set_uid = "dummy_uid"
+
+        test_X = np.random.randn(10, 5)
+
+        # Mock predict and capture config
+        with patch.object(InferenceClient, "predict") as mock_predict:
+            mock_predict.return_value = np.random.rand(10, 2)
+            classifier.predict(test_X)
+
+            # Get the config that was passed to predict
+            actual_config = mock_predict.call_args[1]["config"]
+
+            # Check that only allowed parameters are present
+            config_params = set(actual_config.keys())
+            unexpected_params = config_params - ALLOWED_PARAMS
+            missing_params = ALLOWED_PARAMS - config_params
+
+            self.assertEqual(
+                unexpected_params,
+                set(),
+                f"Found unexpected parameters in config: {unexpected_params}",
+            )
+            self.assertEqual(
+                missing_params,
+                set(),
+                f"Missing required parameters in config: {missing_params}",
+            )
+
+    def test_predict_params_output_type(self):
+        """Test that predict_params contains correct output_type."""
+        classifier = TabPFNClassifier()
+        classifier.fitted_ = True  # Skip fitting
+        test_X = np.random.randn(10, 5)
+
+        # Test predict() sets output_type to "preds"
+        with patch.object(InferenceClient, "predict") as mock_predict:
+            mock_predict.return_value = np.random.rand(10)
+            classifier.predict(test_X)
+
+            predict_params = mock_predict.call_args[1]["predict_params"]
+            self.assertEqual(predict_params, {"output_type": "preds"})
+
+        # Test predict_proba() sets output_type to "probas"
+        with patch.object(InferenceClient, "predict") as mock_predict:
+            mock_predict.return_value = np.random.rand(10, 2)
+            classifier.predict_proba(test_X)
+
+            predict_params = mock_predict.call_args[1]["predict_params"]
+            self.assertEqual(predict_params, {"output_type": "probas"})
+
 
 class TestTabPFNModelSelection(unittest.TestCase):
     def setUp(self):
@@ -390,17 +466,15 @@ class TestTabPFNModelSelection(unittest.TestCase):
             TabPFNClassifier._validate_model_name("invalid_model")
 
     def test_model_name_to_path_returns_expected_path(self):
-        base_path = TabPFNClassifier._BASE_PATH
-
         # Test default model path
-        expected_default_path = f"{base_path}_classification.ckpt"
+        expected_default_path = "tabpfn-v2-classifier.ckpt"
         self.assertEqual(
             TabPFNClassifier._model_name_to_path("classification", "default"),
             expected_default_path,
         )
 
         # Test specific model path
-        expected_specific_path = f"{base_path}_classification_gn2p4bpt.ckpt"
+        expected_specific_path = "tabpfn-v2-classifier-gn2p4bpt.ckpt"
         self.assertEqual(
             TabPFNClassifier._model_name_to_path("classification", "gn2p4bpt"),
             expected_specific_path,
@@ -415,7 +489,7 @@ class TestTabPFNModelSelection(unittest.TestCase):
         X = np.random.rand(10, 5)
         y = np.random.randint(0, 2, 10)
 
-        tabpfn = TabPFNClassifier(model="gn2p4bpt")
+        tabpfn = TabPFNClassifier(model_path="gn2p4bpt")
 
         # Mock the inference client
         with patch.object(InferenceClient, "predict") as mock_predict:
@@ -430,9 +504,7 @@ class TestTabPFNModelSelection(unittest.TestCase):
 
                 # Verify the model path was correctly passed to predict
                 predict_kwargs = mock_predict.call_args[1]
-                expected_model_path = (
-                    f"{TabPFNClassifier._BASE_PATH}_classification_gn2p4bpt.ckpt"
-                )
+                expected_model_path = "tabpfn-v2-classifier-gn2p4bpt.ckpt"
 
                 self.assertEqual(
                     predict_kwargs["config"]["model_path"], expected_model_path
@@ -461,37 +533,3 @@ class TestTabPFNModelSelection(unittest.TestCase):
         tabpfn_false.fit(X, y)
         y_pred_false = tabpfn_false.predict(test_X)
         self.assertIsNotNone(y_pred_false)
-
-    @patch.object(InferenceClient, "fit", return_value="dummy_uid")
-    @patch.object(
-        InferenceClient, "predict", return_value={"probas": np.random.rand(10, 2)}
-    )
-    def test_check_paper_version_with_non_numerical_data_raises_error(
-        self, mock_predict, mock_fit
-    ):
-        # Create a TabPFNClassifier with paper_version=True
-        tabpfn = TabPFNClassifier(paper_version=True)
-
-        # Create non-numerical data
-        X = pd.DataFrame({"feature1": ["a", "b", "c"], "feature2": ["d", "e", "f"]})
-        y = np.array([0, 1, 0])
-
-        with self.assertRaises(ValueError) as context:
-            tabpfn.fit(X, y)
-
-        self.assertIn(
-            "X must be numerical to use the paper version of the model",
-            str(context.exception),
-        )
-
-        # check that it works with paper_version=False
-        tabpfn = TabPFNClassifier(paper_version=False)
-        tabpfn.fit(X, y)
-
-        # check that paper_version=True works with numerical data even with the wrong type
-        X = np.random.rand(10, 5).astype(str)
-        y = np.random.randint(0, 2, 10)
-        tabpfn = TabPFNClassifier(paper_version=True)
-        tabpfn.fit(X, y)
-        X = pd.DataFrame(X).astype(str)
-        tabpfn.predict(X)

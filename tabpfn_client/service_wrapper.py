@@ -228,6 +228,7 @@ class InferenceClient(ServiceClientWrapper, Singleton):
         task: Literal["classification", "regression"],
         train_set_uid: str,
         config=None,
+        predict_params=None,
         X_train=None,
         y_train=None,
     ):
@@ -235,6 +236,7 @@ class InferenceClient(ServiceClientWrapper, Singleton):
             train_set_uid=train_set_uid,
             x_test=X,
             tabpfn_config=config,
+            predict_params=predict_params,
             task=task,
             X_train=X_train,
             y_train=y_train,

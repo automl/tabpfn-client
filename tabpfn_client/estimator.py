@@ -1,6 +1,5 @@
-from typing import Optional, Tuple, Literal, Dict, Union
+from typing import Optional, Literal, Dict, Union
 import logging
-from dataclasses import dataclass, asdict
 
 import numpy as np
 from tabpfn_client.config import init
@@ -16,110 +15,10 @@ MAX_ROWS = 10000
 MAX_COLS = 500
 
 
-@dataclass(eq=True, frozen=True)
-class PreprocessorConfig:
-    """
-    Configuration for data preprocessors.
-
-    Attributes:
-        name (Literal): Name of the preprocessor.
-        categorical_name (Literal): Name of the categorical encoding method. Valid options are "none", "numeric",
-                                "onehot", "ordinal", "ordinal_shuffled". Default is "none".
-        append_original (bool): Whether to append the original features to the transformed features. Default is False.
-        subsample_features (float): Fraction of features to subsample. -1 means no subsampling. Default is -1.
-        global_transformer_name (str): Name of the global transformer to use. Default is None.
-    """
-
-    name: Literal[
-        "per_feature",  # a different transformation for each feature
-        "power",  # a standard sklearn power transformer
-        "safepower",  # a power transformer that prevents some numerical issues
-        "power_box",
-        "safepower_box",
-        "quantile_uni_coarse",  # different quantile transformations with few quantiles up to a lot
-        "quantile_norm_coarse",
-        "quantile_uni",
-        "quantile_norm",
-        "quantile_uni_fine",
-        "quantile_norm_fine",
-        "robust",  # a standard sklearn robust scaler
-        "kdi",
-        "none",  # no transformation (inside the transformer we anyways do a standardization)
-        "kdi_random_alpha",
-        "kdi_uni",
-        "kdi_random_alpha_uni",
-        "adaptive",
-        "norm_and_kdi",
-        # KDI with alpha collection
-        "kdi_alpha_0.3_uni",
-        "kdi_alpha_0.5_uni",
-        "kdi_alpha_0.8_uni",
-        "kdi_alpha_1.0_uni",
-        "kdi_alpha_1.2_uni",
-        "kdi_alpha_1.5_uni",
-        "kdi_alpha_2.0_uni",
-        "kdi_alpha_3.0_uni",
-        "kdi_alpha_5.0_uni",
-        "kdi_alpha_0.3",
-        "kdi_alpha_0.5",
-        "kdi_alpha_0.8",
-        "kdi_alpha_1.0",
-        "kdi_alpha_1.2",
-        "kdi_alpha_1.5",
-        "kdi_alpha_2.0",
-        "kdi_alpha_3.0",
-        "kdi_alpha_5.0",
-    ]
-    categorical_name: Literal[
-        "none",
-        "numeric",
-        "onehot",
-        "ordinal",
-        "ordinal_shuffled",
-        "ordinal_very_common_categories_shuffled",
-    ] = "none"
-    # categorical_name meanings:
-    # "none": categorical features are pretty much treated as ordinal, just not resorted
-    # "numeric": categorical features are treated as numeric, that means they are also power transformed for example
-    # "onehot": categorical features are onehot encoded
-    # "ordinal": categorical features are sorted and encoded as integers from 0 to n_categories - 1
-    # "ordinal_shuffled": categorical features are encoded as integers from 0 to n_categories - 1 in a random order
-    append_original: bool = False
-    subsample_features: Optional[float] = -1
-    global_transformer_name: Optional[str] = None
-    # if True, the transformed features (e.g. power transformed) are appended to the original features
-
-    def __str__(self):
-        return (
-            f"{self.name}_cat:{self.categorical_name}"
-            + ("_and_none" if self.append_original else "")
-            + (
-                "_subsample_feats_" + str(self.subsample_features)
-                if self.subsample_features > 0
-                else ""
-            )
-            + (
-                f"_global_transformer_{self.global_transformer_name}"
-                if self.global_transformer_name is not None
-                else ""
-            )
-        )
-
-    def can_be_cached(self):
-        return not self.subsample_features > 0
-
-    def to_dict(self):
-        return {
-            k: str(v) if not isinstance(v, (str, int, float, list, dict)) else v
-            for k, v in asdict(self).items()
-        }
-
-
 class TabPFNModelSelection:
     """Base class for TabPFN model selection and path handling."""
 
     _AVAILABLE_MODELS: list[str] = []
-    _BASE_PATH = "/home/venv/lib/python3.9/site-packages/tabpfn/model_cache/model_hans"
     _VALID_TASKS = {"classification", "regression"}
 
     @classmethod
@@ -139,10 +38,10 @@ class TabPFNModelSelection:
         cls, task: Literal["classification", "regression"], model_name: str
     ) -> str:
         cls._validate_model_name(model_name)
-
+        model_name_task = "classifier" if task == "classification" else "regressor"
         if model_name == "default":
-            return f"{cls._BASE_PATH}_{task}.ckpt"
-        return f"{cls._BASE_PATH}_{task}_{model_name}.ckpt"
+            return f"tabpfn-v2-{model_name_task}.ckpt"
+        return f"tabpfn-v2-{model_name_task}-{model_name}.ckpt"
 
 
 class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
@@ -157,100 +56,87 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
 
     def __init__(
         self,
-        model="default",
+        model_path: str = "default",
         n_estimators: int = 4,
-        preprocess_transforms: Tuple[PreprocessorConfig, ...] = (
-            PreprocessorConfig(
-                "quantile_uni_coarse",
-                append_original=True,
-                categorical_name="ordinal_very_common_categories_shuffled",
-                global_transformer_name="svd",
-                subsample_features=-1,
-            ),
-            PreprocessorConfig(
-                "none", categorical_name="numeric", subsample_features=-1
-            ),
-        ),
-        feature_shift_decoder: str = "shuffle",
-        normalize_with_test: bool = False,
-        average_logits: bool = False,
-        optimize_metric: Literal[
-            "auroc", "roc", "auroc_ovo", "balanced_acc", "acc", "log_loss", None
-        ] = "roc",
-        transformer_predict_kwargs: Optional[dict] = None,
-        multiclass_decoder="shuffle",
-        softmax_temperature: Optional[float] = -0.1,
-        use_poly_features=False,
-        max_poly_features=50,
-        remove_outliers=12.0,
-        add_fingerprint_features=True,
-        subsample_samples=-1,
-        paper_version=False,
+        softmax_temperature: float = 0.9,
+        balance_probabilities: bool = False,
+        average_before_softmax: bool = False,
+        ignore_pretraining_limits: bool = False,
+        inference_precision: Literal["autocast", "auto"] = "auto",
+        random_state: Optional[
+            Union[int, np.random.RandomState, np.random.Generator]
+        ] = None,
+        inference_config: Optional[Dict] = None,
+        paper_version: bool = False,
     ):
+        """Initialize TabPFNClassifier.
+
+        Parameters
+        ----------
+        model_path: str, default="default"
+            The name of the model to use.
+        n_estimators: int, default=4
+            The number of estimators in the TabPFN ensemble. We aggregate the
+             predictions of `n_estimators`-many forward passes of TabPFN. Each forward
+             pass has (slightly) different input data. Think of this as an ensemble of
+             `n_estimators`-many "prompts" of the input data.
+        softmax_temperature: float, default=0.9
+            The temperature for the softmax function. This is used to control the
+            confidence of the model's predictions. Lower values make the model's
+            predictions more confident. This is only applied when predicting during a
+            post-processing step. Set `softmax_temperature=1.0` for no effect.
+        balance_probabilities: bool, default=False
+            Whether to balance the probabilities based on the class distribution
+            in the training data. This can help to improve predictive performance
+            when the classes are highly imbalanced. This is only applied when predicting
+            during a post-processing step.
+        average_before_softmax: bool, default=False
+             Only used if `n_estimators > 1`. Whether to average the predictions of the
+             estimators before applying the softmax function. This can help to improve
+             predictive performance when there are many classes or when calibrating the
+             model's confidence. This is only applied when predicting during a
+             post-processing.
+        ignore_pretraining_limits: bool, default=False
+            Whether to ignore the pre-training limits of the model. The TabPFN models
+            have been pre-trained on a specific range of input data. If the input data
+            is outside of this range, the model may not perform well. You may ignore
+            our limits to use the model on data outside the pre-training range.
+        inference_precision: "autocast" or "auto", default="auto"
+            The precision to use for inference. This can dramatically affect the
+            speed and reproducibility of the inference.
+        random_state: int or RandomState or RandomGenerator or None, default=None
+            Controls the randomness of the model. Pass an int for reproducible results.
+        inference_config: dict or None, default=None
+            Additional advanced arguments for model interface.
+        paper_version: bool, default=False
+            If True, will use the model described in the paper, instead of the newest
+            version available on the API, which e.g handles text features better.
         """
-        Parameters:
-            model: The model string is the path to the model.
-            n_estimators: The number of ensemble configurations to use, the most important setting.
-            preprocess_transforms: A tuple of strings, specifying the preprocessing steps to use.
-                You can use the following strings as elements '(none|power|quantile|robust)[_all][_and_none]', where the first
-                part specifies the preprocessing step and the second part specifies the features to apply it to and
-                finally '_and_none' specifies that the original features should be added back to the features in plain.
-                Finally, you can combine all strings without `_all` with `_onehot` to apply one-hot encoding to the categorical
-                features specified with `self.fit(..., categorical_features=...)`.
-            feature_shift_decoder: ["shuffle", "none", "local_shuffle", "rotate", "auto_rotate"] Whether to shift features for each ensemble configuration.
-            normalize_with_test: If True, the test set is used to normalize the data, otherwise the training set is used only.
-            average_logits: Whether to average logits or probabilities for ensemble members.
-            optimize_metric: The optimization metric to use.
-            transformer_predict_kwargs: Additional keyword arguments to pass to the transformer predict method.
-            multiclass_decoder: The multiclass decoder to use.
-            softmax_temperature: A log spaced temperature, it will be applied as logits <- logits/exp(softmax_temperature).
-            use_poly_features: Whether to use polynomial features as the last preprocessing step.
-            max_poly_features: Maximum number of polynomial features to use.
-            remove_outliers: If not 0.0, will remove outliers from the input features, where values with a standard deviation larger than remove_outliers will be removed.
-            add_fingerprint_features: If True, will add one feature of random values, that will be added to the input features. This helps discern duplicated samples in the transformer model.
-            subsample_samples: If not None, will use a random subset of the samples for training in each ensemble configuration. If 1 or above, this will subsample to the specified number of samples. If in 0 to 1, the value is viewed as a fraction of the training set size.
-            paper_version: If True, will use the model described in the paper. Otherwise, will use a better model. Default is False.
-        """
-        self.model = model
+        self.model_path = model_path
         self.n_estimators = n_estimators
-        self.preprocess_transforms = preprocess_transforms
-        self.feature_shift_decoder = feature_shift_decoder
-        self.normalize_with_test = normalize_with_test
-        self.average_logits = average_logits
-        self.optimize_metric = optimize_metric
-        self.transformer_predict_kwargs = transformer_predict_kwargs
-        self.multiclass_decoder = multiclass_decoder
         self.softmax_temperature = softmax_temperature
-        self.use_poly_features = use_poly_features
-        self.max_poly_features = max_poly_features
-        self.remove_outliers = remove_outliers
-        self.add_fingerprint_features = add_fingerprint_features
-        self.subsample_samples = subsample_samples
+        self.balance_probabilities = balance_probabilities
+        self.average_before_softmax = average_before_softmax
+        self.ignore_pretraining_limits = ignore_pretraining_limits
+        self.inference_precision = inference_precision
+        self.random_state = random_state
+        self.inference_config = inference_config
         self.paper_version = paper_version
         self.last_train_set_uid = None
         self.last_train_X = None
         self.last_train_y = None
-
-    def _validate_targets_and_classes(self, y) -> np.ndarray:
-        from sklearn.utils import column_or_1d
-        from sklearn.utils.multiclass import check_classification_targets
-
-        y_ = column_or_1d(y, warn=True)
-        check_classification_targets(y)
-
-        # Get classes and encode before type conversion to guarantee correct class labels.
-        not_nan_mask = ~np.isnan(y)
-        self.classes_ = np.unique(y_[not_nan_mask])
 
     def fit(self, X, y):
         # assert init() is called
         init()
 
         validate_data_size(X, y)
-        self._validate_targets_and_classes(y)
         _check_paper_version(self.paper_version, X)
 
         estimator_param = self.get_params()
+        estimator_param["model_path"] = TabPFNClassifier._model_name_to_path(
+            "classification", self.model_path
+        )
         if Config.use_server:
             self.last_train_set_uid = InferenceClient.fit(X, y, config=estimator_param)
             self.last_train_X = X
@@ -263,31 +149,45 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
         return self
 
     def predict(self, X):
-        probas = self.predict_proba(X)
-        y = np.argmax(probas, axis=1)
-        y = self.classes_.take(np.asarray(y, dtype=int))
-        return y
+        """Predict class labels for samples in X.
+
+        Args:
+            X: The input samples.
+
+        Returns:
+            The predicted class labels.
+        """
+        return self._predict(X, output_type="preds")
 
     def predict_proba(self, X):
+        """Predict class probabilities for X.
+
+        Args:
+            X: The input samples.
+
+        Returns:
+            The class probabilities of the input samples.
+        """
+        return self._predict(X, output_type="probas")
+
+    def _predict(self, X, output_type):
         check_is_fitted(self)
         validate_data_size(X)
         _check_paper_version(self.paper_version, X)
 
         estimator_param = self.get_params()
-        if "model" in estimator_param:
-            # replace model by model_path since in TabPFN defines model as model_path
-            estimator_param["model_path"] = self._model_name_to_path(
-                "classification", estimator_param.pop("model")
-            )
+        estimator_param["model_path"] = TabPFNClassifier._model_name_to_path(
+            "classification", self.model_path
+        )
 
-        return InferenceClient.predict(
+        res = InferenceClient.predict(
             X,
             task="classification",
             train_set_uid=self.last_train_set_uid,
             config=estimator_param,
-            X_train=self.last_train_X,
-            y_train=self.last_train_y,
-        )["probas"]
+            predict_params={"output_type": output_type},
+        )
+        return res
 
 
 class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
@@ -301,110 +201,67 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
 
     def __init__(
         self,
-        model: str = "default",
+        model_path: str = "default",
         n_estimators: int = 8,
-        preprocess_transforms: Tuple[PreprocessorConfig, ...] = (
-            PreprocessorConfig(
-                "quantile_uni",
-                append_original=True,
-                categorical_name="ordinal_very_common_categories_shuffled",
-                global_transformer_name="svd",
-            ),
-            PreprocessorConfig("safepower", categorical_name="onehot"),
-        ),
-        feature_shift_decoder: str = "shuffle",
-        normalize_with_test: bool = False,
-        average_logits: bool = False,
-        optimize_metric: Literal[
-            "mse", "rmse", "mae", "r2", "mean", "median", "mode", "exact_match", None
-        ] = "rmse",
-        transformer_predict_kwargs: Optional[Dict] = None,
-        softmax_temperature: Optional[float] = -0.1,
-        use_poly_features=False,
-        max_poly_features=50,
-        remove_outliers=-1,
-        regression_y_preprocess_transforms: Optional[
-            Tuple[
-                Union[
-                    None,
-                    Literal[
-                        "safepower",
-                        "power",
-                        "quantile_norm",
-                    ],
-                ],
-                ...,
-            ]
-        ] = (
-            None,
-            "safepower",
-        ),
-        add_fingerprint_features: bool = True,
-        cancel_nan_borders: bool = True,
-        super_bar_dist_averaging: bool = False,
-        subsample_samples: float = -1,
+        softmax_temperature: float = 0.9,
+        average_before_softmax: bool = False,
+        ignore_pretraining_limits: bool = False,
+        inference_precision: Literal["autocast", "auto"] = "auto",
+        random_state: Optional[
+            Union[int, np.random.RandomState, np.random.Generator]
+        ] = None,
+        inference_config: Optional[Dict] = None,
         paper_version: bool = False,
     ):
-        """
-        Parameters:
-            model: The model string is the path to the model.
-            n_estimators: The number of ensemble configurations to use, the most important setting.
-            preprocess_transforms: A tuple of strings, specifying the preprocessing steps to use.
-                You can use the following strings as elements '(none|power|quantile_norm|quantile_uni|quantile_uni_coarse|robust...)[_all][_and_none]', where the first
-                part specifies the preprocessing step (see `.preprocessing.ReshapeFeatureDistributionsStep.get_all_preprocessors()`) and the second part specifies the features to apply it to and
-                finally '_and_none' specifies that the original features should be added back to the features in plain.
-                Finally, you can combine all strings without `_all` with `_onehot` to apply one-hot encoding to the categorical
-                features specified with `self.fit(..., categorical_features=...)`.
-            feature_shift_decoder: ["shuffle", "none", "local_shuffle", "rotate", "auto_rotate"] Whether to shift features for each ensemble configuration.
-            normalize_with_test: If True, the test set is used to normalize the data, otherwise the training set is used only.
-            average_logits: Whether to average logits or probabilities for ensemble members.
-            optimize_metric: The optimization metric to use.
-            transformer_predict_kwargs: Additional keyword arguments to pass to the transformer predict method.
-            softmax_temperature: A log spaced temperature, it will be applied as logits <- logits/exp(softmax_temperature).
-            use_poly_features: Whether to use polynomial features as the last preprocessing step.
-            max_poly_features: Maximum number of polynomial features to use, None means unlimited.
-            remove_outliers: If not 0.0, will remove outliers from the input features, where values with a standard deviation
-                larger than remove_outliers will be removed.
-            regression_y_preprocess_transforms: Preprocessing transforms for the target variable. This can be one from `.preprocessing.ReshapeFeatureDistributionsStep.get_all_preprocessors()`, e.g. "power".
-                This can also be None to not transform the targets, beside a simple mean/variance normalization.
-            add_fingerprint_features: If True, will add one feature of random values, that will be added to
-                the input features. This helps discern duplicated samples in the transformer model.
-            cancel_nan_borders: Whether to ignore buckets that are tranformed to nan values by inverting a `regression_y_preprocess_transform`.
-                This should be set to True, only set this to False if you know what you are doing.
-            super_bar_dist_averaging: If we use `regression_y_preprocess_transforms` we need to average the predictions over the different configurations.
-                The different configurations all come with different bar_distributions (Riemann distributions), though.
-                The default is for us to aggregate all bar distributions using simply scaled borders in the bar distribution, scaled by the mean and std of the target variable.
-                If you set this to True, a new bar distribution will be built using all the borders generated in the different configurations.
-            subsample_samples: If not None, will use a random subset of the samples for training in each ensemble configuration.
-                If 1 or above, this will subsample to the specified number of samples.
-                If in 0 to 1, the value is viewed as a fraction of the training set size.
-            paper_version: If True, will use the model described in the paper. Otherwise, will use a better model. Default is False.
-        """
+        """Initialize TabPFNRegressor.
 
-        if model not in self._AVAILABLE_MODELS:
-            raise ValueError(f"Invalid model name: {model}")
-
-        self.model = model
+        Parameters
+        ----------
+        model_path: str, default="default"
+            The name to the model to use.
+        n_estimators: int, default=8
+            The number of estimators in the TabPFN ensemble. We aggregate the
+             predictions of `n_estimators`-many forward passes of TabPFN. Each forward
+             pass has (slightly) different input data. Think of this as an ensemble of
+             `n_estimators`-many "prompts" of the input data.
+        softmax_temperature: float, default=0.9
+            The temperature for the softmax function. This is used to control the
+            confidence of the model's predictions. Lower values make the model's
+            predictions more confident. This is only applied when predicting during a
+            post-processing step. Set `softmax_temperature=1.0` for no effect.
+        average_before_softmax: bool, default=False
+            Only used if `n_estimators > 1`. Whether to average the predictions of the
+            estimators before applying the softmax function. This can help to improve
+            predictive performance when calibrating the model's confidence. This is only
+            applied when predicting during a post-processing step.
+        ignore_pretraining_limits: bool, default=False
+            Whether to ignore the pre-training limits of the model. The TabPFN models
+            have been pre-trained on a specific range of input data. If the input data
+            is outside of this range, the model may not perform well. You may ignore
+            our limits to use the model on data outside the pre-training range.
+        inference_precision: "autocast" or "auto", default="auto"
+            The precision to use for inference. This can dramatically affect the
+            speed and reproducibility of the inference.
+        random_state: int or RandomState or RandomGenerator or None, default=None
+            Controls the randomness of the model. Pass an int for reproducible results.
+        inference_config: dict or None, default=None
+            Additional advanced arguments for model interface.
+        paper_version: bool, default=False
+            If True, will use the model described in the paper, instead of the newest
+            version available on the API, which e.g handles text features better.
+        """
+        self.model_path = model_path
         self.n_estimators = n_estimators
-        self.preprocess_transforms = preprocess_transforms
-        self.feature_shift_decoder = feature_shift_decoder
-        self.normalize_with_test = normalize_with_test
-        self.average_logits = average_logits
-        self.optimize_metric = optimize_metric
-        self.transformer_predict_kwargs = transformer_predict_kwargs
         self.softmax_temperature = softmax_temperature
-        self.use_poly_features = use_poly_features
-        self.max_poly_features = max_poly_features
-        self.remove_outliers = remove_outliers
-        self.regression_y_preprocess_transforms = regression_y_preprocess_transforms
-        self.add_fingerprint_features = add_fingerprint_features
-        self.cancel_nan_borders = cancel_nan_borders
-        self.super_bar_dist_averaging = super_bar_dist_averaging
-        self.subsample_samples = subsample_samples
+        self.average_before_softmax = average_before_softmax
+        self.ignore_pretraining_limits = ignore_pretraining_limits
+        self.inference_precision = inference_precision
+        self.random_state = random_state
+        self.inference_config = inference_config
+        self.paper_version = paper_version
         self.last_train_set_uid = None
         self.last_train_X = None
         self.last_train_y = None
-        self.paper_version = paper_version
 
     def fit(self, X, y):
         # assert init() is called
@@ -414,6 +271,9 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
         _check_paper_version(self.paper_version, X)
 
         estimator_param = self.get_params()
+        estimator_param["model_path"] = TabPFNRegressor._model_name_to_path(
+            "regression", self.model_path
+        )
         if Config.use_server:
             self.last_train_set_uid = InferenceClient.fit(X, y, config=estimator_param)
             self.last_train_X = X
@@ -423,36 +283,59 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
             raise NotImplementedError(
                 "Only server mode is supported at the moment for init(use_server=False)"
             )
-        return self
 
-    def predict(self, X):
-        full_prediction_dict = self.predict_full(X)
-        if self.optimize_metric in ("mse", "rmse", "r2", "mean", None):
-            return full_prediction_dict["mean"]
-        elif self.optimize_metric in ("mae", "median"):
-            return full_prediction_dict["median"]
-        elif self.optimize_metric in ("mode", "exact_match"):
-            return full_prediction_dict["mode"]
-        else:
-            raise ValueError(f"Optimize metric {self.optimize_metric} not supported")
+    def predict(
+        self,
+        X: np.ndarray,
+        output_type: Literal[
+            "mean", "median", "mode", "quantiles", "full", "main"
+        ] = "mean",
+        quantiles: Optional[list[float]] = None,
+    ) -> Union[np.ndarray, list[np.ndarray], dict[str, np.ndarray]]:
+        """Predict regression target for X.
 
-    def predict_full(self, X):
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            The input samples.
+        output_type : str, default="mean"
+            The type of prediction to return:
+            - "mean": Return mean prediction
+            - "median": Return median prediction
+            - "mode": Return mode prediction
+            - "quantiles": Return predictions for specified quantiles
+            - "full": Return full prediction details
+            - "main": Return main prediction metrics
+        quantiles : list[float] or None, default=None
+            Quantiles to compute when output_type="quantiles".
+            Default is [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+
+        Returns
+        -------
+        array-like or dict
+            The predicted values.
+        """
         check_is_fitted(self)
         validate_data_size(X)
         _check_paper_version(self.paper_version, X)
 
+        # Add new parameters
+        predict_params = {
+            "output_type": output_type,
+            "quantiles": quantiles,
+        }
+
         estimator_param = self.get_params()
-        if "model" in estimator_param:
-            # replace model by model_path since in TabPFN defines model as model_path
-            estimator_param["model_path"] = self._model_name_to_path(
-                "regression", estimator_param.pop("model")
-            )
+        estimator_param["model_path"] = TabPFNRegressor._model_name_to_path(
+            "regression", self.model_path
+        )
 
         return InferenceClient.predict(
             X,
             task="regression",
             train_set_uid=self.last_train_set_uid,
             config=estimator_param,
+            predict_params=predict_params,
             X_train=self.last_train_X,
             y_train=self.last_train_y,
         )
@@ -480,12 +363,4 @@ def validate_data_size(X: np.ndarray, y: Union[np.ndarray, None] = None):
 
 
 def _check_paper_version(paper_version, X):
-    if paper_version:
-        # check if X can be converted to numerical values
-        try:
-            np.array(X, dtype=np.float32)
-        except ValueError:
-            raise ValueError(
-                """X must be numerical to use the paper version of the model.
-                                Preprocess your data or use `paper_version=False`."""
-            )
+    pass
