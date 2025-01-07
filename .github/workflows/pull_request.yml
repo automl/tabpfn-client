@@ -20,31 +20,96 @@ jobs:
           version: 0.3.3
           args: 'format --check'
 
-  test:
-    name: Run unit and integration tests
-    runs-on: ubuntu-latest
+  test_compatibility:
+    name: Test Package Compatibility
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.10"]
-
+        include:
+          - os: ubuntu-latest
+            python-version: "3.9"
+            dependency-set: minimum
+          - os: macos-13 # macos-latest doesn't work with python 3.10
+          # https://github.com/actions/setup-python/issues/855
+            python-version: "3.9"
+            dependency-set: minimum
+          - os: ubuntu-latest
+            python-version: "3.11"
+            dependency-set: maximum
+          - os: macos-latest
+            python-version: "3.11"
+            dependency-set: maximum
+    runs-on: ${{ matrix.os }}
+    
     steps:
       - uses: actions/checkout@v4
-
+      
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
           architecture: x64
 
-      - name: Install user's dependencies
-        run: pip install -r requirements.txt
+      - name: Install pip-tools
+        run: python -m pip install pip-tools
 
-      - name: Install test dependencies
-        run: pip install -r requirements-test.txt
+      - name: Generate requirements file for minimum dependencies
+        if: matrix.dependency-set == 'minimum'
+        run: |
+          python << EOF
+          import re
+          
+          with open('requirements.txt', 'r') as f:
+              reqs = f.readlines()
+          
+          min_reqs = []
+          for req in reqs:
+              req = req.strip()
+              if not req or req.startswith('#'):
+                  continue
+              # Extract package name and version range
+              match = re.match(r'([^>=<\s]+)\s*>=\s*([^,]+),\s*<=\s*([^,]+)', req)
+              if match:
+                  package, min_ver, _ = match.groups()
+                  min_reqs.append(f"{package}=={min_ver}")
+          
+          with open('requirements.txt', 'w') as f:
+              f.write('\n'.join(min_reqs))
+          EOF
+
+      - name: Generate requirements file for maximum dependencies
+        if: matrix.dependency-set == 'maximum'
+        run: |
+          python << EOF
+          import re
+          
+          with open('requirements.txt', 'r') as f:
+              reqs = f.readlines()
+          
+          max_reqs = []
+          for req in reqs:
+              req = req.strip()
+              if not req or req.startswith('#'):
+                  continue
+              # Extract package name and version range
+              match = re.match(r'([^>=<\s]+)\s*>=\s*([^,]+),\s*<=\s*([^,]+)', req)
+              if match:
+                  package, _, max_ver = match.groups()
+                  max_reqs.append(f"{package}=={max_ver}")
+          
+          with open('requirements.txt', 'w') as f:
+              f.write('\n'.join(max_reqs))
+          EOF
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-test.txt
+          pip install -r requirements.txt
 
       - name: Initialize submodules
         run: git submodule update --init --recursive
 
-      - name: Run Test
+      - name: Run Tests
         run: |
           python -m unittest discover -s tabpfn_client/tests -t tabpfn_client/tests
