@@ -44,40 +44,6 @@ predictions = model.predict(X_test)
 probabilities = model.predict_proba(X_test)
 ```
 
-## 📊 Usage Limits
-
-### API Cost Calculation
-Each API request consumes usage credits based on the following formula:
-```python
-api_cost = (num_train_rows + num_test_rows) * num_cols * n_estimators
-```
-Where `n_estimators` defaults to:
-- 4 for classification tasks
-- 8 for regression tasks
-
-### Monitoring Usage
-Track your API usage through response headers:
-- `X-RateLimit-Limit`: Your total allowed usage
-- `X-RateLimit-Remaining`: Remaining usage
-- `X-RateLimit-Reset`: Reset timestamp (UTC)
-
-Usage limits reset daily at 00:00:00 UTC.
-
-### Size Limitations
-
-1. Maximum total cells per request must be below 100,000:
-```python
-max_cells = (num_train_rows + num_test_rows) * num_cols
-```
-
-2. For regression with full output (`return_full_output=True`), the number of test samples must be below 500:
-```python
-if task == 'regression' and return_full_output and num_test_samples > 500:
-    raise ValueError("Cannot return full output for regression with >500 test samples")
-```
-
-These limits will be increased in future releases.
-
 ## 🔑 Authentication
 ### Load Your Token
 ```python
@@ -104,9 +70,42 @@ We're building the future of tabular machine learning and would love your involv
    - Share your success stories and use cases
 4. **Stay Updated**: Star the repo and join Discord for the latest updates
 
-## 🤝 License
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE.txt](LICENSE.txt) file for details.
+## 📊 Usage Limits
+
+### API Cost Calculation
+Each API request consumes usage credits based on the following formula:
+```python
+api_cost = (num_train_rows + num_test_rows) * num_cols * n_estimators
+```
+Where `n_estimators` defaults to:
+- 4 for classification tasks
+- 8 for regression tasks
+
+Per day the current prediction allowance is 5,000,000 cells. We will adjust this limit based on usage patterns.
+
+### Monitoring Usage
+Track your API usage through response headers:
+- `X-RateLimit-Limit`: Your total allowed usage
+- `X-RateLimit-Remaining`: Remaining usage
+- `X-RateLimit-Reset`: Reset timestamp (UTC)
+
+Usage limits reset daily at 00:00:00 UTC.
+
+### Size Limitations
+
+1. Maximum total cells per request must be below 100,000:
+```python
+max_cells = (num_train_rows + num_test_rows) * num_cols
+```
+
+2. For regression with full output (`return_full_output=True`), the number of test samples must be below 500:
+```python
+if task == 'regression' and return_full_output and num_test_samples > 500:
+    raise ValueError("Cannot return full output for regression with >500 test samples")
+```
+
+These limits will be increased in future releases.
 
 ## Access/Delete Personal Information
 
@@ -119,12 +118,18 @@ print(UserDataClient.get_data_summary())
 ```
 
 
+## 🤝 License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE.txt](LICENSE.txt) file for details.
+
+
 ## Development
 To encourage better coding practices, `ruff` has been added to the pre-commit hooks. This will ensure that the code is formatted properly before being committed. To enable pre-commit (if you haven't), run the following command:
 
 ```bash
 pre-commit install
 ```
+
 
 Additionally, it is recommended that developers install the ruff extension in their preferred editor. For installation instructions, refer to the [Ruff Integrations Documentation](https://docs.astral.sh/ruff/integrations/).
 
