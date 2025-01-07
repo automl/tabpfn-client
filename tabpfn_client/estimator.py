@@ -1,3 +1,6 @@
+#  Copyright (c) Prior Labs GmbH 2025.
+#  Licensed under the Apache License, Version 2.0
+
 from typing import Optional, Literal, Dict, Union
 import logging
 
