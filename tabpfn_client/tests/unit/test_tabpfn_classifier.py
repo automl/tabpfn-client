@@ -434,6 +434,46 @@ class TestTabPFNClassifierInference(unittest.TestCase):
             predict_params = mock_predict.call_args[1]["predict_params"]
             self.assertEqual(predict_params, {"output_type": "probas"})
 
+    def test_string_label_predictions(self):
+        """Test that string labels in y are preserved in predictions."""
+        X = np.random.rand(10, 5)
+        test_X = np.random.rand(5, 5)
+
+        # Test with pure string labels
+        y_str = np.array(["cat", "dog"] * 5)
+        clf_str = TabPFNClassifier()
+
+        # Mock fit and predict
+        with patch.object(InferenceClient, "fit") as mock_fit:
+            mock_fit.return_value = "dummy_uid"
+            clf_str.fit(X, y_str)
+
+            with patch.object(InferenceClient, "predict") as mock_predict:
+                mock_predict.return_value = np.array(["cat", "dog"] * 5)
+                y_pred = clf_str.predict(test_X)
+
+                self.assertTrue(np.all(np.isin(y_pred, ["cat", "dog"])))
+                self.assertTrue(
+                    y_pred.dtype.kind in {"U", "O"}, "Predictions should be string type"
+                )
+
+        # Test with numeric-like strings
+        y_num_str = np.array(["0", "1"] * 5)
+        clf_num_str = TabPFNClassifier()
+
+        with patch.object(InferenceClient, "fit") as mock_fit:
+            mock_fit.return_value = "dummy_uid"
+            clf_num_str.fit(X, y_num_str)
+
+            with patch.object(InferenceClient, "predict") as mock_predict:
+                mock_predict.return_value = np.array(["0", "1"] * 5)
+                y_pred = clf_num_str.predict(test_X)
+
+                self.assertTrue(np.all(np.isin(y_pred, ["0", "1"])))
+                self.assertTrue(
+                    y_pred.dtype.kind in {"U", "O"}, "Predictions should be string type"
+                )
+
 
 class TestTabPFNModelSelection(unittest.TestCase):
     def setUp(self):
