@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tabpfn-client"
-version = "0.0.27"
+version = "0.1.0"
 requires-python = ">=3.9,<3.12"
 # doesn't work with 3.12 and 3.13 because cityhash wheels are not available yet
 # (see https://github.com/escherba/python-cityhash/issues/88)
