@@ -1,4 +1,4 @@
 ### additional requirements to run tests on CI/CD
 
-scikit-learn
-respx
+scikit-learn==1.6.0
+respx==0.22.0
