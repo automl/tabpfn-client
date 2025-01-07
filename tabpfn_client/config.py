@@ -46,7 +46,6 @@ def init(use_server=True):
             PromptAgent.reverify_email(access_token)
         else:
             PromptAgent.prompt_welcome()
-
             # prompt for login / register
             PromptAgent.prompt_and_set_token()
 
