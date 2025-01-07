@@ -290,8 +290,8 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
         output_type: Literal[
             "mean", "median", "mode", "quantiles", "full", "main"
         ] = "mean",
-        quantiles: list[float] | None = None,
-    ) -> np.ndarray | list[np.ndarray] | dict[str, np.ndarray]:
+        quantiles: Optional[list[float]] = None,
+    ) -> Union[np.ndarray, list[np.ndarray], dict[str, np.ndarray]]:
         """Predict regression target for X.
 
         Parameters
