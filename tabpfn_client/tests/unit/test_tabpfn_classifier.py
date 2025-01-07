@@ -1,22 +1,19 @@
-import unittest
-from unittest.mock import patch
-import shutil
 import json
-
-import pandas as pd
-
 import numpy as np
-
+import pandas as pd
+import shutil
+import unittest
 from sklearn.datasets import load_breast_cancer
-from sklearn.model_selection import train_test_split
 from sklearn.exceptions import NotFittedError
+from sklearn.model_selection import train_test_split
+from unittest.mock import patch
 
+from tabpfn_client import config
 from tabpfn_client import init, reset
+from tabpfn_client.constants import CACHE_DIR
 from tabpfn_client.estimator import TabPFNClassifier
 from tabpfn_client.service_wrapper import UserAuthenticationClient, InferenceClient
 from tabpfn_client.tests.mock_tabpfn_server import with_mock_server
-from tabpfn_client.constants import CACHE_DIR
-from tabpfn_client import config
 
 
 class TestTabPFNClassifierInit(unittest.TestCase):

@@ -1,11 +1,10 @@
+import json
+import numpy as np
 import os
 import unittest
-from unittest.mock import Mock, patch
-
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
-import numpy as np
-import json
+from unittest.mock import Mock, patch
 
 from tabpfn_client.client import ServiceClient
 from tabpfn_client.constants import CACHE_DIR

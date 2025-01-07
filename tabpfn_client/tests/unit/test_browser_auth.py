@@ -1,11 +1,12 @@
-import unittest
-from unittest.mock import patch, MagicMock
-from tabpfn_client.browser_auth import BrowserAuthHandler
-import time
-import threading
-import urllib.parse
 import http.client
 import socketserver
+import threading
+import time
+import unittest
+import urllib.parse
+from unittest.mock import patch, MagicMock
+
+from tabpfn_client.browser_auth import BrowserAuthHandler
 
 
 class TestBrowserAuthHandler(unittest.TestCase):

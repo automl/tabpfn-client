@@ -1,8 +1,11 @@
-from threading import Event
+#  Copyright (c) Prior Labs GmbH 2025.
+#  Licensed under the Apache License, Version 2.0
+
 import http.server
 import socketserver
-import webbrowser
 import urllib.parse
+import webbrowser
+from threading import Event
 from typing import Optional, Tuple
 
 

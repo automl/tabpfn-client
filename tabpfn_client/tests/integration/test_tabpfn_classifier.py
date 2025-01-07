@@ -1,15 +1,14 @@
-import unittest
 import importlib
-
+import numpy as np
+import unittest
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
-import numpy as np
 
 import tabpfn_client.client
-from tabpfn_client import init, reset
 from tabpfn_client import TabPFNClassifier
-from tabpfn_client.tests.mock_tabpfn_server import with_mock_server
+from tabpfn_client import init, reset
 from tabpfn_client.service_wrapper import UserAuthenticationClient
+from tabpfn_client.tests.mock_tabpfn_server import with_mock_server
 
 
 class TestTabPFNClassifier(unittest.TestCase):

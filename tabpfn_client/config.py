@@ -1,9 +1,12 @@
+#  Copyright (c) Prior Labs GmbH 2025.
+#  Licensed under the Apache License, Version 2.0
+
 import shutil
 
 from tabpfn_client.client import ServiceClient
-from tabpfn_client.service_wrapper import UserAuthenticationClient
 from tabpfn_client.constants import CACHE_DIR
 from tabpfn_client.prompt_agent import PromptAgent
+from tabpfn_client.service_wrapper import UserAuthenticationClient
 
 
 class Config:

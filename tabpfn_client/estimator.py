@@ -1,13 +1,15 @@
-from typing import Optional, Tuple, Literal, Dict, Union
-import logging
-from dataclasses import dataclass, asdict
+#  Copyright (c) Prior Labs GmbH 2025.
+#  Licensed under the Apache License, Version 2.0
 
+import logging
 import numpy as np
-from tabpfn_client.config import init
+from dataclasses import dataclass, asdict
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
 from sklearn.utils.validation import check_is_fitted
+from typing import Optional, Tuple, Literal, Dict, Union
 
 from tabpfn_client.config import Config
+from tabpfn_client.config import init
 from tabpfn_client.service_wrapper import InferenceClient
 
 logger = logging.getLogger(__name__)

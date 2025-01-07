@@ -1,6 +1,6 @@
+import os
 import unittest
 import yaml
-import os
 
 
 class TestServerConfig(unittest.TestCase):

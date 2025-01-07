@@ -1,26 +1,29 @@
+#  Copyright (c) Prior Labs GmbH 2025.
+#  Licensed under the Apache License, Version 2.0
+
 from __future__ import annotations
 
-import traceback
-import re
-from pathlib import Path
 import httpx
-import logging
-from importlib.metadata import version, PackageNotFoundError
-import numpy as np
-from omegaconf import OmegaConf
 import json
-from typing import Literal, Optional, Union
-from cityhash import CityHash128
+import logging
+import numpy as np
 import os
-from collections import OrderedDict
+import re
 import sseclient
 import threading
 import time
+import traceback
+from cityhash import CityHash128
+from collections import OrderedDict
+from importlib.metadata import version, PackageNotFoundError
+from omegaconf import OmegaConf
+from pathlib import Path
 from tqdm import tqdm
+from typing import Literal, Optional, Union
 
-from tabpfn_client.tabpfn_common_utils import utils as common_utils
-from tabpfn_client.constants import CACHE_DIR
 from tabpfn_client.browser_auth import BrowserAuthHandler
+from tabpfn_client.constants import CACHE_DIR
+from tabpfn_client.tabpfn_common_utils import utils as common_utils
 from tabpfn_client.tabpfn_common_utils.utils import Singleton
 
 logger = logging.getLogger(__name__)

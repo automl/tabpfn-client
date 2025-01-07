@@ -1,20 +1,19 @@
+import json
+import numpy as np
+import pandas as pd
+import shutil
 import unittest
+from sklearn.datasets import load_diabetes
+from sklearn.exceptions import NotFittedError
+from sklearn.model_selection import train_test_split
 from unittest.mock import patch
 
-import shutil
-import numpy as np
-from sklearn.datasets import load_diabetes
-from sklearn.model_selection import train_test_split
-from sklearn.exceptions import NotFittedError
-
+from tabpfn_client import config
 from tabpfn_client import init, reset
+from tabpfn_client.constants import CACHE_DIR
 from tabpfn_client.estimator import TabPFNRegressor
 from tabpfn_client.service_wrapper import UserAuthenticationClient, InferenceClient
 from tabpfn_client.tests.mock_tabpfn_server import with_mock_server
-from tabpfn_client.constants import CACHE_DIR
-from tabpfn_client import config
-import json
-import pandas as pd
 
 
 class TestTabPFNRegressorInit(unittest.TestCase):
