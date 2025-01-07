@@ -10,24 +10,24 @@ class TestPromptAgent(unittest.TestCase):
         requirements = [repr(req) for req in password_policy.test("")]
         self.assertEqual(password_req, requirements)
 
-    @patch(
-        "tabpfn_client.prompt_agent.PromptAgent.prompt_terms_and_cond",
-        return_value=True,
-    )
-    @patch(
-        "tabpfn_client.prompt_agent.getpass.getpass",
-        side_effect=["Password123!", "Password123!"],
-    )
+    @patch("getpass.getpass", side_effect=["Password123!", "Password123!"])
     @patch(
         "builtins.input",
-        side_effect=["1", "user@gmail.com", "test", "test", "test", "y", "test"],
+        side_effect=[
+            "1",
+            "y",
+            "user@example.com",
+            "y",
+            "first",
+            "last",
+            "test",
+            "test",
+            "test",
+            "y",
+            "test",
+        ],
     )
-    def test_prompt_and_set_token_registration(
-        self,
-        mock_input,
-        mock_getpass,
-        mock_prompt_terms_and_cond,
-    ):
+    def test_prompt_and_set_token_registration(self, mock_input, mock_getpass):
         # for some reason, it needs to be patched with a with-statement instead of a decorator
         with patch(
             "tabpfn_client.prompt_agent.UserAuthenticationClient"
@@ -50,35 +50,29 @@ class TestPromptAgent(unittest.TestCase):
                 "Verification successful",
             )
 
-            with patch("builtins.print"):
-                PromptAgent.prompt_and_set_token()
+            PromptAgent.prompt_and_set_token()
 
-        mock_auth_client.validate_email.assert_called_once_with("user@gmail.com")
+            mock_auth_client.validate_email.assert_called_once_with("user@example.com")
+            mock_auth_client.set_token_by_registration.assert_called_once_with(
+                "user@example.com",
+                "Password123!",
+                "Password123!",
+                "tabpfn-2023",
+                {
+                    "first_name": "first",
+                    "last_name": "last",
+                    "company": "test",
+                    "role": "test",
+                    "use_case": "test",
+                    "contact_via_email": True,
+                    "agreed_terms_and_cond": True,
+                    "agreed_personally_identifiable_information": True,
+                },
+            )
 
-        mock_auth_client.try_browser_login.assert_called_once()
-        mock_auth_client.validate_email.assert_called_once_with("user@gmail.com")
-        mock_auth_client.set_token_by_registration.assert_called_once_with(
-            "user@gmail.com",
-            "Password123!",
-            "Password123!",
-            "tabpfn-2023",
-            {
-                "company": "test",
-                "role": "test",
-                "use_case": "test",
-                "contact_via_email": True,
-            },
-        )
-
-    @patch(
-        "tabpfn_client.prompt_agent.PromptAgent.prompt_terms_and_cond",
-        return_value=True,
-    )
     @patch("getpass.getpass", side_effect=["password123"])
     @patch("builtins.input", side_effect=["2", "user@gmail.com"])
-    def test_prompt_and_set_token_login(
-        self, mock_input, mock_getpass, mock_prompt_terms_and_cond
-    ):
+    def test_prompt_and_set_token_login(self, mock_input, mock_getpass):
         with patch(
             "tabpfn_client.prompt_agent.UserAuthenticationClient"
         ) as mock_auth_client:

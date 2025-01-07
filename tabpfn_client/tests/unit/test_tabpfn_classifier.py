@@ -150,14 +150,16 @@ class TestTabPFNClassifierInit(unittest.TestCase):
         return_value=False,
     )
     @patch("tabpfn_client.browser_auth.webbrowser.open", return_value=False)
+    @patch("builtins.input", side_effect=["1"])
     @with_mock_server()  # TODO (leo): investigate why this needs to be the last decorator
     def test_decline_terms_and_cond(
         self,
         mock_server,
+        mock_input,
         mock_webbrowser_open,
         mock_prompt_for_terms_and_cond,
     ):
-        # Mock connection
+        # mock connection
         mock_server.router.get(mock_server.endpoints.root.path).respond(200)
 
         self.assertRaises(RuntimeError, init, use_server=True)
