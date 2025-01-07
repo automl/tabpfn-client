@@ -47,7 +47,13 @@ class PromptAgent:
 
     @classmethod
     def prompt_and_set_token(cls):
-        # Choose between registration and login
+        # Try browser login first
+        success, message = UserAuthenticationClient.try_browser_login()
+        if success:
+            print(cls.indent("Login via browser successful!"))
+            return
+
+        # Rest of the existing CLI login code
         prompt = "\n".join(
             [
                 "Please choose one of the following options:",
@@ -116,9 +122,9 @@ class PromptAgent:
 
             additional_info = cls.prompt_add_user_information()
             additional_info["agreed_terms_and_cond"] = agreed_terms_and_cond
-            additional_info[
-                "agreed_personally_identifiable_information"
-            ] = agreed_personally_identifiable_information
+            additional_info["agreed_personally_identifiable_information"] = (
+                agreed_personally_identifiable_information
+            )
             (
                 is_created,
                 message,

@@ -1,6 +1,5 @@
 ### additional requirements for development
 
-
 # lint and format checking
-pre-commit
+pre-commit==4.0.1
 ruff == 0.3.3
