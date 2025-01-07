@@ -3,8 +3,8 @@
 
 from typing import Optional, Literal, Dict, Union
 import logging
-
 import numpy as np
+import pandas as pd
 from tabpfn_client.config import init
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
 from sklearn.utils.validation import check_is_fitted
@@ -134,6 +134,7 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
         init()
 
         validate_data_size(X, y)
+        self._validate_targets_and_classes(y)
         _check_paper_version(self.paper_version, X)
 
         estimator_param = self.get_params()
@@ -191,6 +192,17 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
             predict_params={"output_type": output_type},
         )
         return res
+
+    def _validate_targets_and_classes(self, y) -> np.ndarray:
+        from sklearn.utils import column_or_1d
+        from sklearn.utils.multiclass import check_classification_targets
+
+        y_ = column_or_1d(y, warn=True)
+        check_classification_targets(y)
+        # Get classes and encode before type conversion to guarantee correct class labels.
+        not_nan_mask = ~pd.isnull(y)
+        # TODO: should pass this from the server
+        self.classes_ = np.unique(y_[not_nan_mask])
 
 
 class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
