@@ -1,7 +1,7 @@
 # TabPFN Client
 [![PyPI version](https://badge.fury.io/py/tabpfn-client.svg)](https://badge.fury.io/py/tabpfn-client)
 [![Discord](https://img.shields.io/discord/1285598202732482621?color=7289da&label=Discord&logo=discord&logoColor=ffffff)](https://discord.com/channels/1285598202732482621/)
-[![colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1SHa43VuHASLjevzO7y3-wPCxHY18-2H6?usp=sharing)
+[![colab](https://colab.research.google.com/assets/colab-badge.svg)](https://tinyurl.com/tabpfn-colab-online)
 [![Documentation](https://img.shields.io/badge/docs-priorlabs.ai-blue)](https://priorlabs.ai/)
 [![Twitter Follow](https://img.shields.io/twitter/follow/Prior_Labs?style=social)](https://twitter.com/Prior_Labs)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
@@ -10,8 +10,7 @@
 
 TabPFN is a foundation model for tabular data that outperforms traditional methods while being dramatically faster. This client library provides easy access to the TabPFN API, enabling state-of-the-art tabular machine learning in just a few lines of code.
 
-📚 For detailed usage examples and best practices, check out:
-- [Interactive Colab Tutorial](https://colab.research.google.com/drive/1SHa43VuHASLjevzO7y3-wPCxHY18-2H6?usp=sharing)
+📚 For detailed usage examples and best practices, check out our [Interactive Colab Tutorial](https://tinyurl.com/tabpfn-colab-online)
 
 ## ⚠️ Alpha Release Note
 This is an alpha release. While we've tested it thoroughly in our use cases, you may encounter occasional issues. We appreciate your understanding and feedback as we continue to improve the service.
@@ -131,6 +130,23 @@ from tabpfn_client import UserDataClient
 print(UserDataClient.get_data_summary())
 ```
 
+## 📚 Citation
+
+```bibtex
+@article{hollmann2024tabpfn,
+ title={Accurate predictions on small data with a tabular foundation model},
+ author={Hollmann, Noah and M{\"u}ller, Samuel and Purucker, Lennart and
+         Krishnakumar, Arjun and K{\"o}rfer, Max and Hoo, Shi Bin and
+         Schirrmeister, Robin Tibor and Hutter, Frank},
+ journal={Nature},
+ year={2024},
+ month={01},
+ day={09},
+ doi={10.1038/s41586-024-08328-6},
+ publisher={Springer Nature},
+ url={https://www.nature.com/articles/s41586-024-08328-6},
+}
+```
 
 ## 🤝 License
 
