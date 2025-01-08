@@ -134,6 +134,7 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
         init()
 
         validate_data_size(X, y)
+        X = _clean_text_features(X)
         self._validate_targets_and_classes(y)
         _check_paper_version(self.paper_version, X)
 
@@ -178,6 +179,7 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
         check_is_fitted(self)
         validate_data_size(X)
         _check_paper_version(self.paper_version, X)
+        X = _clean_text_features(X)
 
         estimator_param = self.get_params()
         estimator_param["model_path"] = TabPFNClassifier._model_name_to_path(
@@ -283,6 +285,7 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
         init()
 
         validate_data_size(X, y)
+        X = _clean_text_features(X)
         _check_paper_version(self.paper_version, X)
 
         estimator_param = self.get_params()
@@ -298,7 +301,7 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
             raise NotImplementedError(
                 "Only server mode is supported at the moment for init(use_server=False)"
             )
-            
+
         return self
 
     def predict(
@@ -334,6 +337,7 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
         """
         check_is_fitted(self)
         validate_data_size(X)
+        X = _clean_text_features(X)
         _check_paper_version(self.paper_version, X)
 
         # Add new parameters
@@ -381,3 +385,29 @@ def validate_data_size(X: np.ndarray, y: Union[np.ndarray, None] = None):
 
 def _check_paper_version(paper_version, X):
     pass
+
+
+def _clean_text_features(X):
+    # Convert numpy array to pandas DataFrame if necessary
+    # not necessary if numpy array of numbers
+    if isinstance(X, np.ndarray):
+        if np.issubdtype(X.dtype, np.number):
+            return X
+        else:
+            X_ = pd.DataFrame(X.copy())
+    else:
+        X_ = X.copy()
+
+    # limit to 2500 chars and remove commas for text features
+    for col in X_.columns:
+        # check if we can't convert to float
+        try:
+            pd.to_numeric(X_[col])
+        except Exception:
+            if X_[col].dtype == object:  # only process string/object columns
+                X_[col] = X_[col].str.replace(",", "").str.slice(0, 2500)
+
+    # Convert back to numpy if input was numpy
+    if isinstance(X, np.ndarray):
+        return X_.to_numpy()
+    return X_
