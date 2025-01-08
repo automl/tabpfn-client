@@ -23,6 +23,14 @@ This is a cloud-based service. Your data will be sent to our servers for process
 - Consider anonymizing or pseudonymizing your data before upload
 - Review your organization's data sharing policies before use
 
+## 🌐 TabPFN Ecosystem
+
+Choose the right TabPFN implementation for your needs:
+
+- **TabPFN Client (this repo)**: Easy-to-use API client for cloud-based inference
+- **[TabPFN Extensions](https://github.com/priorlabs/tabpfn-extensions)**: Community extensions and integrations
+- **[TabPFN](https://github.com/priorlabs/tabpfn)*: Core implementation for local deployment and research
+
 ## 🏁 Quick Start
 
 ### Installation
