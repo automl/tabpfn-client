@@ -298,6 +298,8 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
             raise NotImplementedError(
                 "Only server mode is supported at the moment for init(use_server=False)"
             )
+            
+        return self
 
     def predict(
         self,
