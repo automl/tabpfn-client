@@ -57,6 +57,11 @@ predictions = model.predict(X_test)
 probabilities = model.predict_proba(X_test)
 ```
 
+### Best Results
+
+For the best results use AutoTabPFNClassifer or AutoTabPFNRegressor for PostHoc Ensembling from https://github.com/PriorLabs/tabpfn-extensions - this builds an ensemble of models. 
+See https://colab.research.google.com/drive/1SHa43VuHASLjevzO7y3-wPCxHY18-2H6#scrollTo=49sMXWT5DYzj&line=1&uniqifier=1
+
 ## 🔑 Authentication
 ### Load Your Token
 ```python
