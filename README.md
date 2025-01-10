@@ -10,8 +10,7 @@
 
 TabPFN is a foundation model for tabular data that outperforms traditional methods while being dramatically faster. This client library provides easy access to the TabPFN API, enabling state-of-the-art tabular machine learning in just a few lines of code.
 
-📚 For detailed usage examples and best practices, check out:
-- [Interactive Colab Tutorial](https://tinyurl.com/tabpfn-colab-online)
+📚 For detailed usage examples and best practices, check out our [Interactive Colab Tutorial](https://tinyurl.com/tabpfn-colab-online)
 
 ## ⚠️ Alpha Release Note
 This is an alpha release. While we've tested it thoroughly in our use cases, you may encounter occasional issues. We appreciate your understanding and feedback as we continue to improve the service.
@@ -134,13 +133,13 @@ print(UserDataClient.get_data_summary())
 ## 📚 Citation
 
 ```bibtex
-@article{hollmann2024tabpfn,
+@article{hollmann2025tabpfn,
  title={Accurate predictions on small data with a tabular foundation model},
  author={Hollmann, Noah and M{\"u}ller, Samuel and Purucker, Lennart and
          Krishnakumar, Arjun and K{\"o}rfer, Max and Hoo, Shi Bin and
          Schirrmeister, Robin Tibor and Hutter, Frank},
  journal={Nature},
- year={2024},
+ year={2025},
  month={01},
  day={09},
  doi={10.1038/s41586-024-08328-6},

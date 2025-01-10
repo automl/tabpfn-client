@@ -437,6 +437,121 @@ class TestTabPFNRegressorInference(unittest.TestCase):
                 predict_params, {"output_type": "quantiles", "quantiles": quantiles}
             )
 
+    def test_predict_with_long_and_comma_text(self):
+        """Test predictions with long text (>2500 chars) and text containing commas."""
+        # Skip initialization
+        tabpfn = TabPFNRegressor()
+        tabpfn.fitted_ = True
+
+        # Create test data with a mix of numeric and text features
+        n_samples = 5
+        n_features = 3
+
+        # Create base numeric data
+        X_numeric = np.random.randn(n_samples, n_features)
+
+        # Convert to list for easier manipulation
+        X = X_numeric.tolist()
+
+        # Add text variations to test
+        base_text = "very " * 500  # 2500 characters
+        long_text = base_text + " extra text that should be truncated"
+        text_with_commas = "very, " * 500  # Same length but with commas
+
+        # Create variations of the same data with different text
+        X_normal = [row + [base_text] for row in X]
+        X_long = [row + [long_text] for row in X]
+        X_commas = [row + [text_with_commas] for row in X]
+
+        # Mock predictions
+        expected_predictions = np.random.randn(n_samples)
+        with patch.object(InferenceClient, "predict") as mock_predict:
+            mock_predict.return_value = expected_predictions
+
+            # Test predictions for each variation
+            pred_normal = tabpfn.predict(np.array(X_normal))
+            pred_long = tabpfn.predict(np.array(X_long))
+            pred_commas = tabpfn.predict(np.array(X_commas))
+
+            # Verify predictions are returned as expected
+            print("pred_normal", pred_normal)
+            print("pred_long", pred_long)
+            print("pred_commas", pred_commas)
+            print("expected_predictions", expected_predictions)
+            np.testing.assert_array_equal(pred_normal, expected_predictions)
+            np.testing.assert_array_equal(pred_long, expected_predictions)
+            np.testing.assert_array_equal(pred_commas, expected_predictions)
+
+            # Verify that long text (which should be truncated) gives same predictions as normal text
+            np.testing.assert_array_equal(pred_normal, pred_long)
+
+            # Verify predict was called the same way for all variations
+            self.assertEqual(mock_predict.call_count, 3)
+
+    def test_predict_with_pandas_dataframe(self):
+        """Test predictions with pandas DataFrame input, including text columns."""
+        import pandas as pd
+
+        # Skip initialization
+        tabpfn = TabPFNRegressor()
+        tabpfn.fitted_ = True
+
+        # Create test data
+        n_samples = 5
+
+        # Create DataFrame with various column types
+        df = pd.DataFrame(
+            {
+                "numeric1": np.random.randn(n_samples),
+                "numeric2": np.random.randint(0, 100, n_samples),
+                "text_normal": ["Sample text " * 10] * n_samples,
+                "text_long": ["Very long " * 500] * n_samples,  # >2500 chars
+                "text_commas": ["Text, with, commas, " * 100] * n_samples,
+            }
+        )
+
+        # Create a copy for comparison
+        df_copy = df.copy()
+
+        # Mock predictions
+        expected_predictions = np.random.randn(n_samples)
+
+        with patch.object(InferenceClient, "predict") as mock_predict:
+            # Test predict()
+            mock_predict.return_value = expected_predictions
+            pred = tabpfn.predict(df)
+
+            # Verify DataFrame wasn't modified
+            pd.testing.assert_frame_equal(
+                df, df_copy, "Input DataFrame was modified during prediction"
+            )
+
+            # Verify predictions are returned as expected
+            np.testing.assert_array_equal(pred, expected_predictions)
+
+            # Test that column order doesn't matter
+            shuffled_columns = list(df.columns)
+            np.random.shuffle(shuffled_columns)
+            df_shuffled = df[shuffled_columns]
+            df_shuffled_copy = df_shuffled.copy()
+
+            # Test predict with shuffled columns
+            mock_predict.return_value = expected_predictions
+            pred_shuffled = tabpfn.predict(df_shuffled)
+
+            # Verify shuffled DataFrame wasn't modified
+            pd.testing.assert_frame_equal(
+                df_shuffled,
+                df_shuffled_copy,
+                "Shuffled DataFrame was modified during prediction",
+            )
+
+            # Verify predictions match regardless of column order
+            np.testing.assert_array_equal(pred, pred_shuffled)
+
+            # Verify predict was called twice
+            self.assertEqual(mock_predict.call_count, 2)
+
 
 class TestTabPFNModelSelection(unittest.TestCase):
     def setUp(self):
