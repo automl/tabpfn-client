@@ -474,7 +474,7 @@ class TestTabPFNClassifierInference(unittest.TestCase):
                     y_pred.dtype.kind in {"U", "O"}, "Predictions should be string type"
                 )
 
-    def test_predict_with_long_and_comma_text(self):
+    def test_predict_with_uncleaned_text(self):
         """Test predictions with long text (>2500 chars) and text containing commas."""
         # Skip initialization
         tabpfn = TabPFNClassifier()
@@ -495,20 +495,26 @@ class TestTabPFNClassifierInference(unittest.TestCase):
         base_text = "very " * 500  # 2500 characters
         long_text = base_text + " extra text that should be truncated"
         text_with_commas = "very, " * 500  # Same length but with commas
+        text_with_spaces = (
+            "text\n\n with\t\tweird    spaces\r\nand\n\n\nlinebreaks" * 100
+        )  # Text with various whitespace
 
         # Create variations of the same data with different text
         X_normal = [row + [base_text] for row in X]
         X_long = [row + [long_text] for row in X]
         X_commas = [row + [text_with_commas] for row in X]
+        X_spaces = [row + [text_with_spaces] for row in X]
 
         # Convert to numpy arrays and make copies for comparison
         X_normal_array = np.array(X_normal)
         X_long_array = np.array(X_long)
         X_commas_array = np.array(X_commas)
+        X_spaces_array = np.array(X_spaces)
 
         X_normal_copy = X_normal_array.copy()
         X_long_copy = X_long_array.copy()
         X_commas_copy = X_commas_array.copy()
+        X_spaces_copy = X_spaces_array.copy()
 
         # Mock predictions
         expected_predictions = np.random.randint(0, 2, n_samples)
@@ -525,6 +531,7 @@ class TestTabPFNClassifierInference(unittest.TestCase):
             pred_normal = tabpfn.predict(X_normal_array)
             pred_long = tabpfn.predict(X_long_array)
             pred_commas = tabpfn.predict(X_commas_array)
+            pred_spaces = tabpfn.predict(X_spaces_array)
 
             # Verify input arrays were not modified
             np.testing.assert_array_equal(
@@ -542,11 +549,17 @@ class TestTabPFNClassifierInference(unittest.TestCase):
                 X_commas_copy,
                 "Input array with comma text was modified during prediction",
             )
+            np.testing.assert_array_equal(
+                X_spaces_array,
+                X_spaces_copy,
+                "Input array with special spaces was modified during prediction",
+            )
 
             # Verify predictions are returned as expected
             np.testing.assert_array_equal(pred_normal, expected_predictions)
             np.testing.assert_array_equal(pred_long, expected_predictions)
             np.testing.assert_array_equal(pred_commas, expected_predictions)
+            np.testing.assert_array_equal(pred_spaces, expected_predictions)
 
             # Verify that long text (which should be truncated) gives same predictions as normal text
             np.testing.assert_array_equal(pred_normal, pred_long)
@@ -558,6 +571,7 @@ class TestTabPFNClassifierInference(unittest.TestCase):
             proba_normal = tabpfn.predict_proba(X_normal_array)
             proba_long = tabpfn.predict_proba(X_long_array)
             proba_commas = tabpfn.predict_proba(X_commas_array)
+            proba_spaces = tabpfn.predict_proba(X_spaces_array)
 
             # Verify input arrays were not modified during predict_proba
             np.testing.assert_array_equal(
@@ -575,17 +589,23 @@ class TestTabPFNClassifierInference(unittest.TestCase):
                 X_commas_copy,
                 "Input array with comma text was modified during probability prediction",
             )
+            np.testing.assert_array_equal(
+                X_spaces_array,
+                X_spaces_copy,
+                "Input array with special spaces was modified during probability prediction",
+            )
 
             # Verify probability predictions are returned as expected
             np.testing.assert_array_equal(proba_normal, expected_probas)
             np.testing.assert_array_equal(proba_long, expected_probas)
             np.testing.assert_array_equal(proba_commas, expected_probas)
+            np.testing.assert_array_equal(proba_spaces, expected_probas)
 
             # Verify that long text gives same probability predictions as normal text
             np.testing.assert_array_equal(proba_normal, proba_long)
 
-            # Verify predict and predict_proba were each called 3 times
-            self.assertEqual(mock_predict.call_count, 6)
+            # Verify predict and predict_proba were each called 4 times
+            self.assertEqual(mock_predict.call_count, 8)
 
     def test_predict_with_pandas_dataframe(self):
         """Test predictions with pandas DataFrame input, including text columns."""
