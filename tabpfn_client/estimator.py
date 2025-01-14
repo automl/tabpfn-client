@@ -405,7 +405,13 @@ def _clean_text_features(X):
             pd.to_numeric(X_[col])
         except Exception:
             if X_[col].dtype == object:  # only process string/object columns
-                X_[col] = X_[col].str.replace(",", "").str.slice(0, 2500)
+                X_[col] = (
+                    X_[col]
+                    .str.replace(",", "")
+                    .str.replace(r"\s+", " ", regex=True)
+                    .str.strip()
+                    .str.slice(0, 2500)
+                )
 
     # Convert back to numpy if input was numpy
     if isinstance(X, np.ndarray):
