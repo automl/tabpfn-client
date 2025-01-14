@@ -2,4 +2,4 @@
 
 # lint and format checking
 pre-commit==4.0.1
-ruff == 0.3.3
+ruff == 0.9.1
