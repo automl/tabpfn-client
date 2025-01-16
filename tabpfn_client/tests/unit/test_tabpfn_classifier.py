@@ -688,6 +688,55 @@ class TestTabPFNClassifierInference(unittest.TestCase):
             # Verify predictions match regardless of column order
             np.testing.assert_array_equal(pred, pred_shuffled)
 
+    def test_missing_values_in_y_raise_error(self):
+        """Test that missing values in y raise a ValueError."""
+        import pandas as pd
+
+        X = np.random.rand(10, 5)
+
+        # Test with None values
+        y_none = np.array([0, 1, None, 1, 0, 1, None, 0, 1, 0])
+        print("y_none", y_none)
+        print("y_none.dtype", y_none.dtype)
+        tabpfn = TabPFNClassifier()
+        with self.assertRaises(ValueError) as cm:
+            tabpfn.fit(X, y_none)
+        self.assertIn("contains NaN.", str(cm.exception))
+
+        # Test with np.nan values
+        y_nan = np.array([0, 1, np.nan, 1, 0, 1, np.nan, 0, 1, 0], dtype=float)
+        with self.assertRaises(ValueError) as cm:
+            tabpfn.fit(X, y_nan)
+        self.assertIn("contains NaN.", str(cm.exception))
+
+        # Test with pd.NA values
+        y_pd_na = pd.Series([0, 1, pd.NA, 1, 0, 1, pd.NA, 0, 1, 0])
+        with self.assertRaises(ValueError) as cm:
+            tabpfn.fit(X, y_pd_na)
+        self.assertIn("contains NaN.", str(cm.exception))
+
+        # Test with multiclass data containing missing values
+        y_multiclass_na = pd.Series([0, 1, 2, pd.NA, 1, 0, 2, pd.NA, 1, 0])
+        with self.assertRaises(ValueError) as cm:
+            tabpfn.fit(X, y_multiclass_na)
+        self.assertIn("contains NaN.", str(cm.exception))
+
+    def test_too_many_classes_raise_error(self):
+        """Test that having more than 10 classes raises a ValueError."""
+        X = np.random.rand(100, 5)
+        y = np.random.randint(0, 11, 100)  # 11 classes (0-10)
+
+        tabpfn = TabPFNClassifier()
+        with self.assertRaises(ValueError) as cm:
+            tabpfn.fit(X, y)
+        self.assertIn("exceeds the maximal number of", str(cm.exception))
+
+        # Test with string labels
+        y_str = np.array([f"class_{i}" for i in range(11)])[y]
+        with self.assertRaises(ValueError) as cm:
+            tabpfn.fit(X, y_str)
+        self.assertIn("exceeds the maximal number of", str(cm.exception))
+
 
 class TestTabPFNModelSelection(unittest.TestCase):
     def setUp(self):

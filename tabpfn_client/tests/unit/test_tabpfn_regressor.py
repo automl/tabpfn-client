@@ -584,6 +584,31 @@ class TestTabPFNRegressorInference(unittest.TestCase):
             # Verify predict was called twice
             self.assertEqual(mock_predict.call_count, 2)
 
+    def test_missing_values_in_y_raise_error(self):
+        """Test that missing values in y raise a ValueError."""
+        import pandas as pd
+
+        X = np.random.rand(10, 5)
+
+        # Test with None values
+        y_none = np.array([1.0, 2.0, None, 3.0, 4.0, 5.0, None, 6.0, 7.0, 8.0])
+        tabpfn = TabPFNRegressor()
+        with self.assertRaises(ValueError) as cm:
+            tabpfn.fit(X, y_none)
+        self.assertIn("contains NaN.", str(cm.exception))
+
+        # Test with np.nan values
+        y_nan = np.array([1.0, 2.0, np.nan, 3.0, 4.0, 5.0, np.nan, 6.0, 7.0, 8.0])
+        with self.assertRaises(ValueError) as cm:
+            tabpfn.fit(X, y_nan)
+        self.assertIn("contains NaN.", str(cm.exception))
+
+        # Test with pd.NA values
+        y_pd_na = pd.Series([1.0, 2.0, pd.NA, 3.0, 4.0, 5.0, pd.NA, 6.0, 7.0, 8.0])
+        with self.assertRaises(ValueError) as cm:
+            tabpfn.fit(X, y_pd_na)
+        self.assertIn("contains NaN.", str(cm.exception))
+
 
 class TestTabPFNModelSelection(unittest.TestCase):
     def setUp(self):
