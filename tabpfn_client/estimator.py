@@ -388,6 +388,11 @@ def _check_paper_version(paper_version, X):
 
 
 def _clean_text_features(X):
+    """
+    Clean text features in the input data. This is used to avoid
+    serialization errors, which happens when the input data contains
+    commas or weird spaces, and to limit the length of the text features.
+    """
     # Convert numpy array to pandas DataFrame if necessary
     # not necessary if numpy array of numbers
     if isinstance(X, np.ndarray):
@@ -403,9 +408,15 @@ def _clean_text_features(X):
         # check if we can't convert to float
         try:
             pd.to_numeric(X_[col])
-        except Exception:
+        except ValueError:
             if X_[col].dtype == object:  # only process string/object columns
-                X_[col] = X_[col].str.replace(",", "").str.slice(0, 2500)
+                X_[col] = (
+                    X_[col]
+                    .str.replace(",", "")
+                    .str.replace(r"\s+", " ", regex=True)
+                    .str.strip()
+                    .str.slice(0, 2500)
+                )
 
     # Convert back to numpy if input was numpy
     if isinstance(X, np.ndarray):
