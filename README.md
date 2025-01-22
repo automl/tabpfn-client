@@ -62,24 +62,6 @@ probabilities = model.predict_proba(X_test)
 
 For optimal performance, use the `AutoTabPFNClassifier` or `AutoTabPFNRegressor` for post-hoc ensembling. These can be found in the [TabPFN Extensions](https://github.com/PriorLabs/tabpfn-extensions) repository. Post-hoc ensembling combines multiple TabPFN models into an ensemble. 
 
-**Steps for Best Results:**
-1. Install the extensions:
-   ```bash
-   git clone https://github.com/priorlabs/tabpfn-extensions.git
-   pip install -e tabpfn-extensions
-   ```
-
-2.
-   ```python 
-   from tabpfn_extensions.post_hoc_ensembles.sklearn_interface import AutoTabPFNClassifier
-
-   clf = AutoTabPFNClassifier(max_time=120) # 120 seconds tuning time
-   clf.fit(X_train, y_train)
-   predictions = clf.predict(X_test)
-   ```
-
-See our [Colab example](https://colab.research.google.com/drive/1SHa43VuHASLjevzO7y3-wPCxHY18-2H6#scrollTo=49sMXWT5DYzj&line=1&uniqifier=1)
-
 ## 🔑 Authentication
 ### Load Your Token
 ```python
