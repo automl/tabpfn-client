@@ -206,8 +206,11 @@ class InferenceClient(ServiceClientWrapper):
             task=task,
         )
 
-    def generate_features(self, config=None):
+    def generate_features(
+        self, task: Literal["classification", "regression"], config=None
+    ):
         return self.service_client.generate_features(
             train_set_uid=self.last_train_set_uid,
             caafe_config=config,
+            task=task,
         )

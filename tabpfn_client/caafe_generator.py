@@ -1,4 +1,4 @@
-from typing import Optional, Dict
+from typing import Optional, Dict, Literal
 import logging
 
 from tabpfn_client import config
@@ -47,9 +47,12 @@ class CAAFE:
             )
         return self
 
-    def generate_features(self):
+    def generate_features(
+        self, task: Literal["classification", "regression"] = "classification"
+    ):
         if not self.fitted_:
             raise RuntimeError("Model has not been fitted yet")
         return config.g_caafe_config.inference_handler.generate_features(
-            config=self.params
+            config=self.params,
+            task=task,
         )

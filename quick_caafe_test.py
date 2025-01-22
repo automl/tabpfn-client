@@ -1,6 +1,6 @@
 import logging
 
-from sklearn.datasets import load_breast_cancer
+from sklearn.datasets import load_breast_cancer, load_diabetes
 from sklearn.model_selection import train_test_split
 
 from tabpfn_client import UserDataClient
@@ -28,6 +28,25 @@ if __name__ == "__main__":
     use_server = True
     # use_server = False
 
+    X, y = load_diabetes(return_X_y=True, as_frame=True)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.33, random_state=42
+    )
+    dataset_desc = """
+    Diabetes patient records were obtained from two sources:  an automatic electronic recording device and paper records.
+    The automatic device had an internal clock to timestamp events, whereas the paper records only provided "logical time" slots (breakfast, lunch, dinner, bedtime).
+    For paper records, fixed times were assigned to breakfast (08:00), lunch (12:00), dinner (18:00), and bedtime (22:00).
+    Thus paper records have fictitious uniform recording times whereas electronic records have more realistic time stamps.
+    """
+
+    caafe = CAAFE(model="latest_tabpfn_hosted", n_iters=3, params=caafe_config)
+    caafe.fit(X_train[:100], y_train[:100], dataset_desc)
+    print("generating using caafe")
+    res = caafe.generate_features(task="regression")
+
+    print(res)
+    print(UserDataClient().get_data_summary())
+
     X, y = load_breast_cancer(return_X_y=True, as_frame=True)
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.33, random_state=42
@@ -48,7 +67,7 @@ Also can be found on UCI Machine Learning Repository: https://archive.ics.uci.ed
     # print("checking estimator", check_estimator(tabpfn))
     caafe.fit(X_train[:100], y_train[:100], dataset_desc)
     print("generating using caafe")
-    res = caafe.generate_features()
+    res = caafe.generate_features(task="classification")
 
     print(res)
     print(UserDataClient().get_data_summary())
