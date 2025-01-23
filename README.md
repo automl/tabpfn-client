@@ -112,7 +112,7 @@ Usage limits reset daily at 00:00:00 UTC.
 
 ### Size Limitations
 
-1. Maximum total cells per request must be below 100,000:
+1. Maximum total cells per request must be below 500,000:
 ```python
 max_cells = (num_train_rows + num_test_rows) * num_cols
 ```
