@@ -7,6 +7,8 @@ import numpy as np
 import pandas as pd
 from tabpfn_client.config import init
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
+from sklearn.utils import column_or_1d
+from sklearn.utils.multiclass import check_classification_targets
 from sklearn.utils.validation import check_is_fitted
 
 from tabpfn_client.config import Config
@@ -16,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 MAX_ROWS = 10000
 MAX_COLS = 500
+MAX_NUMBER_OF_CLASSES = 10
 
 
 class TabPFNModelSelection:
@@ -198,15 +201,22 @@ class TabPFNClassifier(BaseEstimator, ClassifierMixin, TabPFNModelSelection):
         return res
 
     def _validate_targets_and_classes(self, y) -> np.ndarray:
-        from sklearn.utils import column_or_1d
-        from sklearn.utils.multiclass import check_classification_targets
-
         y_ = column_or_1d(y, warn=True)
+        if sum(pd.isnull(y_)) > 0:
+            raise ValueError("Input y contains NaN.")
         check_classification_targets(y)
         # Get classes and encode before type conversion to guarantee correct class labels.
-        not_nan_mask = ~pd.isnull(y)
         # TODO: should pass this from the server
-        self.classes_ = np.unique(y_[not_nan_mask])
+        self.classes_ = np.unique(y_)
+        # TODO: these things should ideally be shared with the local package
+        if len(self.classes_) > MAX_NUMBER_OF_CLASSES:
+            raise ValueError(
+                f"Number of classes {len(self.classes_)} exceeds the maximal number of "
+                f"{MAX_NUMBER_OF_CLASSES} classes supported by TabPFN. Consider using "
+                "a strategy to reduce the number of classes. For code see "
+                "https://github.com/PriorLabs/tabpfn-extensions/blob/main/src/"
+                "tabpfn_extensions/many_class/many_class_classifier.py"
+            )
 
 
 class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
@@ -289,6 +299,7 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
         init()
 
         validate_data_size(X, y)
+        self._validate_targets(y)
         X = _clean_text_features(X)
         _check_paper_version(self.paper_version, X)
 
@@ -364,6 +375,11 @@ class TabPFNRegressor(BaseEstimator, RegressorMixin, TabPFNModelSelection):
             X_train=self.last_train_X,
             y_train=self.last_train_y,
         )
+
+    def _validate_targets(self, y) -> np.ndarray:
+        y_ = column_or_1d(y, warn=True)
+        if sum(pd.isnull(y_)) > 0:
+            raise ValueError("Input y contains NaN.")
 
 
 def validate_data_size(X: np.ndarray, y: Union[np.ndarray, None] = None):
