@@ -151,6 +151,13 @@ print(UserDataClient.get_data_summary())
  publisher={Springer Nature},
  url={https://www.nature.com/articles/s41586-024-08328-6},
 }
+
+@inproceedings{hollmann2023tabpfn,
+  title={TabPFN: A transformer that solves small tabular classification problems in a second},
+  author={Hollmann, Noah and M{\"u}ller, Samuel and Eggensperger, Katharina and Hutter, Frank},
+  booktitle={International Conference on Learning Representations 2023},
+  year={2023}
+}
 ```
 
 ## 🤝 License
